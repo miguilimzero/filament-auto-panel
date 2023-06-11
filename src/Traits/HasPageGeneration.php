@@ -12,11 +12,6 @@ trait HasPageGeneration
 {
     public static array $createdClasses = [];
 
-    public static function makeIndex(string $resource): array
-    {
-        return self::generateAnonymousClass(FilamentAutoResourceIndex::class, $resource)::route('/');
-    }
-
     public static function makeList(string $resource): array
     {
         return self::generateAnonymousClass(FilamentAutoResourceList::class, $resource)::route('/');

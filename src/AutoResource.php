@@ -13,8 +13,6 @@ class AutoResource extends Resource
 {
     public static array $visibleColumns = [];
 
-    public static bool $simple = false;
-
     public static bool $intrusive = true;
 
     public static function form(Form $form): Form
@@ -56,12 +54,6 @@ class AutoResource extends Resource
 
     public static function getPages(): array
     {
-        if (self::$simple) {
-            return [
-                'index' => AutoResourceHelper::makeIndex(static::class),
-            ];
-        }
-        
         return [
             'index' => AutoResourceHelper::makeList(static::class),
             'create' => AutoResourceHelper::makeCreate(static::class),
