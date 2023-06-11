@@ -5,7 +5,7 @@ namespace Miguilim\FilamentAutoResource;
 use Filament\Support\Commands\Concerns\CanReadModelSchemas;
 use Miguilim\FilamentAutoResource\Doctrine\CustomMySQLSchemaManager;
 
-class AutoResourceHelper
+class FilamentAutoResourceHelper
 {
     use CanReadModelSchemas;
 

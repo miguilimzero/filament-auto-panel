@@ -18,7 +18,7 @@ class AutoResource extends Resource
     public static function form(Form $form): Form
     {
         return $form
-            ->schema(AutoResourceHelper::makeFormSchema(static::$model))
+            ->schema(FilamentAutoResourceHelper::makeFormSchema(static::$model))
             ->columns(3);
     }
 
@@ -46,7 +46,7 @@ class AutoResource extends Resource
         }
 
         return $finalTable
-            ->columns(AutoResourceHelper::makeTableSchema(static::$model, static::$visibleColumns))
+            ->columns(FilamentAutoResourceHelper::makeTableSchema(static::$model, static::$visibleColumns))
             ->filters([...$finalTable->getFilters(), ...$defaultFilters])
             ->actions([...$finalTable->getActions(), ...$defaultActions])
             ->bulkActions([...$finalTable->getBulkActions(), ...$defaultBulkActions]);
@@ -55,10 +55,10 @@ class AutoResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => AutoResourceHelper::makeList(static::class),
-            'create' => AutoResourceHelper::makeCreate(static::class),
-            'edit' => AutoResourceHelper::makeEdit(static::class),
-            'view' => AutoResourceHelper::makeView(static::class),
+            'index' => FilamentAutoResourceHelper::makeList(static::class),
+            'create' => FilamentAutoResourceHelper::makeCreate(static::class),
+            'edit' => FilamentAutoResourceHelper::makeEdit(static::class),
+            'view' => FilamentAutoResourceHelper::makeView(static::class),
         ];
     }
 
