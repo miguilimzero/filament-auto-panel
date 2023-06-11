@@ -37,7 +37,7 @@ class AutoResource extends Resource
         }
         
         return [
-            'index' => AutoResourceHelper::makeIndex(static::class),
+            'index' => AutoResourceHelper::makeList(static::class),
             'create' => AutoResourceHelper::makeCreate(static::class),
             'edit' => AutoResourceHelper::makeEdit(static::class),
             'view' => AutoResourceHelper::makeView(static::class),
