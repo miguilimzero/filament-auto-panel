@@ -1,0 +1,21 @@
+{
+    "name": "miguilim/filament-auto-resource",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Miguilim\\FilamentAutoResource\\": "src/"
+        }
+    },
+    "require": {
+        "php": "^8.0",
+        "filament/filament": "^2.0"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Miguilim\\FilamentAutoResource\\FilamentAutoResourceProvider"
+            ]
+        }
+    }
+}
