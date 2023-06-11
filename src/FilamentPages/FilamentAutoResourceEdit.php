@@ -13,9 +13,4 @@ class FilamentAutoResourceEdit extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
-
-    public static function setResource(string $resource): void
-    {
-        self::$resource = $resource;
-    }
 }

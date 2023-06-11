@@ -13,9 +13,4 @@ class FilamentAutoResourceIndex extends ManageRecords
             Actions\CreateAction::make(),
         ];
     }
-
-    public static function setResource(string $resource): void
-    {
-        self::$resource = $resource;
-    }
 }

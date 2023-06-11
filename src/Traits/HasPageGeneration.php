@@ -10,38 +10,45 @@ use Miguilim\FilamentAutoResource\FilamentPages\FilamentAutoResourceView;
 
 trait HasPageGeneration
 {
+    public static array $createdClasses = [];
+
     public static function makeIndex(string $resource): array
     {
-        FilamentAutoResourceIndex::setResource($resource);
-
-        return FilamentAutoResourceIndex::route('/');
+        return self::generateAnonymousClass(FilamentAutoResourceIndex::class, $resource)::route('/');
     }
 
     public static function makeList(string $resource): array
     {
-        FilamentAutoResourceEdit::setResource($resource);
-
-        return FilamentAutoResourceList::route('/');
+        return self::generateAnonymousClass(FilamentAutoResourceList::class, $resource)::route('/');
     }
 
     public static function makeCreate(string $resource): array
     {
-        FilamentAutoResourceEdit::setResource($resource);
-
-        return FilamentAutoResourceCreate::route('/crete');
+        return self::generateAnonymousClass(FilamentAutoResourceCreate::class, $resource)::route('/create');
     }
 
     public static function makeView(string $resource): array
     {
-        FilamentAutoResourceEdit::setResource($resource);
-
-        return FilamentAutoResourceView::route('/{record}');
+        return self::generateAnonymousClass(FilamentAutoResourceView::class, $resource)::route('/{record}');
     }
 
     public static function makeEdit(string $resource): array
     {
-        FilamentAutoResourceEdit::setResource($resource);
+        return self::generateAnonymousClass(FilamentAutoResourceEdit::class, $resource)::route('/{record}/edit');
+    }
 
-        return FilamentAutoResourceEdit::route('/{record}/edit');
+    protected static function generateAnonymousClass(string $filamentPage, string $resource): string
+    {
+        $filamentPageName = array_reverse(explode('\\', $filamentPage))[0];
+        $resourceName = array_reverse(explode('\\', $resource))[0];
+
+        $anonymousClass = "{$filamentPageName}{$resourceName}";
+
+        if (! in_array($anonymousClass, self::$createdClasses)) {
+            self::$createdClasses[] = $anonymousClass;
+            eval("class {$anonymousClass} extends {$filamentPage} {protected static string \$resource = '{$resource}';};");
+        }
+
+        return $anonymousClass;
     }
 }
