@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class AutoResource extends Resource
 {
-    public static array $tableColumns = [];
+    public static array $visibleColumns = [];
 
     public static bool $simple = false;
 
@@ -46,7 +46,7 @@ class AutoResource extends Resource
         }
 
         return $finalTable
-            ->columns(AutoResourceHelper::makeTableSchema(static::$model, static::$tableColumns))
+            ->columns(AutoResourceHelper::makeTableSchema(static::$model, static::$visibleColumns))
             ->filters([...$finalTable->getFilters(), ...$defaultFilters])
             ->actions([...$finalTable->getActions(), ...$defaultActions])
             ->bulkActions([...$finalTable->getBulkActions(), ...$defaultBulkActions]);

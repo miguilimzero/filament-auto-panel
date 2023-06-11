@@ -9,12 +9,12 @@ use Illuminate\Support\Str;
 
 trait HasTableGeneration
 {
-    public static function makeTableSchema(string $model, array $tableColumns): array
+    public static function makeTableSchema(string $model, array $visibleColumns): array
     {
-        return (new self())->getResourceTableSchema($model, $tableColumns);
+        return (new self())->getResourceTableSchema($model, $visibleColumns);
     }
 
-    protected function getResourceTableSchema(string $model, array $tableColumns): array
+    protected function getResourceTableSchema(string $model, array $visibleColumns): array
     {
         $columns = $this->getResourceTableSchemaColumns($model);
 
@@ -31,21 +31,14 @@ trait HasTableGeneration
                 $columnInstance->{$valueName}(...$parameters);
             }
 
-            $columnInstances[$key] = $columnInstance;
+            $columnInstance->toggleable(
+                isToggledHiddenByDefault: ! in_array($key, $visibleColumns)
+            );
+
+            $columnInstances[] = $columnInstance;
         }
 
-        // Re-order columns based on $tableColumns resource array
-        $finalColumns = [];
-
-        foreach ($tableColumns as $column) {
-            if (! isset($columnInstances[$column])) {
-                continue;
-            }
-
-            $finalColumns[] = $columnInstances[$column];
-        }
-
-        return $finalColumns;
+        return $columnInstances;
     }
 
     protected function getResourceTableSchemaColumns(string $model): array
