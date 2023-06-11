@@ -34,7 +34,32 @@ trait HasFormGeneration
             $columnInstances[] = $columnInstance;
         }
 
-        return $columnInstances;
+        return [
+            Forms\Components\Group::make()
+                ->schema([
+                    Forms\Components\Card::make()
+                        ->schema($columnInstances)
+                        ->columns(2),
+                ])
+                ->columnSpan(['lg' => fn ($record) => $record === null ? 3 : 2]),
+
+            Forms\Components\Card::make()
+                ->schema([
+                    Forms\Components\Placeholder::make('created_at')
+                        ->label('Created at')
+                        ->content(fn ($record): ?string => $record->created_at?->diffForHumans()),
+                    Forms\Components\Placeholder::make('updated_at')
+                        ->label('Updated at')
+                        ->content(fn ($record): ?string => $record->updated_at?->diffForHumans()),
+                    (method_exists($model, 'bootSoftDeletes')) 
+                        ? Forms\Components\Placeholder::make('deleted_at')
+                            ->label('Deleted at')
+                            ->content(fn ($record): ?string => $record->deleted_at?->diffForHumans() ?? 'Never')
+                        : null,
+                ])
+                ->columnSpan(['lg' => 1])
+                ->hidden(fn ($record) => $record === null),
+        ];
     }
 
     protected function getResourceFormSchemaColumns(string $model): array

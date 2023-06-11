@@ -19,7 +19,8 @@ class AutoResource extends Resource
     public static function form(Form $form): Form
     {
         return $form
-            ->schema(AutoResourceHelper::makeFormSchema(static::$model));
+            ->schema(AutoResourceHelper::makeFormSchema(static::$model))
+            ->columns(3);
     }
 
     public static function tableExtra(Table $table): Table
