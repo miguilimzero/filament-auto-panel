@@ -12,6 +12,8 @@ class AutoResource extends Resource
 
     public static bool $simple = false;
 
+    public static bool $intrusive = true;
+
     public static function form(Form $form): Form
     {
         return $form
