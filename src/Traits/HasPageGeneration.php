@@ -2,11 +2,10 @@
 
 namespace Miguilim\FilamentAutoResource\Traits;
 
-use Miguilim\FilamentAutoResource\FilamentPages\FilamentAutoResourceCreate;
-use Miguilim\FilamentAutoResource\FilamentPages\FilamentAutoResourceEdit;
-use Miguilim\FilamentAutoResource\FilamentPages\FilamentAutoResourceIndex;
-use Miguilim\FilamentAutoResource\FilamentPages\FilamentAutoResourceList;
-use Miguilim\FilamentAutoResource\FilamentPages\FilamentAutoResourceView;
+use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceCreate;
+use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceEdit;
+use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceList;
+use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceView;
 
 trait HasPageGeneration
 {

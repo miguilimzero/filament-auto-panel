@@ -1,6 +1,6 @@
 <?php
 
-namespace Miguilim\FilamentAutoResource\FilamentPages;
+namespace Miguilim\FilamentAutoResource\Filament\Pages;
 
 use Filament\Resources\Pages\EditRecord;
 use Filament\Pages\Actions;

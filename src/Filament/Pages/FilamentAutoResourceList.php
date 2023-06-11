@@ -1,6 +1,6 @@
 <?php
 
-namespace Miguilim\FilamentAutoResource\FilamentPages;
+namespace Miguilim\FilamentAutoResource\Filament\Pages;
 
 use Filament\Pages\Actions;
 use Filament\Resources\Pages\ListRecords;
