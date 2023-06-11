@@ -10,6 +10,8 @@ class AutoResource extends Resource
 {
     public static array $tableColumns = [];
 
+    public static bool $simple = false;
+
     public static function form(Form $form): Form
     {
         return $form
@@ -28,8 +30,17 @@ class AutoResource extends Resource
 
     public static function getPages(): array
     {
+        if (self::$simple) {
+            return [
+                'index' => AutoResourceHelper::makeIndex(static::class),
+            ];
+        }
+        
         return [
             'index' => AutoResourceHelper::makeIndex(static::class),
+            'create' => AutoResourceHelper::makeCreate(static::class),
+            'edit' => AutoResourceHelper::makeEdit(static::class),
+            'view' => AutoResourceHelper::makeView(static::class),
         ];
     }
 }
