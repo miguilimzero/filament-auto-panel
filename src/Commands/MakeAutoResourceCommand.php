@@ -2,12 +2,12 @@
 
 namespace Miguilim\FilamentAutoResource\Commands;
 
-use Illuminate\Support\Str;
 use ReflectionClass;
+use Illuminate\Support\Str;
 
 use Filament\Commands\MakeResourceCommand;
 
-class MakeFilamentAutoResource extends MakeResourceCommand
+class MakeAutoResourceCommand extends MakeResourceCommand
 {
     /**
      * The name and signature of the console command.
