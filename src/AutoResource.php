@@ -70,7 +70,6 @@ class AutoResource extends Resource
         ];
     }
 
-
     public static function getEloquentQuery(): Builder
     {
         $parent = parent::getEloquentQuery();

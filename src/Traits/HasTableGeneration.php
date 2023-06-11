@@ -18,6 +18,7 @@ trait HasTableGeneration
     {
         $columns = $this->getResourceTableSchemaColumns($model);
 
+        $dummyModel = new $model;
         $columnInstances = [];
 
         foreach ($columns as $key => $value) {
@@ -31,9 +32,13 @@ trait HasTableGeneration
                 $columnInstance->{$valueName}(...$parameters);
             }
 
-            $columnInstance->toggleable(
-                isToggledHiddenByDefault: ! in_array($key, $visibleColumns)
-            );
+            if($dummyModel->getKeyName() === $key) {
+                $columnInstance->searchable();
+            } else {
+                $columnInstance->toggleable(
+                    isToggledHiddenByDefault: ! in_array($key, $visibleColumns)
+                );
+            }
 
             $columnInstances[] = $columnInstance;
         }
