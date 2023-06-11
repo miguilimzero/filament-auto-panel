@@ -44,7 +44,7 @@ trait HasFormGeneration
                 ->columnSpan(['lg' => fn ($record) => $record === null ? 3 : 2]),
 
             Forms\Components\Card::make()
-                ->schema([
+                ->schema(array_filter([
                     Forms\Components\Placeholder::make('created_at')
                         ->label('Created at')
                         ->content(fn ($record): ?string => $record->created_at?->diffForHumans()),
@@ -56,7 +56,7 @@ trait HasFormGeneration
                             ->label('Deleted at')
                             ->content(fn ($record): ?string => $record->deleted_at?->diffForHumans() ?? 'Never')
                         : null,
-                ])
+                ]))
                 ->columnSpan(['lg' => 1])
                 ->hidden(fn ($record) => $record === null),
         ];
