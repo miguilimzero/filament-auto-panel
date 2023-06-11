@@ -23,17 +23,12 @@ trait HasFormGeneration
         foreach ($columns as $key => $value) {
             $columnInstance = call_user_func([$value['type'], 'make'], $key);
 
-            if (isset($value['relationship'])) {
-                $columnInstance->relationship(...$value['relationship']);
-            }
-            if (isset($value['maxLength'])) {
-                $columnInstance->maxLength(...$value['maxLength']);
-            }
-            if (isset($value['required'])) {
-                $columnInstance->required(...$value['required']);
-            }
-            if (isset($value['numeric'])) {
-                $columnInstance->numeric(...$value['numeric']);
+            foreach ($value as $valueName => $parameters) {
+                if($valueName === 'type') {
+                    continue;
+                }
+                
+                $columnInstance->{$valueName}(...$parameters);
             }
 
             $columnInstances[] = $columnInstance;
