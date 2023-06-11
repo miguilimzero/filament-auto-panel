@@ -2,6 +2,7 @@
 
 namespace Miguilim\FilamentAutoResource;
 
+use Filament\Tables;
 use Filament\Resources\Form;
 use Filament\Resources\Resource;
 use Filament\Resources\Table;
@@ -28,9 +29,27 @@ class AutoResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return static::tableExtra(
-            $table->columns(AutoResourceHelper::makeTableSchema(static::$model, static::$tableColumns))
-        );
+        $finalTable = static::tableExtra($table);
+        $hasSoftDeletes = method_exists(static::getModel(), 'bootSoftDeletes');
+
+        $defaultFilters = [];
+        $defaultActions = [Tables\Actions\EditAction::make()];
+        $defaultBulkActions = [Tables\Actions\DeleteBulkAction::make()];
+
+        if ($hasSoftDeletes) {
+            $defaultFilters[] = Tables\Filters\TrashedFilter::make();
+
+            $defaultActions[] = Tables\Actions\RestoreAction::make();
+
+            $defaultBulkActions[] = Tables\Actions\ForceDeleteBulkAction::make();
+            $defaultBulkActions[] = Tables\Actions\RestoreBulkAction::make();
+        }
+
+        return $finalTable
+            ->columns(AutoResourceHelper::makeTableSchema(static::$model, static::$tableColumns))
+            ->filters([...$finalTable->getFilters(), ...$defaultFilters])
+            ->actions([...$finalTable->getActions(), ...$defaultActions])
+            ->bulkActions([...$finalTable->getBulkActions(), ...$defaultBulkActions]);
     }
 
     public static function getPages(): array

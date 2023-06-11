@@ -24,13 +24,13 @@ class {{ resourceClass }} extends AutoResource
     {
         return $table
             ->filters([
-{{ tableFilters }}
+                //
             ])
             ->actions([
-{{ tableActions }}
+                //
             ])
             ->bulkActions([
-{{ tableBulkActions }}
+                //
             ]);
     }
     {{ relations }}
