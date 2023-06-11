@@ -20,14 +20,16 @@ class AutoResource extends Resource
             ->schema(AutoResourceHelper::makeFormSchema(static::$model));
     }
 
-    public static function tableOthers(Table $table): Table
+    public static function tableExtra(Table $table): Table
     {
         return $table;
     }
 
     public static function table(Table $table): Table
     {
-        return static::tableOthers($table->columns(AutoResourceHelper::makeTableSchema(static::$model, static::$tableColumns)));
+        return static::tableExtra(
+            $table->columns(AutoResourceHelper::makeTableSchema(static::$model, static::$tableColumns))
+        );
     }
 
     public static function getPages(): array

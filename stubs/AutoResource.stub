@@ -2,8 +2,6 @@
 
 namespace {{ namespace }};
 
-use {{ resource }}\Pages;
-use {{ resource }}\RelationManagers;
 use App\Models\{{ model }};
 use Filament\Forms;
 use Filament\Resources\Form;
@@ -22,7 +20,7 @@ class {{ resourceClass }} extends AutoResource
 
     public static array $tableColumns = [];
 
-    public static function tableOthers(Table $table): Table
+    public static function tableExtra(Table $table): Table
     {
         return $table
             ->filters([
