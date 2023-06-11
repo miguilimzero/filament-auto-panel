@@ -5,6 +5,7 @@ namespace Miguilim\FilamentAutoResource;
 use Filament\Resources\Form;
 use Filament\Resources\Resource;
 use Filament\Resources\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class AutoResource extends Resource
 {
@@ -46,5 +47,19 @@ class AutoResource extends Resource
             'edit' => AutoResourceHelper::makeEdit(static::class),
             'view' => AutoResourceHelper::makeView(static::class),
         ];
+    }
+
+
+    public static function getEloquentQuery(): Builder
+    {
+        $parent = parent::getEloquentQuery();
+
+        if (method_exists(static::getModel(), 'bootSoftDeletes')) {
+            $parent = $parent->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
+        }
+
+        return $parent;
     }
 }

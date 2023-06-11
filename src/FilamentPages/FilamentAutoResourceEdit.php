@@ -10,6 +10,14 @@ class FilamentAutoResourceEdit extends EditRecord
 {
     protected function getActions(): array
     {
+        if (method_exists($this::getResource()::getModel(), 'bootSoftDeletes')) {
+            return [
+                Actions\DeleteAction::make(),
+                Actions\ForceDeleteAction::make(),
+                Actions\RestoreAction::make(),
+            ];
+        }
+
         return [
             Actions\DeleteAction::make(),
         ];

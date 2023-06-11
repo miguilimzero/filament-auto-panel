@@ -14,7 +14,7 @@ class MakeAutoResourceCommand extends MakeResourceCommand
      *
      * @var string
      */
-    protected $signature = 'make:filament-auto-resource {name?} {--soft-deletes} {--view} {--S|simple} {--F|force}';
+    protected $signature = 'make:filament-auto-resource {name?} {--view} {--S|simple} {--F|force}';
 
     /**
      * The console command description.
@@ -26,6 +26,9 @@ class MakeAutoResourceCommand extends MakeResourceCommand
     public function option($key = null) { 
         if ($key === 'generate') {
             return true;
+        }
+        if ($key === 'soft-deletes') {
+            return false;
         }
 
         return parent::option($key);
