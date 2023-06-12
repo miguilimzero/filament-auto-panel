@@ -59,7 +59,7 @@ class AutoResource extends Resource
 
     public static function getPages(): array
     {
-        return [static::getPagesExtra(), ...[
+        return [...static::getPagesExtra(), ...[
             'index' => FilamentAutoResourceHelper::makeList(static::class),
             'create' => FilamentAutoResourceHelper::makeCreate(static::class),
             'edit' => FilamentAutoResourceHelper::makeEdit(static::class),
