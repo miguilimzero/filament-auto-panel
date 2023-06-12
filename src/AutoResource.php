@@ -11,9 +11,9 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class AutoResource extends Resource
 {
-    public static array $visibleColumns = [];
+    protected static array $visibleColumns = [];
 
-    public static bool $intrusive = true;
+    protected static bool $intrusive = true;
 
     public static function tableExtra(Table $table): Table
     {
@@ -28,7 +28,7 @@ class AutoResource extends Resource
     public static function form(Form $form): Form
     {
         return $form
-            ->schema(FilamentAutoResourceHelper::makeFormSchema(static::$model))
+            ->schema(FilamentAutoResourceHelper::makeFormSchema(static::getModel()))
             ->columns(3);
     }
 
@@ -51,7 +51,7 @@ class AutoResource extends Resource
         }
 
         return $finalTable
-            ->columns(FilamentAutoResourceHelper::makeTableSchema(static::$model, static::$visibleColumns))
+            ->columns(FilamentAutoResourceHelper::makeTableSchema(static::getModel(), static::$visibleColumns))
             ->filters([...$finalTable->getFilters(), ...$defaultFilters])
             ->actions([...$finalTable->getActions(), ...$defaultActions])
             ->bulkActions([...$finalTable->getBulkActions(), ...$defaultBulkActions]);
