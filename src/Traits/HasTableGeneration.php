@@ -81,6 +81,7 @@ trait HasTableGeneration
             if ($column->getType() instanceof Types\BooleanType) {
                 $columnData['type'] = Tables\Columns\IconColumn::class;
                 $columnData['boolean'] = [];
+                $columnData['sortable'] = [];
             } else {
                 $columnData['type'] = Tables\Columns\TextColumn::class;
 
@@ -90,6 +91,20 @@ trait HasTableGeneration
 
                 if ($column->getType()::class === Types\DateTimeType::class) {
                     $columnData['dateTime'] = [];
+                }
+
+                if (in_array(
+                    $column->getType()::class,
+                    [
+                        Types\DecimalType::class,
+                        Types\FloatType::class,
+                        Types\BigIntType::class,
+                        Types\IntegerType::class,
+                        Types\SmallIntType::class,
+                        Types\DateType::class,
+                        Types\DateTimeType::class
+                    ])) {
+                    $columnData['sortable'] = [];
                 }
             }
 
@@ -101,6 +116,8 @@ trait HasTableGeneration
 
                     $columnData['original_name'] = [$columnName];
                     $columnName = "{$guessedRelationshipName}.{$guessedRelationshipTitleColumnName}";
+
+                    unset($columnData['sortable']); // You cannot sort by a relationship column
                 }
             }
 
