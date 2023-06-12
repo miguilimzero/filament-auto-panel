@@ -25,7 +25,7 @@ class FilamentAutoResourceEdit extends EditRecord
 
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
-        if ($this::getResource()::$intrusive) {
+        if ($this::getResource()::getIntrusive()) {
             foreach ($data as $key => $value) {
                 $record->{$key} = $value;
             }

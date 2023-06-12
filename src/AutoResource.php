@@ -79,4 +79,9 @@ class AutoResource extends Resource
 
         return $parent;
     }
+
+    public static function getIntrusive(): bool
+    {
+        return static::$intrusive;
+    }
 }
