@@ -16,8 +16,6 @@ trait HasRelationManagerGeneration
         $relationManagerClass = AutoRelationManager::class;
 
         $visibleColumns = implode(',', array_map(fn ($column) => "'{$column}'", $visibleColumns));
-
-        // dd($relationManagerClass);
     
         if (! in_array($anonymousClass, static::$createdRelationClasses)) {
             static::$createdRelationClasses[] = $anonymousClass;

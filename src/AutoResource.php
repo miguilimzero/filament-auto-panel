@@ -46,8 +46,8 @@ class AutoResource extends Resource
 
             $defaultActions[] = Tables\Actions\RestoreAction::make();
 
-            $defaultBulkActions[] = Tables\Actions\ForceDeleteBulkAction::make();
             $defaultBulkActions[] = Tables\Actions\RestoreBulkAction::make();
+            $defaultBulkActions[] = Tables\Actions\ForceDeleteBulkAction::make();
         }
 
         return $finalTable

@@ -4,7 +4,6 @@ namespace Miguilim\FilamentAutoResource\Traits;
 
 use Doctrine\DBAL\Types;
 use Filament\Forms;
-use Filament\Support\Commands\Concerns\CanReadModelSchemas;
 use Illuminate\Support\Str;
 
 trait HasFormGeneration
@@ -14,7 +13,7 @@ trait HasFormGeneration
         return (new self())->getResourceFormSchema($model);
     }
 
-    protected function getResourceFormSchema(string $model): array
+    protected function getResourceFormSchema(string $model, array $except = []): array
     {
         $columns = $this->getResourceFormSchemaColumns($model);
 

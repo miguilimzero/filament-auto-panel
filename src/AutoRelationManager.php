@@ -7,6 +7,11 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class AutoRelationManager extends RelationManager
 {
@@ -38,13 +43,30 @@ class AutoRelationManager extends RelationManager
         $defaultActions = [Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make()];
         $defaultBulkActions = [Tables\Actions\DeleteBulkAction::make()];
 
+        $relationshipInstance = static::getRelationshipStatically();
+
+        // Associate action
+        if($relationshipInstance instanceof HasMany || $relationshipInstance instanceof MorphMany) {
+            $defaultHeaderActions = [Tables\Actions\AssociateAction::make(), ...$defaultHeaderActions];
+            $defaultActions = [Tables\Actions\DissociateAction::make(), ...$defaultActions];
+            $defaultBulkActions = [Tables\Actions\DissociateBulkAction::make(), ...$defaultBulkActions];
+        }
+
+        // Attach action
+        if($relationshipInstance instanceof BelongsToMany || $relationshipInstance instanceof MorphToMany) {
+            $defaultHeaderActions = [Tables\Actions\AttachAction::make(), ...$defaultHeaderActions];
+            $defaultActions = [Tables\Actions\DetachAction::make(), ...$defaultActions];
+            $defaultBulkActions = [Tables\Actions\DetachBulkAction::make(), ...$defaultBulkActions];
+        }
+
+        // Soft deletes
         if ($hasSoftDeletes) {
             $defaultFilters[] = Tables\Filters\TrashedFilter::make();
 
             $defaultActions[] = Tables\Actions\RestoreAction::make();
 
-            $defaultBulkActions[] = Tables\Actions\ForceDeleteBulkAction::make();
             $defaultBulkActions[] = Tables\Actions\RestoreBulkAction::make();
+            $defaultBulkActions[] = Tables\Actions\ForceDeleteBulkAction::make();
         }
 
         return $finalTable
@@ -68,10 +90,15 @@ class AutoRelationManager extends RelationManager
         return $parent;
     }
 
-    protected static function getRelationshipModelStatically(): string
+    protected static function getRelationshipStatically(): Relation
     {
         $dummy = new (static::$relatedResource::getModel());
 
-        return $dummy->{static::$relationship}()->getRelated()::class;
+        return $dummy->{static::$relationship}();
+    }
+
+    protected static function getRelationshipModelStatically(): string
+    {
+        return static::getRelationshipStatically()->getRelated()::class;
     }
 }
