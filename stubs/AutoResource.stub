@@ -33,5 +33,12 @@ class {{ resourceClass }} extends AutoResource
                 //
             ]);
     }
+
+    public static function getPagesExtra(): array
+    {
+        return [
+            //
+        ];
+    }
     {{ relations }}
 }

@@ -15,16 +15,21 @@ class AutoResource extends Resource
 
     public static bool $intrusive = true;
 
+    public static function tableExtra(Table $table): Table
+    {
+        return $table;
+    }
+
+    public static function getPagesExtra(): array
+    {
+        return [];
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema(FilamentAutoResourceHelper::makeFormSchema(static::$model))
             ->columns(3);
-    }
-
-    public static function tableExtra(Table $table): Table
-    {
-        return $table;
     }
 
     public static function table(Table $table): Table
@@ -54,12 +59,12 @@ class AutoResource extends Resource
 
     public static function getPages(): array
     {
-        return [
+        return [static::getPagesExtra(), ...[
             'index' => FilamentAutoResourceHelper::makeList(static::class),
             'create' => FilamentAutoResourceHelper::makeCreate(static::class),
             'edit' => FilamentAutoResourceHelper::makeEdit(static::class),
             'view' => FilamentAutoResourceHelper::makeView(static::class),
-        ];
+        ]];
     }
 
     public static function getEloquentQuery(): Builder
