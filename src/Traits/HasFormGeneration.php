@@ -17,6 +17,7 @@ trait HasFormGeneration
     {
         $columns = $this->getResourceFormSchemaColumns($model);
     
+        $dummyModel = new $model;
         $columnInstances = [];
 
         foreach ($columns as $key => $value) {
@@ -31,6 +32,17 @@ trait HasFormGeneration
                 $columnInstance->options($enumDictionary[$key]);
 
                 unset($value['numeric']);
+            }
+
+            if ($dummyModel->getKeyName() === $key) {
+                if (method_exists($dummyModel, 'initializeHasUuids')) {
+                    $columnInstance->disabled();
+                    $columnInstance->default($dummyModel->newUniqueId());
+                } else if ($dummyModel->incrementing) {
+                    $columnInstance->disabled();
+                    $columnInstance->placeholder('Auto-incremented ID');
+                    unset($value['required']);
+                }
             }
 
             foreach ($value as $valueName => $parameters) {
@@ -85,9 +97,9 @@ trait HasFormGeneration
         $components = [];
 
         foreach ($table->getColumns() as $column) {
-            if ($column->getAutoincrement()) {
-                continue;
-            }
+            // if ($column->getAutoincrement()) {
+            //     continue;
+            // }
 
             $columnName = $column->getName();
 
@@ -119,6 +131,7 @@ trait HasFormGeneration
                     $componentData['type'] = $type = Forms\Components\Select::class;
                     $componentData['relationship'] = [$guessedRelationshipName, $guessedRelationshipTitleColumnName];
                     $componentData['searchable'] = [];
+                    $componentData['preload'] = [];
                 }
             }
 
