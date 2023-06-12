@@ -20,6 +20,8 @@ class AutoRelationManager extends RelationManager
 
     protected static array $visibleColumns = [];
 
+    protected static array $enumDictionary = [];
+
     protected static bool $intrusive = true;
 
     public static function form(Form $form): Form
@@ -27,6 +29,7 @@ class AutoRelationManager extends RelationManager
         return $form
             ->schema(FilamentAutoResourceHelper::makeFormSchema(
                 model: static::getRelationshipModelStatically(), 
+                enumDictionary: static::$enumDictionary,
                 except: [static::getRelationshipStatically()->getForeignKeyName()]
             ))
             ->columns(3);
@@ -81,7 +84,8 @@ class AutoRelationManager extends RelationManager
             ->columns(FilamentAutoResourceHelper::makeTableSchema(
                 model: static::getRelationshipModelStatically(), 
                 visibleColumns: static::$visibleColumns,
-                except: [static::getRelationshipStatically()->getForeignKeyName()]
+                enumDictionary: static::$enumDictionary,
+                except: [static::getRelationshipStatically()->getForeignKeyName()],
             ))
             ->filters([...$finalTable->getFilters(), ...$defaultFilters])
             ->headerActions([...$finalTable->getHeaderActions(), ...$defaultHeaderActions])

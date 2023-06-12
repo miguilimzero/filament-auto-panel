@@ -9,12 +9,12 @@ use Illuminate\Support\Str;
 
 trait HasTableGeneration
 {
-    public static function makeTableSchema(string $model, array $visibleColumns, array $except = []): array
+    public static function makeTableSchema(string $model, array $visibleColumns, array $enumDictionary = [], array $except = []): array
     {
-        return (new self())->getResourceTableSchema($model, $visibleColumns, $except);
+        return (new self())->getResourceTableSchema($model, $visibleColumns, $enumDictionary, $except);
     }
 
-    protected function getResourceTableSchema(string $model, array $visibleColumns, array $except): array
+    protected function getResourceTableSchema(string $model, array $visibleColumns, array $enumDictionary, array $except): array
     {
         $columns = $this->getResourceTableSchemaColumns($model);
 
@@ -29,6 +29,11 @@ trait HasTableGeneration
 
             $columnInstance = call_user_func([$value['type'], 'make'], $key);
 
+            if (isset($enumDictionary[$key])) {
+                $columnInstance = call_user_func([Tables\Columns\BadgeColumn::class, 'make'], $key);
+                $columnInstance->enum($enumDictionary[$key]);
+            }
+
             foreach ($value as $valueName => $parameters) {
                 if($valueName === 'type') {
                     continue;
@@ -37,7 +42,7 @@ trait HasTableGeneration
                 $columnInstance->{$valueName}(...$parameters);
             }
 
-            if($dummyModel->getKeyName() === $key) {
+            if ($dummyModel->getKeyName() === $key) {
                 $columnInstance->searchable();
             } else {
                 $columnInstance->toggleable(

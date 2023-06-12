@@ -18,6 +18,8 @@ class {{ resourceClass }} extends AutoResource
 
     protected static ?string $navigationIcon = 'heroicon-o-collection';
 
+    protected static array $enumDictionary = [];
+
     public static array $visibleColumns = [];
 
     public static function tableExtra(Table $table): Table

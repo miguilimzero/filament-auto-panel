@@ -19,6 +19,8 @@ class {{ managerClass }} extends AutoRelationManager
 
     protected static ?string $recordTitleAttribute = '{{ recordTitleAttribute }}';
 
+    protected static array $enumDictionary = [];
+
     public static array $visibleColumns = [];
 
     public static function tableExtra(Table $table): Table

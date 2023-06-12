@@ -8,12 +8,12 @@ use Illuminate\Support\Str;
 
 trait HasFormGeneration
 {
-    public static function makeFormSchema(string $model, array $except = []): array
+    public static function makeFormSchema(string $model, array $enumDictionary = [], array $except = []): array
     {
-        return (new self())->getResourceFormSchema($model, $except);
+        return (new self())->getResourceFormSchema($model, $except, $enumDictionary);
     }
 
-    protected function getResourceFormSchema(string $model, array $except): array
+    protected function getResourceFormSchema(string $model, array $except, array $enumDictionary): array
     {
         $columns = $this->getResourceFormSchemaColumns($model);
     
@@ -25,6 +25,13 @@ trait HasFormGeneration
             }
 
             $columnInstance = call_user_func([$value['type'], 'make'], $key);
+
+            if (isset($enumDictionary[$key])) {
+                $columnInstance = call_user_func([Forms\Components\Select::class, 'make'], $key);
+                $columnInstance->options($enumDictionary[$key]);
+
+                unset($value['numeric']);
+            }
 
             foreach ($value as $valueName => $parameters) {
                 if($valueName === 'type') {

@@ -13,6 +13,8 @@ class AutoResource extends Resource
 {
     protected static array $visibleColumns = [];
 
+    protected static array $enumDictionary = [];
+
     protected static bool $intrusive = true;
 
     public static function tableExtra(Table $table): Table
@@ -28,7 +30,7 @@ class AutoResource extends Resource
     public static function form(Form $form): Form
     {
         return $form
-            ->schema(FilamentAutoResourceHelper::makeFormSchema(static::getModel()))
+            ->schema(FilamentAutoResourceHelper::makeFormSchema(static::getModel(), static::$enumDictionary))
             ->columns(3);
     }
 
@@ -51,7 +53,7 @@ class AutoResource extends Resource
         }
 
         return $finalTable
-            ->columns(FilamentAutoResourceHelper::makeTableSchema(static::getModel(), static::$visibleColumns))
+            ->columns(FilamentAutoResourceHelper::makeTableSchema(static::getModel(), static::$visibleColumns, static::$enumDictionary))
             ->filters([...$finalTable->getFilters(), ...$defaultFilters])
             ->actions([...$finalTable->getActions(), ...$defaultActions])
             ->bulkActions([...$finalTable->getBulkActions(), ...$defaultBulkActions]);
