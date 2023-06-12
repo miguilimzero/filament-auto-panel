@@ -9,26 +9,26 @@ use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceView;
 
 trait HasPageGeneration
 {
-    public static array $createdClasses = [];
+    public static array $createdPageClasses = [];
 
     public static function makeList(string $resource): array
     {
-        return self::generateAnonymousClass(FilamentAutoResourceList::class, $resource)::route('/');
+        return static::generateAnonymousClass(FilamentAutoResourceList::class, $resource)::route('/');
     }
 
     public static function makeCreate(string $resource): array
     {
-        return self::generateAnonymousClass(FilamentAutoResourceCreate::class, $resource)::route('/create');
+        return static::generateAnonymousClass(FilamentAutoResourceCreate::class, $resource)::route('/create');
     }
 
     public static function makeView(string $resource): array
     {
-        return self::generateAnonymousClass(FilamentAutoResourceView::class, $resource)::route('/{record}');
+        return static::generateAnonymousClass(FilamentAutoResourceView::class, $resource)::route('/{record}');
     }
 
     public static function makeEdit(string $resource): array
     {
-        return self::generateAnonymousClass(FilamentAutoResourceEdit::class, $resource)::route('/{record}/edit');
+        return static::generateAnonymousClass(FilamentAutoResourceEdit::class, $resource)::route('/{record}/edit');
     }
 
     protected static function generateAnonymousClass(string $filamentPage, string $resource): string
@@ -38,8 +38,8 @@ trait HasPageGeneration
 
         $anonymousClass = "{$filamentPageName}{$resourceName}";
 
-        if (! in_array($anonymousClass, self::$createdClasses)) {
-            self::$createdClasses[] = $anonymousClass;
+        if (! in_array($anonymousClass, static::$createdPageClasses)) {
+            static::$createdPageClasses[] = $anonymousClass;
             eval("class {$anonymousClass} extends {$filamentPage} {protected static string \$resource = '{$resource}';};");
         }
 

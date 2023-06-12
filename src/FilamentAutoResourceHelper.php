@@ -11,6 +11,7 @@ class FilamentAutoResourceHelper
 
     use Traits\HasPageGeneration;
     use Traits\HasFormGeneration;
+    use Traits\HasRelationManagerGeneration;
     use Traits\HasTableGeneration;
 
     public function introspectTable(string $model)
