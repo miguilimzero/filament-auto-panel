@@ -41,6 +41,10 @@ trait HasFormGeneration
                 $columnInstance->{$valueName}(...$parameters);
             }
 
+            if ($columnInstance instanceof Forms\Components\Toggle) {
+                $columnInstance->columnSpan('full');
+            }
+
             $columnInstances[] = $columnInstance;
         }
 
@@ -114,6 +118,7 @@ trait HasFormGeneration
 
                     $componentData['type'] = $type = Forms\Components\Select::class;
                     $componentData['relationship'] = [$guessedRelationshipName, $guessedRelationshipTitleColumnName];
+                    $componentData['searchable'] = [];
                 }
             }
 

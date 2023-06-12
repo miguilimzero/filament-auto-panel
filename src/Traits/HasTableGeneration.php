@@ -4,7 +4,6 @@ namespace Miguilim\FilamentAutoResource\Traits;
 
 use Doctrine\DBAL\Types;
 use Filament\Tables;
-use Filament\Support\Commands\Concerns\CanReadModelSchemas;
 use Illuminate\Support\Str;
 
 trait HasTableGeneration
