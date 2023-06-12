@@ -51,9 +51,11 @@ trait HasFormGeneration
                     Forms\Components\Placeholder::make('created_at')
                         ->label('Created at')
                         ->content(fn ($record): ?string => $record->created_at?->diffForHumans()),
-                    Forms\Components\Placeholder::make('updated_at')
-                        ->label('Updated at')
-                        ->content(fn ($record): ?string => $record->updated_at?->diffForHumans()),
+                    (! $model::isIgnoringTouch())
+                        ? Forms\Components\Placeholder::make('updated_at')
+                            ->label('Updated at')
+                            ->content(fn ($record): ?string => $record->updated_at?->diffForHumans())
+                        : null,
                     (method_exists($model, 'bootSoftDeletes')) 
                         ? Forms\Components\Placeholder::make('deleted_at')
                             ->label('Deleted at')
