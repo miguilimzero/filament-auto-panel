@@ -10,14 +10,16 @@ use Filament\Tables;
 
 class AutoRelationManager extends RelationManager
 {
-    public static array $visibleColumns = [];
+    protected static string $relatedResource;
 
-    public static bool $intrusive = true;
+    protected static array $visibleColumns = [];
+
+    protected static bool $intrusive = true;
 
     public static function form(Form $form): Form
     {
         return $form
-            ->schema(FilamentAutoResourceHelper::makeFormSchema(static::getRelatedModel()))
+            ->schema(FilamentAutoResourceHelper::makeFormSchema(static::getRelatedModelStatically()))
             ->columns(3);
     }
     
@@ -29,7 +31,7 @@ class AutoRelationManager extends RelationManager
     public static function table(Table $table): Table
     {
         $finalTable = static::tableExtra($table);
-        $hasSoftDeletes = method_exists(static::getRelatedModel(), 'bootSoftDeletes');
+        $hasSoftDeletes = method_exists(static::getRelatedModelStatically(), 'bootSoftDeletes');
 
         $defaultFilters = [];
         $defaultHeaderActions = [Tables\Actions\CreateAction::make()];
@@ -46,7 +48,7 @@ class AutoRelationManager extends RelationManager
         }
 
         return $finalTable
-            ->columns(FilamentAutoResourceHelper::makeTableSchema(static::getRelatedModel(), static::$visibleColumns))
+            ->columns(FilamentAutoResourceHelper::makeTableSchema(static::getRelatedModelStatically(), static::$visibleColumns))
             ->filters([...$finalTable->getFilters(), ...$defaultFilters])
             ->headerActions([...$finalTable->getHeaderActions(), ...$defaultHeaderActions])
             ->actions([...$finalTable->getActions(), ...$defaultActions])
@@ -64,5 +66,10 @@ class AutoRelationManager extends RelationManager
         }
 
         return $parent;
+    }
+
+    protected static function getRelatedModelStatically(): string
+    {
+        return static::$relatedResource::getModel();
     }
 }

@@ -37,6 +37,8 @@ class MakeAutoRelationManagerCommand extends MakeRelationManagerCommand
             return;
         }
 
+        $replacements['relatedResource'] = $this->argument('resource');
+
         parent::copyStubToApp('AutoRelationManager', $targetPath, $replacements);
     }
 
