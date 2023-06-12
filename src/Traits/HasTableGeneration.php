@@ -8,9 +8,13 @@ use Illuminate\Support\Str;
 
 trait HasTableGeneration
 {
+    public static array $generatedTableSchemas = [];
+
     public static function makeTableSchema(string $model, array $visibleColumns, array $enumDictionary = [], array $except = []): array
     {
-        return (new self())->getResourceTableSchema($model, $visibleColumns, $enumDictionary, $except);
+        $cacheKey = md5($model . json_encode($visibleColumns) . json_encode($enumDictionary) . json_encode($except));
+    
+        return static::$generatedTableSchemas[$cacheKey] ??= (new self())->getResourceTableSchema($model, $visibleColumns, $enumDictionary, $except);
     }
 
     protected function getResourceTableSchema(string $model, array $visibleColumns, array $enumDictionary, array $except): array

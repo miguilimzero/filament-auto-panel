@@ -9,7 +9,7 @@ use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceView;
 
 trait HasPageGeneration
 {
-    public static array $createdPageClasses = [];
+    public static array $generatedPageClasses = [];
 
     public static function makeList(string $resource): array
     {
@@ -38,8 +38,8 @@ trait HasPageGeneration
 
         $anonymousClass = "{$filamentPageName}{$resourceName}";
 
-        if (! in_array($anonymousClass, static::$createdPageClasses)) {
-            static::$createdPageClasses[] = $anonymousClass;
+        if (! in_array($anonymousClass, static::$generatedPageClasses)) {
+            static::$generatedPageClasses[] = $anonymousClass;
             eval("class {$anonymousClass} extends {$filamentPage} {protected static string \$resource = '{$resource}';};");
         }
 

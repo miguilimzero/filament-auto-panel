@@ -8,9 +8,13 @@ use Illuminate\Support\Str;
 
 trait HasFormGeneration
 {
+    public static array $generatedFormSchemas = [];
+
     public static function makeFormSchema(string $model, array $enumDictionary = [], array $except = []): array
     {
-        return (new self())->getResourceFormSchema($model, $except, $enumDictionary);
+        $cacheKey = md5($model . json_encode($enumDictionary) . json_encode($except));
+    
+        return static::$generatedFormSchemas[$cacheKey] ??= (new self())->getResourceFormSchema($model, $except, $enumDictionary);
     }
 
     protected function getResourceFormSchema(string $model, array $except, array $enumDictionary): array

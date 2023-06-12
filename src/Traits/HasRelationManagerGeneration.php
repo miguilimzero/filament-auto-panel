@@ -6,7 +6,7 @@ use Miguilim\FilamentAutoResource\AutoRelationManager;
 
 trait HasRelationManagerGeneration
 {
-    public static array $createdRelationClasses = [];
+    public static array $generatedRelationClasses = [];
 
     public static function makeRelationManager(string $resource, string $relation, string $recordTitleAttribute, array $visibleColumns)
     {
@@ -17,8 +17,8 @@ trait HasRelationManagerGeneration
 
         $visibleColumns = implode(',', array_map(fn ($column) => "'{$column}'", $visibleColumns));
     
-        if (! in_array($anonymousClass, static::$createdRelationClasses)) {
-            static::$createdRelationClasses[] = $anonymousClass;
+        if (! in_array($anonymousClass, static::$generatedRelationClasses)) {
+            static::$generatedRelationClasses[] = $anonymousClass;
             eval("class {$anonymousClass} extends {$relationManagerClass} {
                 protected static string \$relatedResource = $resource::class;
                 protected static string \$relationship = '{$relation}';
