@@ -19,7 +19,7 @@ class AutoRelationManager extends RelationManager
     public static function form(Form $form): Form
     {
         return $form
-            ->schema(FilamentAutoResourceHelper::makeFormSchema(static::getRelatedModelStatically()))
+            ->schema(FilamentAutoResourceHelper::makeFormSchema(static::getRelationshipModelStatically()))
             ->columns(3);
     }
     
@@ -31,7 +31,7 @@ class AutoRelationManager extends RelationManager
     public static function table(Table $table): Table
     {
         $finalTable = static::tableExtra($table);
-        $hasSoftDeletes = method_exists(static::getRelatedModelStatically(), 'bootSoftDeletes');
+        $hasSoftDeletes = method_exists(static::getRelationshipModelStatically(), 'bootSoftDeletes');
 
         $defaultFilters = [];
         $defaultHeaderActions = [Tables\Actions\CreateAction::make()];
@@ -48,7 +48,7 @@ class AutoRelationManager extends RelationManager
         }
 
         return $finalTable
-            ->columns(FilamentAutoResourceHelper::makeTableSchema(static::getRelatedModelStatically(), static::$visibleColumns))
+            ->columns(FilamentAutoResourceHelper::makeTableSchema(static::getRelationshipModelStatically(), static::$visibleColumns))
             ->filters([...$finalTable->getFilters(), ...$defaultFilters])
             ->headerActions([...$finalTable->getHeaderActions(), ...$defaultHeaderActions])
             ->actions([...$finalTable->getActions(), ...$defaultActions])
@@ -59,7 +59,7 @@ class AutoRelationManager extends RelationManager
     {
         $parent = parent::getTableQuery();
 
-        if (method_exists(static::getRelatedModel(), 'bootSoftDeletes')) {
+        if (method_exists(static::getRelationshipModelStatically(), 'bootSoftDeletes')) {
             $parent->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
@@ -68,8 +68,10 @@ class AutoRelationManager extends RelationManager
         return $parent;
     }
 
-    protected static function getRelatedModelStatically(): string
+    protected static function getRelationshipModelStatically(): string
     {
-        return static::$relatedResource::getModel();
+        $dummy = new (static::$relatedResource::getModel());
+
+        return $dummy->{static::$relationship}()->getRelated()::class;
     }
 }
