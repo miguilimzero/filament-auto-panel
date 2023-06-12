@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Str;
 
 class AutoRelationManager extends RelationManager
 {
@@ -48,8 +49,12 @@ class AutoRelationManager extends RelationManager
 
         $relationshipInstance = static::getRelationshipStatically();
 
+
         // Associate action
-        if($relationshipInstance instanceof HasMany || $relationshipInstance instanceof MorphMany) {
+        if(
+            method_exists(self::getRelationshipModelStatically(), static::getInverseRelationshipNameStatically()) 
+            && ($relationshipInstance instanceof HasMany || $relationshipInstance instanceof MorphMany)
+        ) {
             $defaultHeaderActions = [Tables\Actions\AssociateAction::make(), ...$defaultHeaderActions];
             $defaultActions = [Tables\Actions\DissociateAction::make(), ...$defaultActions];
             $defaultBulkActions = [Tables\Actions\DissociateBulkAction::make(), ...$defaultBulkActions];
@@ -107,5 +112,12 @@ class AutoRelationManager extends RelationManager
     protected static function getRelationshipModelStatically(): string
     {
         return static::getRelationshipStatically()->getRelated()::class;
+    }
+
+    protected static function getInverseRelationshipNameStatically(): string
+    {
+        return static::$inverseRelationship ?? (string) Str::of(class_basename(static::$relatedResource::getModel()))
+            ->plural()
+            ->camel();
     }
 }
