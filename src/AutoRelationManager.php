@@ -5,6 +5,7 @@ namespace Miguilim\FilamentAutoResource;
 use Filament\Resources\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class AutoRelationManager extends RelationManager
 {
@@ -30,5 +31,18 @@ class AutoRelationManager extends RelationManager
 
         return $finalTable
             ->columns(FilamentAutoResourceHelper::makeTableSchema(static::getRelatedModel(), static::$visibleColumns));
+    }
+
+    protected function getTableQuery(): Builder
+    {
+        $parent = parent::getTableQuery();
+
+        if (method_exists(static::getRelatedModel(), 'bootSoftDeletes')) {
+            $parent->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
+        }
+
+        return $parent;
     }
 }
