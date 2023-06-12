@@ -35,6 +35,7 @@ class FilamentAutoResourceProvider extends ServiceProvider
         }
 
         $this->commands([
+            Commands\MakeAutoRelationManagerCommand::class,
             Commands\MakeAutoResourceCommand::class,
         ]);
     }
