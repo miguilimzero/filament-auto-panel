@@ -24,7 +24,10 @@ class AutoRelationManager extends RelationManager
     public static function form(Form $form): Form
     {
         return $form
-            ->schema(FilamentAutoResourceHelper::makeFormSchema(static::getRelationshipModelStatically()))
+            ->schema(FilamentAutoResourceHelper::makeFormSchema(
+                model: static::getRelationshipModelStatically(), 
+                except: [static::getRelationshipStatically()->getForeignKeyName()]
+            ))
             ->columns(3);
     }
     
@@ -70,7 +73,11 @@ class AutoRelationManager extends RelationManager
         }
 
         return $finalTable
-            ->columns(FilamentAutoResourceHelper::makeTableSchema(static::getRelationshipModelStatically(), static::$visibleColumns))
+            ->columns(FilamentAutoResourceHelper::makeTableSchema(
+                model: static::getRelationshipModelStatically(), 
+                visibleColumns: static::$visibleColumns,
+                except: [static::getRelationshipStatically()->getForeignKeyName()]
+            ))
             ->filters([...$finalTable->getFilters(), ...$defaultFilters])
             ->headerActions([...$finalTable->getHeaderActions(), ...$defaultHeaderActions])
             ->actions([...$finalTable->getActions(), ...$defaultActions])

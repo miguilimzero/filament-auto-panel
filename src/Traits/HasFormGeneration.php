@@ -8,18 +8,22 @@ use Illuminate\Support\Str;
 
 trait HasFormGeneration
 {
-    public static function makeFormSchema(string $model): array
+    public static function makeFormSchema(string $model, array $except = []): array
     {
-        return (new self())->getResourceFormSchema($model);
+        return (new self())->getResourceFormSchema($model, $except);
     }
 
-    protected function getResourceFormSchema(string $model, array $except = []): array
+    protected function getResourceFormSchema(string $model, array $except): array
     {
         $columns = $this->getResourceFormSchemaColumns($model);
-
+    
         $columnInstances = [];
 
         foreach ($columns as $key => $value) {
+            if (in_array($key, $except)) {
+                continue;
+            }
+
             $columnInstance = call_user_func([$value['type'], 'make'], $key);
 
             foreach ($value as $valueName => $parameters) {

@@ -9,12 +9,12 @@ use Illuminate\Support\Str;
 
 trait HasTableGeneration
 {
-    public static function makeTableSchema(string $model, array $visibleColumns): array
+    public static function makeTableSchema(string $model, array $visibleColumns, array $except = []): array
     {
-        return (new self())->getResourceTableSchema($model, $visibleColumns);
+        return (new self())->getResourceTableSchema($model, $visibleColumns, $except);
     }
 
-    protected function getResourceTableSchema(string $model, array $visibleColumns): array
+    protected function getResourceTableSchema(string $model, array $visibleColumns, array $except): array
     {
         $columns = $this->getResourceTableSchemaColumns($model);
 
@@ -22,6 +22,11 @@ trait HasTableGeneration
         $columnInstances = [];
 
         foreach ($columns as $key => $value) {
+            if (in_array($value['original_name'][0] ?? $key, $except)) {
+                continue;
+            }
+            unset($value['original_name']);
+
             $columnInstance = call_user_func([$value['type'], 'make'], $key);
 
             foreach ($value as $valueName => $parameters) {
@@ -94,6 +99,7 @@ trait HasTableGeneration
                 if (filled($guessedRelationshipName)) {
                     $guessedRelationshipTitleColumnName = $this->guessBelongsToRelationshipTitleColumnName($column, app($model)->{$guessedRelationshipName}()->getModel()::class);
 
+                    $columnData['original_name'] = [$columnName];
                     $columnName = "{$guessedRelationshipName}.{$guessedRelationshipTitleColumnName}";
                 }
             }
