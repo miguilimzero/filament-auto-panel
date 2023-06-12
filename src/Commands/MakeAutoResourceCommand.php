@@ -43,16 +43,6 @@ class MakeAutoResourceCommand extends MakeResourceCommand
         parent::copyStubToApp('AutoResource', $targetPath, $replacements);
     }
 
-    protected function getResourceTableColumns(string $model): string 
-    {
-        return '//';
-    }
-
-    protected function getResourceFormSchema(string $model): string 
-    {
-        return '//';
-    }
-
     protected function getDefaultStubPath(): string
     {
         $reflectionClass = new ReflectionClass($this);
@@ -60,6 +50,5 @@ class MakeAutoResourceCommand extends MakeResourceCommand
         return (string) Str::of($reflectionClass->getFileName())
             ->beforeLast('Commands')
             ->append('../stubs');
-            // ->append('../vendor/filament/filament/stubs');
     }
 }
