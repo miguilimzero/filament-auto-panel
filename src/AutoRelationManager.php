@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Str;
+use Miguilim\FilamentAutoResource\Filament\Actions\CreateAction as CreateActionModified;
+use Miguilim\FilamentAutoResource\Filament\Actions\EditAction as EditActionModified;
 
 class AutoRelationManager extends RelationManager
 {
@@ -46,8 +48,8 @@ class AutoRelationManager extends RelationManager
         $hasSoftDeletes = method_exists(static::getRelationshipModelStatically(), 'bootSoftDeletes');
 
         $defaultFilters = [];
-        $defaultHeaderActions = [Tables\Actions\CreateAction::make()];
-        $defaultActions = [Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make()];
+        $defaultHeaderActions = [CreateActionModified::make()];
+        $defaultActions = [Tables\Actions\ViewAction::make(), EditActionModified::make()];
         $defaultBulkActions = [Tables\Actions\DeleteBulkAction::make()];
 
         $relationshipInstance = static::getRelationshipStatically();
@@ -104,6 +106,11 @@ class AutoRelationManager extends RelationManager
         }
 
         return $parent;
+    }
+
+    public static function getIntrusive(): bool
+    {
+        return static::$intrusive;
     }
 
     protected static function getRelationshipStatically(): Relation
