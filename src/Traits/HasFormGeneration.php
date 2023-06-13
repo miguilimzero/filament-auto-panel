@@ -57,7 +57,10 @@ trait HasFormGeneration
                 $columnInstance->{$valueName}(...$parameters);
             }
 
-            if ($columnInstance instanceof Forms\Components\Toggle) {
+            if (
+                $columnInstance instanceof Forms\Components\Toggle
+                || $columnInstance instanceof Forms\Components\Textarea
+            ) {
                 $columnInstance->columnSpan('full');
             }
 
