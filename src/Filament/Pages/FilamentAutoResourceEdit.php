@@ -23,6 +23,23 @@ class FilamentAutoResourceEdit extends EditRecord
         ];
     }
 
+    protected function fillForm(): void
+    {
+        $this->callHook('beforeFill');
+
+        if ($this::getResource()::getIntrusive()) {
+            $data = $this->getRecord()->setHidden([])->attributesToArray();
+        } else {
+            $data = $this->getRecord()->attributesToArray();
+        }
+
+        $data = $this->mutateFormDataBeforeFill($data);
+
+        $this->form->fill($data);
+
+        $this->callHook('afterFill');
+    }
+
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         if ($this::getResource()::getIntrusive()) {
