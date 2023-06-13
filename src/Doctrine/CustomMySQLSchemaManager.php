@@ -2,6 +2,8 @@
 
 namespace Miguilim\FilamentAutoResource\Doctrine;
 
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
+use Doctrine\DBAL\Platforms\MariaDb1027Platform;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Types\Type;
 
@@ -105,11 +107,11 @@ class CustomMySQLSchemaManager extends MySQLSchemaManager
                 break;
         }
 
-        if ($this->_platform instanceof MariaDb1027Platform) {
-            $columnDefault = $this->getMariaDb1027ColumnDefault($this->_platform, $tableColumn['default']);
-        } else {
+        // if ($this->_platform instanceof MariaDb1027Platform) {
+        //     $columnDefault = $this->getMariaDb1027ColumnDefault($this->_platform, $tableColumn['default']);
+        // } else {
             $columnDefault = $tableColumn['default'];
-        }
+        // }
 
         $options = [
             'length' => $length !== null ? (int) $length : null,
