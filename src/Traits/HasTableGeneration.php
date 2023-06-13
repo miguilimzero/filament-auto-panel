@@ -123,6 +123,11 @@ trait HasTableGeneration
                     ])) {
                     $columnData['sortable'] = [];
                 }
+
+                if (Str::of($columnName)->contains(['link', 'url'])) {
+                    $columnData['url'] = [fn($record) => $record->{$columnName}];
+                    $columnData['openUrlInNewTab'] = [];
+                }
             }
 
             if (Str::of($columnName)->endsWith('_id')) {
