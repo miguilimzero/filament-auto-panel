@@ -49,7 +49,7 @@ trait HasTableGeneration
                 $columnInstance->searchable();
             } else {
                 $columnInstance->toggleable(
-                    isToggledHiddenByDefault: ! in_array($key, $visibleColumns)
+                    isToggledHiddenByDefault: !empty($visibleColumns) && ! in_array($key, $visibleColumns)
                 );
             }
 
