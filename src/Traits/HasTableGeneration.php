@@ -72,11 +72,11 @@ trait HasTableGeneration
 
             $columnName = $column->getName();
 
-            if (Str::of($columnName)->endsWith([
-                '_token',
-            ])) {
-                continue;
-            }
+            // if (Str::of($columnName)->endsWith([
+            //     '_token',
+            // ])) {
+            //     continue;
+            // }
 
             if (Str::of($columnName)->contains([
                 'password',

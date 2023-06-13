@@ -114,7 +114,7 @@ trait HasFormGeneration
                 'created_at',
                 'deleted_at',
                 'updated_at',
-                '*_token',
+                // '*_token',
             ])) {
                 continue;
             }
