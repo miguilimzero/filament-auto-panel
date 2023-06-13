@@ -34,7 +34,7 @@ trait HasFormGeneration
             if (isset($enumDictionary[$key])) {
                 $columnInstance = call_user_func([Forms\Components\Select::class, 'make'], $key);
                 $columnInstance->options(
-                    collect($enumDictionary[$key])->mapWithKeys(fn ($value, $key) => [$key => (is_array($value)) ? $value[0] : $value])
+                    collect($enumDictionary[$key])->mapWithKeys(fn ($value, $key) => [$key => (is_array($value)) ? $value[0] : $value])->all()
                 );
 
                 unset($value['numeric']);

@@ -35,13 +35,14 @@ trait HasTableGeneration
             if (isset($enumDictionary[$key])) {
                 $columnInstance = call_user_func([Tables\Columns\BadgeColumn::class, 'make'], $key);
                 $columnInstance->enum(
-                    collect($enumDictionary[$key])->mapWithKeys(fn ($value, $key) => [$key => (is_array($value)) ? $value[0] : $value])
+                    collect($enumDictionary[$key])->mapWithKeys(fn ($value, $key) => [$key => (is_array($value)) ? $value[0] : $value])->all()
                 );
 
                 $columnInstance->colors(
                     collect($enumDictionary[$key])
                         ->filter(fn ($value) => is_array($value))
                         ->mapWithKeys(fn ($value, $key) => [$value[1] => $key])
+                        ->all()
                 );
             }
 
