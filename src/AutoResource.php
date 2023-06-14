@@ -22,7 +22,7 @@ class AutoResource extends Resource
         return $table;
     }
 
-    public static function getPagesExtra(): array
+    public static function getExtraPages(): array
     {
         return [];
     }
@@ -66,7 +66,7 @@ class AutoResource extends Resource
 
     public static function getPages(): array
     {
-        return [...static::getPagesExtra(), ...[
+        return [...static::getExtraPages(), ...[
             'index' => FilamentAutoResourceHelper::makeList(static::class),
             'create' => FilamentAutoResourceHelper::makeCreate(static::class),
             'edit' => FilamentAutoResourceHelper::makeEdit(static::class),

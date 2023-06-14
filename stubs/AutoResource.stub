@@ -35,12 +35,25 @@ class {{ resourceClass }} extends AutoResource
                 //
             ]);
     }
-
-    public static function getPagesExtra(): array
+    
+    public static function getRelations(): array
     {
         return [
             //
         ];
     }
-    {{ relations }}
+
+    public static function getPagesActions(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    public static function getExtraPages(): array
+    {
+        return [
+            //
+        ];
+    }
 }
