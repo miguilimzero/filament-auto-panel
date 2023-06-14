@@ -18,7 +18,7 @@ class FilamentAutoResourceView extends ViewRecord
     {
         $this->callHook('beforeFill');
 
-        if ($this::getResource()::getIntrusive()) {
+        if (static::getResource()::getIntrusive()) {
             $data = $this->getRecord()->setHidden([])->attributesToArray();
         } else {
             $data = $this->getRecord()->attributesToArray();

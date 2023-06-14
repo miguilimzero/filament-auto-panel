@@ -27,6 +27,11 @@ class AutoResource extends Resource
         return [];
     }
 
+    public static function getPagesActions(): array
+    {
+        return [];
+    }
+
     public static function form(Form $form): Form
     {
         return $form

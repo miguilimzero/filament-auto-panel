@@ -10,8 +10,9 @@ class FilamentAutoResourceEdit extends EditRecord
 {
     protected function getActions(): array
     {
-        if (method_exists($this::getResource()::getModel(), 'bootSoftDeletes')) {
+        if (method_exists(static::getResource()::getModel(), 'bootSoftDeletes')) {
             return [
+                ...static::getResource()::getPagesActions(),
                 Actions\DeleteAction::make(),
                 Actions\ForceDeleteAction::make(),
                 Actions\RestoreAction::make(),
@@ -19,6 +20,7 @@ class FilamentAutoResourceEdit extends EditRecord
         }
 
         return [
+            ...static::getResource()::getPagesActions(),
             Actions\DeleteAction::make(),
         ];
     }
@@ -27,7 +29,7 @@ class FilamentAutoResourceEdit extends EditRecord
     {
         $this->callHook('beforeFill');
 
-        if ($this::getResource()::getIntrusive()) {
+        if (static::getResource()::getIntrusive()) {
             $data = $this->getRecord()->setHidden([])->attributesToArray();
         } else {
             $data = $this->getRecord()->attributesToArray();
@@ -42,7 +44,7 @@ class FilamentAutoResourceEdit extends EditRecord
 
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
-        if ($this::getResource()::getIntrusive()) {
+        if (static::getResource()::getIntrusive()) {
             foreach ($data as $key => $value) {
                 $record->{$key} = $value;
             }
