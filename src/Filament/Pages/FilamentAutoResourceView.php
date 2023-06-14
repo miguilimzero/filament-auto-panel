@@ -10,6 +10,7 @@ class FilamentAutoResourceView extends ViewRecord
     protected function getActions(): array
     {
         return [
+            ...static::getResource()::getPagesActions(),
             Actions\EditAction::make(),
         ];
     }
