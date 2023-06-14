@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class FilamentAutoResourceEdit extends EditRecord
 {
+    use Concerns\OverwriteFillForm;
+    use Concerns\OverwriteActionInjection;
+
     protected function getActions(): array
     {
         if (method_exists(static::getResource()::getModel(), 'bootSoftDeletes')) {
@@ -23,23 +26,6 @@ class FilamentAutoResourceEdit extends EditRecord
             ...static::getResource()::getPagesActions(),
             Actions\DeleteAction::make(),
         ];
-    }
-
-    protected function fillForm(): void
-    {
-        $this->callHook('beforeFill');
-
-        if (static::getResource()::getIntrusive()) {
-            $data = $this->getRecord()->setHidden([])->attributesToArray();
-        } else {
-            $data = $this->getRecord()->attributesToArray();
-        }
-
-        $data = $this->mutateFormDataBeforeFill($data);
-
-        $this->form->fill($data);
-
-        $this->callHook('afterFill');
     }
 
     protected function handleRecordUpdate(Model $record, array $data): Model

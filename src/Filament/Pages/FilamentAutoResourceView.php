@@ -7,28 +7,14 @@ use Filament\Resources\Pages\ViewRecord;
 
 class FilamentAutoResourceView extends ViewRecord
 {
+    use Concerns\OverwriteFillForm;
+    use Concerns\OverwriteActionInjection;
+
     protected function getActions(): array
     {
         return [
             ...static::getResource()::getPagesActions(),
             Actions\EditAction::make(),
         ];
-    }
-
-    protected function fillForm(): void
-    {
-        $this->callHook('beforeFill');
-
-        if (static::getResource()::getIntrusive()) {
-            $data = $this->getRecord()->setHidden([])->attributesToArray();
-        } else {
-            $data = $this->getRecord()->attributesToArray();
-        }
-
-        $data = $this->mutateFormDataBeforeFill($data);
-
-        $this->form->fill($data);
-
-        $this->callHook('afterFill');
     }
 }
