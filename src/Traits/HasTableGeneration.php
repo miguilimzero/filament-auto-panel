@@ -3,7 +3,9 @@
 namespace Miguilim\FilamentAutoResource\Traits;
 
 use Doctrine\DBAL\Types;
+use Filament\Facades\Filament;
 use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
 use Illuminate\Support\Str;
 
 trait HasTableGeneration
@@ -25,10 +27,9 @@ trait HasTableGeneration
         $columnInstances = [];
 
         foreach ($columns as $key => $value) {
-            if (in_array($value['original_name'][0] ?? $key, $except)) {
+            if (in_array($value['originalName'][0] ?? $key, $except)) {
                 continue;
             }
-            unset($value['original_name']);
 
             $columnInstance = call_user_func([$value['type'], 'make'], $key);
 
@@ -46,20 +47,25 @@ trait HasTableGeneration
                 );
             }
 
-            foreach ($value as $valueName => $parameters) {
-                if($valueName === 'type') {
-                    continue;
-                }
-                
-                $columnInstance->{$valueName}(...$parameters);
-            }
-
             if ($dummyModel->getKeyName() === $key) {
                 $columnInstance->searchable();
             } else {
                 $columnInstance->toggleable(
                     isToggledHiddenByDefault: !empty($visibleColumns) && ! in_array($key, $visibleColumns)
                 );
+            }
+
+            if (isset($value['originalName'])) {
+                $this->bindRelatedResourceToRelationship($columnInstance);
+            }
+            unset($value['originalName']);
+
+            foreach ($value as $valueName => $parameters) {
+                if($valueName === 'type') {
+                    continue;
+                }
+                
+                $columnInstance->{$valueName}(...$parameters);
             }
 
             $columnInstances[] = $columnInstance;
@@ -136,7 +142,7 @@ trait HasTableGeneration
                 if (filled($guessedRelationshipName)) {
                     $guessedRelationshipTitleColumnName = $this->guessBelongsToRelationshipTitleColumnName($column, app($model)->{$guessedRelationshipName}()->getModel()::class);
 
-                    $columnData['original_name'] = [$columnName];
+                    $columnData['originalName'] = [$columnName];
                     $columnName = "{$guessedRelationshipName}.{$guessedRelationshipTitleColumnName}";
 
                     unset($columnData['sortable']); // You cannot sort by a relationship column
@@ -147,5 +153,38 @@ trait HasTableGeneration
         }
 
         return $columns;
+    }
+
+    protected function bindRelatedResourceToRelationship(TextColumn $column): TextColumn
+    {
+        $view = 'view';
+
+        return $column->weight('bold')->url(function ($record) use ($view, $column) {
+            if ($record === null) {
+                return null;
+            }
+      
+            $selectedResource = null;
+            $relationship = Str::before($column->getName(), '.');
+            $relatedRecord = $record->{$relationship};
+      
+            if ($relatedRecord === null) {
+                return null;
+            }
+      
+            foreach (Filament::getResources() as $resource) {
+                if ($relatedRecord instanceof ($resource::getModel())) {
+                    $selectedResource = $resource;
+      
+                    break;
+                }
+            }
+
+            if ($selectedResource === null) {
+                return null;
+            }
+      
+            return $selectedResource::getUrl($view, $relatedRecord->getKey());
+        });
     }
 }
