@@ -1,13 +1,15 @@
 <?php
 
-namespace Miguilim\FilamentAutoResource\Traits;
+namespace Miguilim\FilamentAutoResource\Generators;
 
 use Doctrine\DBAL\Types;
 use Filament\Forms;
 use Illuminate\Support\Str;
 
-trait HasFormGeneration
+class FormGenerator 
 {
+    use Concerns\CanReadModelSchemas;
+
     public static array $generatedFormSchemas = [];
 
     public static function makeFormSchema(string $model, array $enumDictionary = [], array $except = []): array

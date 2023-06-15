@@ -1,18 +1,14 @@
 <?php
 
-namespace Miguilim\FilamentAutoResource;
+namespace Miguilim\FilamentAutoResource\Generators\Concerns;
 
-use Filament\Support\Commands\Concerns\CanReadModelSchemas;
 use Miguilim\FilamentAutoResource\Doctrine\CustomMySQLSchemaManager;
 
-class FilamentAutoResourceHelper
-{
-    use CanReadModelSchemas;
+use Filament\Support\Commands\Concerns\CanReadModelSchemas as CanReadModelSchemasBase;
 
-    use Traits\HasPageGeneration;
-    use Traits\HasFormGeneration;
-    use Traits\HasRelationManagerGeneration;
-    use Traits\HasTableGeneration;
+trait CanReadModelSchemas
+{
+    use CanReadModelSchemasBase;
 
     public function introspectTable(string $model)
     {

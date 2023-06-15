@@ -1,10 +1,8 @@
 <?php
 
-namespace Miguilim\FilamentAutoResource\Traits;
+namespace Miguilim\FilamentAutoResource\Generators;
 
-use Miguilim\FilamentAutoResource\AutoRelationManager;
-
-trait HasRelationManagerGeneration
+class RelationManagerGenerator
 {
     public static array $generatedRelationClasses = [];
 

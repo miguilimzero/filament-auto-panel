@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Str;
 use Miguilim\FilamentAutoResource\Filament\Actions\CreateAction as CreateActionModified;
 use Miguilim\FilamentAutoResource\Filament\Actions\EditAction as EditActionModified;
+use Miguilim\FilamentAutoResource\Generators\FormGenerator;
+use Miguilim\FilamentAutoResource\Generators\TableGenerator;
 
 class AutoRelationManager extends RelationManager
 {
@@ -29,7 +31,7 @@ class AutoRelationManager extends RelationManager
     public static function form(Form $form): Form
     {
         return $form
-            ->schema(FilamentAutoResourceHelper::makeFormSchema(
+            ->schema(FormGenerator::makeFormSchema(
                 model: static::getRelationshipModelStatically(), 
                 enumDictionary: static::$enumDictionary,
                 except: [static::getRelationshipStatically()->getForeignKeyName()]
@@ -83,7 +85,7 @@ class AutoRelationManager extends RelationManager
         }
 
         return $finalTable
-            ->columns(FilamentAutoResourceHelper::makeTableSchema(
+            ->columns(TableGenerator::makeTableSchema(
                 model: static::getRelationshipModelStatically(), 
                 visibleColumns: static::$visibleColumns,
                 enumDictionary: static::$enumDictionary,

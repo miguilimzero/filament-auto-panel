@@ -1,13 +1,13 @@
 <?php
 
-namespace Miguilim\FilamentAutoResource\Traits;
+namespace Miguilim\FilamentAutoResource\Generators;
 
 use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceCreate;
 use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceEdit;
 use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceList;
 use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceView;
 
-trait HasPageGeneration
+class PageGenerator
 {
     public static array $generatedPageClasses = [];
 

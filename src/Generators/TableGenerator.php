@@ -1,6 +1,6 @@
 <?php
 
-namespace Miguilim\FilamentAutoResource\Traits;
+namespace Miguilim\FilamentAutoResource\Generators;
 
 use Doctrine\DBAL\Types;
 use Filament\Facades\Filament;
@@ -8,8 +8,10 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Support\Str;
 
-trait HasTableGeneration
+class TableGenerator
 {
+    use Concerns\CanReadModelSchemas;
+
     public static array $generatedTableSchemas = [];
 
     public static function makeTableSchema(string $model, array $visibleColumns, array $enumDictionary = [], array $except = []): array

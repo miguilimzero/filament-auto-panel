@@ -8,6 +8,9 @@ use Filament\Resources\Resource;
 use Filament\Resources\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Miguilim\FilamentAutoResource\Generators\FormGenerator;
+use Miguilim\FilamentAutoResource\Generators\PageGenerator;
+use Miguilim\FilamentAutoResource\Generators\TableGenerator;
 
 class AutoResource extends Resource
 {
@@ -35,7 +38,7 @@ class AutoResource extends Resource
     public static function form(Form $form): Form
     {
         return $form
-            ->schema(FilamentAutoResourceHelper::makeFormSchema(static::getModel(), static::$enumDictionary))
+            ->schema(FormGenerator::makeFormSchema(static::getModel(), static::$enumDictionary))
             ->columns(3);
     }
 
@@ -58,7 +61,7 @@ class AutoResource extends Resource
         }
 
         return $finalTable
-            ->columns(FilamentAutoResourceHelper::makeTableSchema(static::getModel(), static::$visibleColumns, static::$enumDictionary))
+            ->columns(TableGenerator::makeTableSchema(static::getModel(), static::$visibleColumns, static::$enumDictionary))
             ->filters([...$finalTable->getFilters(), ...$defaultFilters])
             ->actions([...$finalTable->getActions(), ...$defaultActions])
             ->bulkActions([...$finalTable->getBulkActions(), ...$defaultBulkActions]);
@@ -67,10 +70,10 @@ class AutoResource extends Resource
     public static function getPages(): array
     {
         return [...static::getExtraPages(), ...[
-            'index' => FilamentAutoResourceHelper::makeList(static::class),
-            'create' => FilamentAutoResourceHelper::makeCreate(static::class),
-            'edit' => FilamentAutoResourceHelper::makeEdit(static::class),
-            'view' => FilamentAutoResourceHelper::makeView(static::class),
+            'index' => PageGenerator::makeList(static::class),
+            'create' => PageGenerator::makeCreate(static::class),
+            'edit' => PageGenerator::makeEdit(static::class),
+            'view' => PageGenerator::makeView(static::class),
         ]];
     }
 
