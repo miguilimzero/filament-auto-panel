@@ -55,6 +55,10 @@ trait HasFormGeneration
                 if($valueName === 'type') {
                     continue;
                 }
+
+                if($valueName === 'maxLength' && !($columnInstance instanceof Forms\Components\TextInput)) {
+                    continue;
+                }
                 
                 $columnInstance->{$valueName}(...$parameters);
             }

@@ -58,11 +58,14 @@ trait HasTableGeneration
             if (isset($value['originalName'])) {
                 $this->bindRelatedResourceToRelationship($columnInstance);
             }
-            unset($value['originalName']);
 
             foreach ($value as $valueName => $parameters) {
-                if($valueName === 'type') {
+                if($valueName === 'type' || $valueName === 'originalName') {
                     continue;
+                }
+
+                if (array_key_exists('originalName', $value) && $valueName === 'sortable') {
+                    continue; // You cannot sort by a relationship column
                 }
                 
                 $columnInstance->{$valueName}(...$parameters);
@@ -144,8 +147,6 @@ trait HasTableGeneration
 
                     $columnData['originalName'] = [$columnName];
                     $columnName = "{$guessedRelationshipName}.{$guessedRelationshipTitleColumnName}";
-
-                    unset($columnData['sortable']); // You cannot sort by a relationship column
                 }
             }
 
