@@ -64,7 +64,7 @@ trait HasTableGeneration
                     continue;
                 }
 
-                if (array_key_exists('originalName', $value) && $valueName === 'sortable') {
+                if ($valueName === 'sortable' && array_key_exists('originalName', $value)) {
                     continue; // You cannot sort by a relationship column
                 }
                 

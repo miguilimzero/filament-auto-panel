@@ -51,6 +51,13 @@ trait HasFormGeneration
                 }
             }
 
+            if (
+                $columnInstance instanceof Forms\Components\Toggle
+                || $columnInstance instanceof Forms\Components\Textarea
+            ) {
+                $columnInstance->columnSpan('full');
+            }
+
             foreach ($value as $valueName => $parameters) {
                 if($valueName === 'type') {
                     continue;
@@ -61,13 +68,6 @@ trait HasFormGeneration
                 }
                 
                 $columnInstance->{$valueName}(...$parameters);
-            }
-
-            if (
-                $columnInstance instanceof Forms\Components\Toggle
-                || $columnInstance instanceof Forms\Components\Textarea
-            ) {
-                $columnInstance->columnSpan('full');
             }
 
             $columnInstances[] = $columnInstance;
