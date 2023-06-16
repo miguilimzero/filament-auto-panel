@@ -112,17 +112,12 @@ class FormGenerator
         $components = [];
 
         foreach ($table->getColumns() as $column) {
-            // if ($column->getAutoincrement()) {
-            //     continue;
-            // }
-
             $columnName = $column->getName();
 
             if (Str::of($columnName)->is([
                 'created_at',
                 'deleted_at',
                 'updated_at',
-                // '*_token',
             ])) {
                 continue;
             }

@@ -86,17 +86,7 @@ class TableGenerator
         $columns = [];
 
         foreach ($table->getColumns() as $column) {
-            // if ($column->getAutoincrement()) {
-            //     continue;
-            // }
-
             $columnName = $column->getName();
-
-            // if (Str::of($columnName)->endsWith([
-            //     '_token',
-            // ])) {
-            //     continue;
-            // }
 
             if (Str::of($columnName)->contains([
                 'password',
@@ -119,6 +109,10 @@ class TableGenerator
 
                 if ($column->getType()::class === Types\DateTimeType::class) {
                     $columnData['dateTime'] = [];
+                }
+
+                if ($column->getType()::class === Types\TextType::class) {
+                    $columnData['wrap'] = [];
                 }
 
                 if (in_array(
