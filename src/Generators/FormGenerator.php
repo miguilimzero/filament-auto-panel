@@ -4,6 +4,7 @@ namespace Miguilim\FilamentAutoResource\Generators;
 
 use Doctrine\DBAL\Types;
 use Filament\Forms;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class FormGenerator 
@@ -12,22 +13,32 @@ class FormGenerator
 
     public static array $generatedFormSchemas = [];
 
+    protected Model $dummyModel;
+
+    public function __construct(protected string $modelClass)
+    {
+        $this->dummyModel = new $modelClass();
+    }
+
     public static function makeFormSchema(string $model, array $enumDictionary = [], array $except = []): array
     {
         $cacheKey = md5($model . json_encode($enumDictionary) . json_encode($except));
     
-        return static::$generatedFormSchemas[$cacheKey] ??= (new self())->getResourceFormSchema($model, $except, $enumDictionary);
+        return static::$generatedFormSchemas[$cacheKey] ??= (new self($model))->getResourceFormSchema($except, $enumDictionary);
     }
 
-    protected function getResourceFormSchema(string $model, array $except, array $enumDictionary): array
+    protected function getResourceFormSchema(array $except, array $enumDictionary): array
     {
-        $columns = $this->getResourceFormSchemaColumns($model);
+        $columns = $this->getResourceFormSchemaColumns($this->modelClass);
     
-        $dummyModel = new $model;
         $columnInstances = [];
 
         foreach ($columns as $key => $value) {
             if (in_array($key, $except)) {
+                continue;
+            }
+
+            if (($this->dummyModel->getCasts()[$key] ?? '') === 'json') { // TODO: Add support for json cast columns
                 continue;
             }
 
@@ -42,11 +53,11 @@ class FormGenerator
                 unset($value['numeric']);
             }
 
-            if ($dummyModel->getKeyName() === $key) {
-                if (method_exists($dummyModel, 'initializeHasUuids')) {
+            if ($this->dummyModel->getKeyName() === $key) {
+                if (method_exists($this->dummyModel, 'initializeHasUuids')) {
                     $columnInstance->disabled();
-                    $columnInstance->default($dummyModel->newUniqueId());
-                } else if ($dummyModel->incrementing) {
+                    $columnInstance->default($this->dummyModel->newUniqueId());
+                } else if ($this->dummyModel->incrementing) {
                     $columnInstance->disabled();
                     $columnInstance->placeholder('Auto-incremented ID');
                     unset($value['required']);
@@ -89,12 +100,12 @@ class FormGenerator
                     Forms\Components\Placeholder::make('created_at')
                         ->label('Created at')
                         ->content(fn ($record): ?string => $record->created_at?->diffForHumans()),
-                    (! $model::isIgnoringTouch())
+                    (! $this->modelClass::isIgnoringTouch())
                         ? Forms\Components\Placeholder::make('updated_at')
                             ->label('Updated at')
                             ->content(fn ($record): ?string => $record->updated_at?->diffForHumans())
                         : null,
-                    (method_exists($model, 'bootSoftDeletes')) 
+                    (method_exists($this->modelClass, 'bootSoftDeletes')) 
                         ? Forms\Components\Placeholder::make('deleted_at')
                             ->label('Deleted at')
                             ->content(fn ($record): ?string => $record->deleted_at?->diffForHumans() ?? 'Never')
