@@ -6,6 +6,7 @@ use Doctrine\DBAL\Types;
 use Filament\Facades\Filament;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class TableGenerator
@@ -14,22 +15,32 @@ class TableGenerator
 
     public static array $generatedTableSchemas = [];
 
+    protected Model $dummyModel;
+
+    public function __construct(protected string $modelClass)
+    {
+        $this->dummyModel = new $modelClass();
+    }
+
     public static function makeTableSchema(string $model, array $visibleColumns, array $enumDictionary = [], array $except = []): array
     {
         $cacheKey = md5($model . json_encode($visibleColumns) . json_encode($enumDictionary) . json_encode($except));
     
-        return static::$generatedTableSchemas[$cacheKey] ??= (new self())->getResourceTableSchema($model, $visibleColumns, $enumDictionary, $except);
+        return static::$generatedTableSchemas[$cacheKey] ??= (new self($model))->getResourceTableSchema($visibleColumns, $enumDictionary, $except);
     }
 
-    protected function getResourceTableSchema(string $model, array $visibleColumns, array $enumDictionary, array $except): array
+    protected function getResourceTableSchema(array $visibleColumns, array $enumDictionary, array $except): array
     {
-        $columns = $this->getResourceTableSchemaColumns($model);
+        $columns = $this->getResourceTableSchemaColumns($this->modelClass);
 
-        $dummyModel = new $model;
         $columnInstances = [];
 
         foreach ($columns as $key => $value) {
             if (in_array($value['originalName'][0] ?? $key, $except)) {
+                continue;
+            }
+
+            if (($this->dummyModel->getCasts()[$key] ?? '') === 'json') {
                 continue;
             }
 
@@ -49,7 +60,7 @@ class TableGenerator
                 );
             }
 
-            if ($dummyModel->getKeyName() === $key) {
+            if ($this->dummyModel->getKeyName() === $key) {
                 $columnInstance->searchable();
             } else {
                 $columnInstance->toggleable(
