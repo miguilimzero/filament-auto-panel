@@ -76,7 +76,7 @@ class AutoResource extends Resource
                 $finalTable = $finalTable->defaultSort('created_at', 'desc');
             } else if ($dummyModel->getIncrementing() && $sortColumnsAvailable->contains($dummyModel->getKeyName())) {
                 $finalTable = $finalTable->defaultSort($dummyModel->getKeyName(), 'desc');
-            } if ($sortColumnsAvailable->contains('updated_at')) {
+            } else if ($sortColumnsAvailable->contains('updated_at')) {
                 $finalTable = $finalTable->defaultSort('updated_at', 'desc');
             }
         }
