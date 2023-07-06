@@ -60,8 +60,29 @@ class AutoResource extends Resource
             $defaultBulkActions[] = Tables\Actions\ForceDeleteBulkAction::make();
         }
 
+        $tableSchema = TableGenerator::makeTableSchema(static::getModel(), static::$visibleColumns, static::$enumDictionary);
+
+        // Define automatic sort by column
+        if ($finalTable->getDefaultSortColumn() === null) {
+            $sortColumnsAvailable = collect($tableSchema)
+            ->filter(fn ($column) => $column->isSortable())
+            ->map(fn ($column) => $column->getName())
+            ->values();
+
+            $modelClass = static::getModel();
+            $dummyModel = new $modelClass;
+
+            if ($sortColumnsAvailable->contains('created_at')) {
+                $finalTable = $finalTable->defaultSort('created_at', 'desc');
+            } else if ($dummyModel->getIncrementing() && $sortColumnsAvailable->contains($dummyModel->getKeyName())) {
+                $finalTable = $finalTable->defaultSort($dummyModel->getKeyName(), 'desc');
+            } if ($sortColumnsAvailable->contains('updated_at')) {
+                $finalTable = $finalTable->defaultSort('updated_at', 'desc');
+            }
+        }
+
         return $finalTable
-            ->columns(TableGenerator::makeTableSchema(static::getModel(), static::$visibleColumns, static::$enumDictionary))
+            ->columns($tableSchema)
             ->filters([...$finalTable->getFilters(), ...$defaultFilters])
             ->actions([...$finalTable->getActions(), ...$defaultActions])
             ->bulkActions([...$finalTable->getBulkActions(), ...$defaultBulkActions]);
