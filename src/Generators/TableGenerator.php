@@ -22,14 +22,14 @@ class TableGenerator
         $this->dummyModel = new $modelClass();
     }
 
-    public static function makeTableSchema(string $model, array $visibleColumns, array $enumDictionary = [], array $except = []): array
+    public static function makeTableSchema(string $model, array $visibleColumns, array $searchableColumns, array $enumDictionary = [], array $except = []): array
     {
         $cacheKey = md5($model . json_encode($visibleColumns) . json_encode($enumDictionary) . json_encode($except));
     
-        return static::$generatedTableSchemas[$cacheKey] ??= (new self($model))->getResourceTableSchema($visibleColumns, $enumDictionary, $except);
+        return static::$generatedTableSchemas[$cacheKey] ??= (new self($model))->getResourceTableSchema($visibleColumns, $searchableColumns, $enumDictionary, $except);
     }
 
-    protected function getResourceTableSchema(array $visibleColumns, array $enumDictionary, array $except): array
+    protected function getResourceTableSchema(array $visibleColumns, array $searchableColumns, array $enumDictionary, array $except): array
     {
         $columns = $this->getResourceTableSchemaColumns($this->modelClass);
 
@@ -58,6 +58,10 @@ class TableGenerator
                         ->mapWithKeys(fn ($value, $key) => [$value[1] => $key])
                         ->all()
                 );
+            }
+
+            if (in_array($key, $searchableColumns)) {
+                $columnInstance->searchable();
             }
 
             if ($this->dummyModel->getKeyName() === $key) {

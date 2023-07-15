@@ -24,6 +24,8 @@ class AutoRelationManager extends RelationManager
 
     protected static array $visibleColumns = [];
 
+    protected static array $searchableColumns = [];
+
     protected static array $enumDictionary = [];
 
     protected static bool $intrusive = true;
@@ -88,6 +90,7 @@ class AutoRelationManager extends RelationManager
             ->columns(TableGenerator::makeTableSchema(
                 model: static::getRelationshipModelStatically(), 
                 visibleColumns: static::$visibleColumns,
+                searchableColumns: static::$searchableColumns,
                 enumDictionary: static::$enumDictionary,
                 except: [static::getRelationshipStatically()->getForeignKeyName()],
             ))

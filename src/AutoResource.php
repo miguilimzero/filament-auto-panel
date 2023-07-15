@@ -16,6 +16,8 @@ class AutoResource extends Resource
 {
     protected static array $visibleColumns = [];
 
+    protected static array $searchableColumns = [];
+
     protected static array $enumDictionary = [];
 
     protected static bool $intrusive = true;
@@ -60,7 +62,7 @@ class AutoResource extends Resource
             $defaultBulkActions[] = Tables\Actions\ForceDeleteBulkAction::make();
         }
 
-        $tableSchema = TableGenerator::makeTableSchema(static::getModel(), static::$visibleColumns, static::$enumDictionary);
+        $tableSchema = TableGenerator::makeTableSchema(static::getModel(), static::$visibleColumns, static::$searchableColumns, static::$enumDictionary);
 
         // Define automatic sort by column
         if ($finalTable->getDefaultSortColumn() === null) {
