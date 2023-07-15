@@ -2,6 +2,8 @@
 
 namespace Miguilim\FilamentAutoResource\Generators;
 
+use Miguilim\FilamentAutoResource\AutoRelationManager;
+
 class RelationManagerGenerator
 {
     public static array $generatedRelationClasses = [];
