@@ -152,7 +152,7 @@ class FormGenerator
                     $componentData['type'] = $type = Forms\Components\Select::class;
                     $componentData['relationship'] = [$guessedRelationshipName, $guessedRelationshipTitleColumnName];
                     $componentData['searchable'] = [];
-                    $componentData['preload'] = [];
+                    // $componentData['preload'] = [];
                 }
             }
 
