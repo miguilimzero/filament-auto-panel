@@ -20,7 +20,9 @@ class {{ resourceClass }} extends AutoResource
 
     protected static array $enumDictionary = [];
 
-    public static array $visibleColumns = [];
+    protected static array $visibleColumns = [];
+
+    protected static array $searchableColumns = [];
 
     public static function tableExtra(Table $table): Table
     {
