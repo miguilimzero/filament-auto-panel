@@ -8,7 +8,7 @@ class RelationManagerGenerator
 {
     public static array $generatedRelationClasses = [];
 
-    public static function makeRelationManager(string $resource, string $relation, string $recordTitleAttribute, array $visibleColumns)
+    public static function makeRelationManager(string $resource, string $relation, string $recordTitleAttribute, array $visibleColumns, array $searchableColumns = [])
     {
         $resourceName = array_reverse(explode('\\', $resource))[0];
         $anonymousClass = "{$resourceName}{$relation}RelationManager";
@@ -24,6 +24,7 @@ class RelationManagerGenerator
                 protected static string \$relationship = '{$relation}';
                 protected static ?string \$recordTitleAttribute = '{$recordTitleAttribute}';
                 public static array \$visibleColumns = [{$visibleColumns}];
+                public static array \$searchableColumns = [{$searchableColumns}];
             };");
         }
 
