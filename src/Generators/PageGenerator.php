@@ -2,6 +2,7 @@
 
 namespace Miguilim\FilamentAutoResource\Generators;
 
+use Filament\Resources\Pages\PageRegistration;
 use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceCreate;
 use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceEdit;
 use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceList;
@@ -11,22 +12,22 @@ class PageGenerator
 {
     public static array $generatedPageClasses = [];
 
-    public static function makeList(string $resource): array
+    public static function makeList(string $resource): PageRegistration
     {
         return static::generateAnonymousClass(FilamentAutoResourceList::class, $resource)::route('/');
     }
 
-    public static function makeCreate(string $resource): array
+    public static function makeCreate(string $resource): PageRegistration
     {
         return static::generateAnonymousClass(FilamentAutoResourceCreate::class, $resource)::route('/create');
     }
 
-    public static function makeView(string $resource): array
+    public static function makeView(string $resource): PageRegistration
     {
         return static::generateAnonymousClass(FilamentAutoResourceView::class, $resource)::route('/{record}');
     }
 
-    public static function makeEdit(string $resource): array
+    public static function makeEdit(string $resource): PageRegistration
     {
         return static::generateAnonymousClass(FilamentAutoResourceEdit::class, $resource)::route('/{record}/edit');
     }
