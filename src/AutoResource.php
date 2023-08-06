@@ -3,9 +3,9 @@
 namespace Miguilim\FilamentAutoResource;
 
 use Filament\Tables;
-use Filament\Resources\Form;
+use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Resources\Table;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Miguilim\FilamentAutoResource\Generators\FormGenerator;

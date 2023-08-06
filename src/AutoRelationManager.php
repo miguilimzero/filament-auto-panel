@@ -2,9 +2,9 @@
 
 namespace Miguilim\FilamentAutoResource;
 
-use Filament\Resources\Form;
+use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Resources\Table;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -30,7 +30,7 @@ class AutoRelationManager extends RelationManager
 
     protected static bool $intrusive = true;
 
-    public static function form(Form $form): Form
+    public function form(Form $form): Form
     {
         return $form
             ->schema(FormGenerator::makeFormSchema(
@@ -41,14 +41,14 @@ class AutoRelationManager extends RelationManager
             ->columns(3);
     }
     
-    public static function tableExtra(Table $table): Table
+    public function tableExtra(Table $table): Table
     {
         return $table;
     }
 
-    public static function table(Table $table): Table
+    public function table(Table $table): Table
     {
-        $finalTable = static::tableExtra($table);
+        $finalTable = $this->tableExtra($table);
         $hasSoftDeletes = method_exists(static::getRelationshipModelStatically(), 'bootSoftDeletes');
 
         $defaultFilters = [];
