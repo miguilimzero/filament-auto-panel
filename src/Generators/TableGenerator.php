@@ -47,17 +47,20 @@ class TableGenerator
             $columnInstance = call_user_func([$value['type'], 'make'], $key);
 
             if (isset($enumDictionary[$key])) {
-                $columnInstance = call_user_func([Tables\Columns\BadgeColumn::class, 'make'], $key);
-                $columnInstance->enum(
-                    collect($enumDictionary[$key])->mapWithKeys(fn ($value, $key) => [$key => (is_array($value)) ? $value[0] : $value])->all()
-                );
+                $columnInstance->badge();
 
-                $columnInstance->colors(
-                    collect($enumDictionary[$key])
-                        ->filter(fn ($value) => is_array($value))
-                        ->mapWithKeys(fn ($value, $key) => [$value[1] => $key])
-                        ->all()
-                );
+                $columnInstance->formatStateUsing(function($state) use($enumDictionary, $key) {
+                    $dictionary  = $enumDictionary[$key];
+                    $finalFormat = $dictionary[$state] ?? $state;
+
+                    return (is_array($finalFormat)) ? $finalFormat[0] : $finalFormat;
+                });
+
+                $columnInstance->colors(function($state) use($enumDictionary, $key) {
+                    $dictionary = $enumDictionary[$key];
+
+                    return $dictionary[$state][1] ?? null;
+                });
             }
 
             if (in_array($key, $searchableColumns)) {
