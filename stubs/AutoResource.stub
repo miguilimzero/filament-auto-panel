@@ -10,7 +10,7 @@ class {{ resourceClass }} extends AutoResource
 {
     protected static ?string $model = {{ modelClass }}::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-collection';
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static array $enumDictionary = [];
 

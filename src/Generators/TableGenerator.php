@@ -153,6 +153,7 @@ class TableGenerator
 
                 if (Str::of($columnName)->contains(['link', 'url'])) {
                     $columnData['url'] = [fn($record) => $record->{$columnName}];
+                    $columnData['color'] = 'primary';
                     $columnData['openUrlInNewTab'] = [];
                 }
             }
@@ -203,7 +204,7 @@ class TableGenerator
                 return null;
             }
       
-            return $selectedResource::getUrl($view, $relatedRecord->getKey());
+            return $selectedResource::getUrl($view, [$relatedRecord->getKey()]);
         })->color('primary');
     }
 }
