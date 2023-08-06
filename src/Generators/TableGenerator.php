@@ -56,7 +56,7 @@ class TableGenerator
                     return (is_array($finalFormat)) ? $finalFormat[0] : $finalFormat;
                 });
 
-                $columnInstance->colors(function($state) use($enumDictionary, $key) {
+                $columnInstance->color(function($state) use($enumDictionary, $key) {
                     $dictionary = $enumDictionary[$key];
 
                     if (! is_array($dictionary[$state]) || ! array_key_exists(1, $dictionary[$state])) {
