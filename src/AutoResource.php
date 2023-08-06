@@ -14,11 +14,11 @@ use Miguilim\FilamentAutoResource\Generators\TableGenerator;
 
 class AutoResource extends Resource
 {
+    protected static array $enumDictionary = [];
+
     protected static array $visibleColumns = [];
 
     protected static array $searchableColumns = [];
-
-    protected static array $enumDictionary = [];
 
     protected static bool $intrusive = true;
 

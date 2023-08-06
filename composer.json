@@ -18,5 +18,6 @@
                 "Miguilim\\FilamentAutoResource\\FilamentAutoResourceProvider"
             ]
         }
-    }
+    },
+    "minimum-stability": "dev"
 }

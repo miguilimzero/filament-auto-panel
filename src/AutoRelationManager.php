@@ -22,11 +22,11 @@ class AutoRelationManager extends RelationManager
 {
     protected static string $relatedResource;
 
+    protected static array $enumDictionary = [];
+
     protected static array $visibleColumns = [];
 
     protected static array $searchableColumns = [];
-
-    protected static array $enumDictionary = [];
 
     protected static bool $intrusive = true;
 

@@ -14,7 +14,7 @@ class MakeAutoRelationManagerCommand extends MakeRelationManagerCommand
      *
      * @var string
      */
-    protected $signature = 'make:filament-auto-relation-manager {resource?} {relationship?} {recordTitleAttribute?} {--F|force}';
+    protected $signature = 'make:filament-auto-relation-manager {resource?} {relationship?} {recordTitleAttribute?} {--panel=} {--F|force}';
 
     /**
      * The console command description.
