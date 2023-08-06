@@ -59,7 +59,11 @@ class TableGenerator
                 $columnInstance->colors(function($state) use($enumDictionary, $key) {
                     $dictionary = $enumDictionary[$key];
 
-                    return $dictionary[$state][1] ?? null;
+                    if (! is_array($dictionary[$state]) || ! array_key_exists(1, $dictionary[$state])) {
+                        return null;
+                    }
+
+                    return $dictionary[$state][1];
                 });
             }
 
@@ -200,6 +204,6 @@ class TableGenerator
             }
       
             return $selectedResource::getUrl($view, $relatedRecord->getKey());
-        });
+        })->color('primary');
     }
 }
