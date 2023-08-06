@@ -4,29 +4,35 @@ namespace Miguilim\FilamentAutoResource\Filament\Pages\Concerns;
 
 use Filament\Support\Exceptions\Cancel;
 use Filament\Support\Exceptions\Halt;
+use Illuminate\Support\Arr;
 
 trait OverwriteActionInjection
 {
-    public function callMountedAction(?string $arguments = null)
+    public function callMountedAction(array $arguments = []): mixed
     {
         $action = $this->getMountedAction();
 
         if (! $action) {
-            return;
+            return null;
         }
 
         if ($action->isDisabled()) {
-            return;
+            return null;
         }
 
-        $action->arguments($arguments ? json_decode($arguments, associative: true) : []);
+        $action->arguments([
+            ...Arr::last($this->mountedActionsArguments),
+            ...$arguments,
+        ]);
 
         $form = $this->getMountedActionForm();
 
         $result = null;
 
+        $originallyMountedActions = $this->mountedActions;
+
         try {
-            if ($action->hasForm()) {
+            if ($this->mountedActionHasForm()) {
                 $action->callBeforeFormValidated();
 
                 $action->formData($form->getState());
@@ -44,23 +50,29 @@ trait OverwriteActionInjection
             ]);
 
             $result = $action->callAfter() ?? $result;
+
+            $this->afterActionCalled();
         } catch (Halt $exception) {
-            return;
+            return null;
         } catch (Cancel $exception) {
         }
-
-        if (filled($this->redirectTo)) {
-            return $result;
-        }
-
-        $this->mountedAction = null;
 
         $action->resetArguments();
         $action->resetFormData();
 
-        $this->dispatchBrowserEvent('close-modal', [
-            'id' => 'page-action',
-        ]);
+        // If the action was replaced while it was being called,
+        // we don't want to unmount it.
+        if ($originallyMountedActions !== $this->mountedActions) {
+            $action->clearRecordAfter();
+
+            return null;
+        }
+
+        if (store($this)->has('redirect')) {
+            return $result;
+        }
+
+        $this->unmountAction();
 
         return $result;
     }
