@@ -153,7 +153,7 @@ class TableGenerator
 
                 if (Str::of($columnName)->contains(['link', 'url'])) {
                     $columnData['url'] = [fn($record) => $record->{$columnName}];
-                    $columnData['color'] = 'primary';
+                    $columnData['color'] = ['primary'];
                     $columnData['openUrlInNewTab'] = [];
                 }
             }
