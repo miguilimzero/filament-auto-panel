@@ -1,5 +1,6 @@
 {
     "name": "miguilim/filament-auto-resource",
+    "description": "A plugin that allows your Resource table and form fields to be constructed at execution time.",
     "type": "library",
     "license": "MIT",
     "autoload": {
