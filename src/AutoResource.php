@@ -85,9 +85,9 @@ class AutoResource extends Resource
 
         return $finalTable
             ->columns($tableSchema)
-            ->filters([...$finalTable->getFilters(), ...$defaultFilters])
-            ->actions([...$finalTable->getActions(), ...$defaultActions])
-            ->bulkActions([...$finalTable->getBulkActions(), ...$defaultBulkActions]);
+            ->filters($defaultFilters)
+            ->actions($defaultActions)
+            ->bulkActions($defaultBulkActions);
     }
 
     public static function getPages(): array
