@@ -34,7 +34,7 @@ class AutoRelationManager extends RelationManager
             ->schema(FormGenerator::makeFormSchema(
                 model: $this->getOwnerRecord(),
                 enumDictionary: static::$enumDictionary,
-                except: [static::getRelationshipStatically()->getForeignKeyName()]
+                except: [$this->getRelationship()->getForeignKeyName()]
             ))
             ->columns(3);
     }
@@ -54,12 +54,10 @@ class AutoRelationManager extends RelationManager
         $defaultActions       = [Tables\Actions\ViewAction::make(), EditActionModified::make()];
         $defaultBulkActions   = [Tables\Actions\DeleteBulkAction::make()];
 
-        $relationshipInstance = static::getRelationshipStatically();
-
         // Associate action
         if (
             method_exists($this->getOwnerRecord(), $table->getInverseRelationship())
-            && ($relationshipInstance instanceof HasMany || $relationshipInstance instanceof MorphMany)
+            && ($this->getRelationship() instanceof HasMany || $this->getRelationship() instanceof MorphMany)
         ) {
             $defaultHeaderActions = [Tables\Actions\AssociateAction::make(), ...$defaultHeaderActions];
             $defaultActions       = [Tables\Actions\DissociateAction::make(), ...$defaultActions];
@@ -67,7 +65,7 @@ class AutoRelationManager extends RelationManager
         }
 
         // Attach action
-        if ($relationshipInstance instanceof BelongsToMany || $relationshipInstance instanceof MorphToMany) {
+        if ($this->getRelationship() instanceof BelongsToMany || $this->getRelationship() instanceof MorphToMany) {
             $defaultHeaderActions = [Tables\Actions\AttachAction::make(), ...$defaultHeaderActions];
             $defaultActions       = [Tables\Actions\DetachAction::make(), ...$defaultActions];
             $defaultBulkActions   = [Tables\Actions\DetachBulkAction::make(), ...$defaultBulkActions];
