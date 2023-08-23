@@ -32,7 +32,7 @@ class AutoRelationManager extends RelationManager
     {
         return $form
             ->schema(FormGenerator::makeFormSchema(
-                model: $this->getOwnerRecord(),
+                model: $this->getOwnerRecord()::class,
                 enumDictionary: static::$enumDictionary,
                 except: [$this->getRelationship()->getForeignKeyName()]
             ))
@@ -88,7 +88,7 @@ class AutoRelationManager extends RelationManager
                 ]))
             )
             ->columns(TableGenerator::makeTableSchema(
-                model: $this->getOwnerRecord(),
+                model: $this->getOwnerRecord()::class,
                 visibleColumns: static::$visibleColumns,
                 searchableColumns: static::$searchableColumns,
                 enumDictionary: static::$enumDictionary,
