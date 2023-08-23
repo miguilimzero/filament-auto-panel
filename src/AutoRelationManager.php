@@ -4,15 +4,13 @@ namespace Miguilim\FilamentAutoResource;
 
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Filament\Tables;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
-use Illuminate\Database\Eloquent\Relations\Relation;
-use Illuminate\Support\Str;
 use Miguilim\FilamentAutoResource\Filament\Actions\CreateAction as CreateActionModified;
 use Miguilim\FilamentAutoResource\Filament\Actions\EditAction as EditActionModified;
 use Miguilim\FilamentAutoResource\Generators\FormGenerator;
@@ -34,13 +32,13 @@ class AutoRelationManager extends RelationManager
     {
         return $form
             ->schema(FormGenerator::makeFormSchema(
-                model: static::getRelationshipModelStatically(), 
+                model: $this->getOwnerRecord(),
                 enumDictionary: static::$enumDictionary,
                 except: [static::getRelationshipStatically()->getForeignKeyName()]
             ))
             ->columns(3);
     }
-    
+
     public function tableExtra(Table $table): Table
     {
         return $table;
@@ -48,32 +46,31 @@ class AutoRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
-        $finalTable = $this->tableExtra($table);
-        $hasSoftDeletes = method_exists(static::getRelationshipModelStatically(), 'bootSoftDeletes');
+        $finalTable     = $this->tableExtra($table);
+        $hasSoftDeletes = method_exists($this->getOwnerRecord(), 'bootSoftDeletes');
 
-        $defaultFilters = [];
+        $defaultFilters       = [];
         $defaultHeaderActions = [CreateActionModified::make()];
-        $defaultActions = [Tables\Actions\ViewAction::make(), EditActionModified::make()];
-        $defaultBulkActions = [Tables\Actions\DeleteBulkAction::make()];
+        $defaultActions       = [Tables\Actions\ViewAction::make(), EditActionModified::make()];
+        $defaultBulkActions   = [Tables\Actions\DeleteBulkAction::make()];
 
         $relationshipInstance = static::getRelationshipStatically();
 
-
         // Associate action
-        if(
-            method_exists(self::getRelationshipModelStatically(), static::getInverseRelationshipNameStatically()) 
+        if (
+            method_exists($this->getOwnerRecord(), $table->getInverseRelationship())
             && ($relationshipInstance instanceof HasMany || $relationshipInstance instanceof MorphMany)
         ) {
             $defaultHeaderActions = [Tables\Actions\AssociateAction::make(), ...$defaultHeaderActions];
-            $defaultActions = [Tables\Actions\DissociateAction::make(), ...$defaultActions];
-            $defaultBulkActions = [Tables\Actions\DissociateBulkAction::make(), ...$defaultBulkActions];
+            $defaultActions       = [Tables\Actions\DissociateAction::make(), ...$defaultActions];
+            $defaultBulkActions   = [Tables\Actions\DissociateBulkAction::make(), ...$defaultBulkActions];
         }
 
         // Attach action
-        if($relationshipInstance instanceof BelongsToMany || $relationshipInstance instanceof MorphToMany) {
+        if ($relationshipInstance instanceof BelongsToMany || $relationshipInstance instanceof MorphToMany) {
             $defaultHeaderActions = [Tables\Actions\AttachAction::make(), ...$defaultHeaderActions];
-            $defaultActions = [Tables\Actions\DetachAction::make(), ...$defaultActions];
-            $defaultBulkActions = [Tables\Actions\DetachBulkAction::make(), ...$defaultBulkActions];
+            $defaultActions       = [Tables\Actions\DetachAction::make(), ...$defaultActions];
+            $defaultBulkActions   = [Tables\Actions\DetachBulkAction::make(), ...$defaultBulkActions];
         }
 
         // Soft deletes
@@ -87,12 +84,17 @@ class AutoRelationManager extends RelationManager
         }
 
         return $finalTable
+            ->query(fn(Builder $builder): Builder => $builder
+                ->withoutGlobalScopes(array_filter([
+                    $hasSoftDeletes ? SoftDeletingScope::class : null,
+                ]))
+            )
             ->columns(TableGenerator::makeTableSchema(
-                model: static::getRelationshipModelStatically(), 
+                model: $this->getOwnerRecord(),
                 visibleColumns: static::$visibleColumns,
                 searchableColumns: static::$searchableColumns,
                 enumDictionary: static::$enumDictionary,
-                except: [static::getRelationshipStatically()->getForeignKeyName()],
+                except: [$this->getRelationship()->getForeignKeyName()],
             ))
             ->filters([...$finalTable->getFilters(), ...$defaultFilters])
             ->headerActions([...$finalTable->getHeaderActions(), ...$defaultHeaderActions])
@@ -100,40 +102,8 @@ class AutoRelationManager extends RelationManager
             ->bulkActions([...$finalTable->getBulkActions(), ...$defaultBulkActions]);
     }
 
-    protected function getTableQuery(): Builder
-    {
-        $parent = parent::getTableQuery();
-
-        if (method_exists(static::getRelationshipModelStatically(), 'bootSoftDeletes')) {
-            $parent->withoutGlobalScopes([
-                SoftDeletingScope::class,
-            ]);
-        }
-
-        return $parent;
-    }
-
     public static function getIntrusive(): bool
     {
         return static::$intrusive;
-    }
-
-    protected static function getRelationshipStatically(): Relation
-    {
-        $dummy = new (static::$relatedResource::getModel());
-
-        return $dummy->{static::$relationship}();
-    }
-
-    protected static function getRelationshipModelStatically(): string
-    {
-        return static::getRelationshipStatically()->getRelated()::class;
-    }
-
-    protected static function getInverseRelationshipNameStatically(): string
-    {
-        return static::$inverseRelationship ?? (string) Str::of(class_basename(static::$relatedResource::getModel()))
-            ->plural()
-            ->camel();
     }
 }
