@@ -4,11 +4,13 @@ namespace Miguilim\FilamentAutoResource;
 
 use Filament\Tables;
 use Filament\Forms\Form;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Miguilim\FilamentAutoResource\Generators\FormGenerator;
+use Miguilim\FilamentAutoResource\Generators\InfolistGenerator;
 use Miguilim\FilamentAutoResource\Generators\TableGenerator;
 use Miguilim\FilamentAutoResource\Mounters\PageMounter;
 
@@ -37,11 +39,18 @@ class AutoResource extends Resource
         return [];
     }
 
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema(InfolistGenerator::make(modelClass: static::getModel(), enumDictionary: static::$enumDictionary))
+            ->columns(3);
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema(FormGenerator::make(modelClass: static::getModel(), enumDictionary: static::$enumDictionary))
-            ->columns(3);
+            ->columns(2);
     }
 
     public static function table(Table $table): Table
@@ -100,8 +109,8 @@ class AutoResource extends Resource
         return [...static::getExtraPages(), ...[
             'index' => PageMounter::makeList(static::class),
             'create' => PageMounter::makeCreate(static::class),
-            'edit' => PageMounter::makeEdit(static::class),
             'view' => PageMounter::makeView(static::class),
+            // 'edit' => PageMounter::makeEdit(static::class),
         ]];
     }
 

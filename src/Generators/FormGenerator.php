@@ -87,35 +87,6 @@ class FormGenerator extends AbstractGenerator
 
     protected function generateSchema(array $exceptColumns, array $overwriteColumns, array $enumDictionary): array
     {
-        $columnInstances = $this->getResourceColumns([...$exceptColumns, ...['created_at', 'updated_at', 'deleted_at']], $overwriteColumns, $enumDictionary);
-
-        return [
-            Forms\Components\Group::make()
-                ->schema([
-                    Forms\Components\Section::make()
-                        ->schema($columnInstances)
-                        ->columns(2),
-                ])
-                ->columnSpan(['lg' => fn ($record) => $record === null ? 3 : 2]),
-
-            Forms\Components\Section::make()
-                ->schema(array_filter([
-                    Forms\Components\Placeholder::make('created_at')
-                        ->label('Created at')
-                        ->content(fn ($record): ?string => $record->created_at?->diffForHumans()),
-                    (! $this->modelInstance::isIgnoringTouch())
-                        ? Forms\Components\Placeholder::make('updated_at')
-                            ->label('Updated at')
-                            ->content(fn ($record): ?string => $record->updated_at?->diffForHumans())
-                        : null,
-                    (method_exists($this->modelInstance, 'bootSoftDeletes')) 
-                        ? Forms\Components\Placeholder::make('deleted_at')
-                            ->label('Deleted at')
-                            ->content(fn ($record): ?string => $record->deleted_at?->diffForHumans() ?? 'Never')
-                        : null,
-                ]))
-                ->columnSpan(['lg' => 1])
-                ->hidden(fn ($record) => $record === null),
-        ];
+        return $this->getResourceColumns([...$exceptColumns, ...['created_at', 'updated_at', 'deleted_at']], $overwriteColumns, $enumDictionary);
     }
 }

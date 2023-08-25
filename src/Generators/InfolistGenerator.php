@@ -5,52 +5,22 @@ namespace Miguilim\FilamentAutoResource\Generators;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Types;
 use Filament\Facades\Filament;
+use Filament\Infolists;
 use Filament\Support\Components\ViewComponent;
-use Filament\Tables;
-use Filament\Tables\Columns\Column as TableColumn;
-use Filament\Tables\Columns\TextColumn;
-use Illuminate\Database\Eloquent\Model;
+use Filament\Support\Enums\FontFamily;
+use Filament\Support\Enums\FontWeight;
 use Illuminate\Support\Str;
 
-class TableGenerator extends AbstractGenerator
+class InfolistGenerator extends AbstractGenerator
 {
-    protected array $visibleColumns;
-
-    protected array $searchableColumns;
-
-    public function visibleColumns(array $visibleColumns)
+    public static function make(string $modelClass, array $exceptColumns = [], array $overwriteColumns = [], array $enumDictionary = []): array
     {
-        $this->visibleColumns = $visibleColumns;
-
-        return $this;
-    }
-
-    public function searchableColumns(array $searchableColumns)
-    {
-        $this->searchableColumns = $searchableColumns;
-
-        return $this;
-    }
-
-    public static function make(
-        string $modelClass, 
-        array $exceptColumns = [], 
-        array $overwriteColumns = [], 
-        array $enumDictionary = [], 
-        array $visibleColumns = [], 
-        array $searchableColumns = []
-    ): array
-    {
-        return static::getCachedSchema(
-            fn() => (new static($modelClass))->visibleColumns($visibleColumns)
-                ->searchableColumns($searchableColumns)
-                ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary)
-        );
+        return static::getCachedSchema(fn() => (new static($modelClass))->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary));
     }
 
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
-        return Tables\Columns\TextColumn::make("{$relationshipName}.{$relationshipTitleColumnName}")
+        return Infolists\Components\TextEntry::make("{$relationshipName}.{$relationshipTitleColumnName}")
             ->weight('bold')
             ->color('primary')
             ->url(function ($record) use ($column) {
@@ -84,63 +54,72 @@ class TableGenerator extends AbstractGenerator
 
     protected function handleEnumDictionaryColumn(Column $column, array $dictionary): ViewComponent
     {
-        return Tables\Columns\TextColumn::make($column->getName())
-            ->badge()
+        return Infolists\Components\TextEntry::make($column->getName())
             ->formatStateUsing(function($state) use($dictionary) {
                 $finalFormat = $dictionary[$state] ?? $state;
-    
+
                 return (is_array($finalFormat)) ? $finalFormat[0] : $finalFormat;
             })->color(function($state) use($dictionary) {
                 if (! is_array($dictionary[$state]) || ! array_key_exists(1, $dictionary[$state])) {
-                    return null;
+                    return 'primary';
                 }
-    
+
                 return $dictionary[$state][1];
             });
     }
 
     protected function handleDateColumn(Column $column): ViewComponent
     {
-        return Tables\Columns\TextColumn::make($column->getName())
+        return Infolists\Components\TextEntry::make($column->getName())
             ->date($column->getType() instanceof Types\DateType)
             ->dateTime($column->getType() instanceof Types\DateTimeType);
     }
 
     protected function handleBooleanColumn(Column $column): ViewComponent
     {
-        return Tables\Columns\IconColumn::make($column->getName())
+        return Infolists\Components\IconEntry::make($column->getName())
             ->icon(fn (bool $state): string => $state ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle')
             ->color(fn (bool $state): string => $state ? 'success' : 'danger');
     }
 
     protected function handleTextColumn(Column $column): ViewComponent
     {
-        return Tables\Columns\TextColumn::make($column->getName())
-            ->wrap();
+        return Infolists\Components\TextEntry::make($column->getName())
+            ->columnSpan('full');
     }
 
     protected function handleDefaultColumn(Column $column): ViewComponent
     {
-        if (Str::of($column->getName())->contains(['link', 'url'])) {
-            return Tables\Columns\TextColumn::make($column->getName())
-                ->url(fn($record) => $record->{$column->getName()})
-                ->color('primary')
-                ->openUrlInNewTab();
-        }
+        $isPrimaryKey = $this->modelInstance->getKeyName() === $column->getName();
 
-        return Tables\Columns\TextColumn::make($column->getName())
-            ->sortable($this->isNumericColumn($column))
-            ->searchable($this->modelInstance->getKeyName() === $column->getName());
+        return Infolists\Components\TextEntry::make($column->getName())
+            ->copyable($isPrimaryKey)
+            ->weight($isPrimaryKey ? FontWeight::Bold : null)
+            ->fontFamily($isPrimaryKey ? FontFamily::Mono : null)
+            ->placeholder('Null');
     }
 
     protected function generateSchema(array $exceptColumns, array $overwriteColumns, array $enumDictionary): array
     {
-        return collect($this->getResourceColumns($exceptColumns, $overwriteColumns, $enumDictionary))->map(function(TableColumn $columnInstance) {
-            return $columnInstance
-                ->searchable($columnInstance->isSearchable() ?: in_array($columnInstance->getName(), $this->searchableColumns))
-                ->toggleable(
-                    isToggledHiddenByDefault: !empty($this->visibleColumns) && ! in_array($columnInstance->getName(), $this->visibleColumns)
-                );
-        })->all();
+        $columnInstances = $this->getResourceColumns([...$exceptColumns, ...['created_at', 'updated_at', 'deleted_at']], $overwriteColumns, $enumDictionary);
+
+        return [
+            Infolists\Components\Group::make()
+                ->schema([
+                    Infolists\Components\Section::make()
+                        ->schema($columnInstances)
+                        ->columns(2),
+                ])
+                ->columnSpan(['lg' => fn ($record) => $record === null ? 3 : 2]),
+
+                Infolists\Components\Section::make()
+                ->schema(array_filter([
+                    Infolists\Components\TextEntry::make('created_at')->since(),
+                    (! $this->modelInstance::isIgnoringTouch()) ? Infolists\Components\TextEntry::make('updated_at')->since() : null,
+                    (method_exists($this->modelInstance, 'bootSoftDeletes')) ? Infolists\Components\TextEntry::make('deleted_at')->since()->placeholder('Never') : null,
+                ]))
+                ->columnSpan(['lg' => 1])
+                ->hidden(fn ($record) => $record === null),
+        ];
     }
 }
