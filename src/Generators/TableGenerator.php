@@ -32,6 +32,22 @@ class TableGenerator extends AbstractGenerator
         return $this;
     }
 
+    public static function make(
+        string $modelClass, 
+        array $exceptColumns = [], 
+        array $overwriteColumns = [], 
+        array $enumDictionary = [], 
+        array $visibleColumns = [], 
+        array $searchableColumns = []
+    ): array
+    {
+        return static::getCachedSchema(
+            fn() => (new static($modelClass))->visibleColumns($visibleColumns)
+                ->searchableColumns($searchableColumns)
+                ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary)
+        );
+    }
+
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
         return Tables\Columns\TextColumn::make("{$relationshipName}.{$relationshipTitleColumnName}")

@@ -88,12 +88,12 @@ class AutoRelationManager extends RelationManager
                     $hasSoftDeletes ? SoftDeletingScope::class : null,
                 ]))
             )
-            ->columns(TableGenerator::makeTableSchema(
-                model: $this->getRelationship()->getModel()::class,
+            ->columns(TableGenerator::make(
+                modelClass: $this->getRelationship()->getModel()::class,
+                exceptColumns: [$this->getRelationship()->getForeignKeyName()],
+                enumDictionary: static::$enumDictionary,
                 visibleColumns: static::$visibleColumns,
                 searchableColumns: static::$searchableColumns,
-                enumDictionary: static::$enumDictionary,
-                except: [$this->getRelationship()->getForeignKeyName()],
             ))
             ->filters([...$finalTable->getFilters(), ...$defaultFilters])
             ->headerActions([...$finalTable->getHeaderActions(), ...$defaultHeaderActions])

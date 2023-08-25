@@ -2,11 +2,14 @@
 
 namespace Miguilim\FilamentAutoResource\Generators;
 
+use Closure;
 use Doctrine\DBAL\Schema\Column;
 use Filament\Support\Commands\Concerns\CanReadModelSchemas;
 use Filament\Support\Components\ViewComponent;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
+use Laravel\SerializableClosure\Contracts\Serializable;
+use Laravel\SerializableClosure\SerializableClosure;
 use Miguilim\FilamentAutoResource\Doctrine\CustomMySQLSchemaManager;
 
 abstract class AbstractGenerator
@@ -20,13 +23,6 @@ abstract class AbstractGenerator
     public function __construct(string $modelClass)
     {
         $this->modelInstance = new $modelClass();
-    }
-
-    public static function make(string $modelClass, array $exceptColumns = [], array $overwriteColumns = [], array $enumDictionary = []): array
-    {
-        $cacheKey = md5(json_encode(func_get_args()) . static::class);
-
-        return static::$generatedSchemas[$cacheKey] ??= (new static($modelClass))->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary);
     }
 
     abstract protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent;
@@ -125,5 +121,12 @@ abstract class AbstractGenerator
                 \Doctrine\DBAL\Types\SmallIntType::class,
             ]
         );
+    }
+
+    protected static function getCachedSchema(Closure $function): array
+    {
+        $cacheKey = md5(serialize(new SerializableClosure($function)) . static::class);
+
+        return static::$generatedSchemas[$cacheKey] ??= $function();
     }
 }
