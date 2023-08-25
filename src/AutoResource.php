@@ -9,8 +9,8 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Miguilim\FilamentAutoResource\Generators\FormGenerator;
-use Miguilim\FilamentAutoResource\Generators\PageGenerator;
 use Miguilim\FilamentAutoResource\Generators\TableGenerator;
+use Miguilim\FilamentAutoResource\Mounters\PageMounter;
 
 class AutoResource extends Resource
 {
@@ -40,7 +40,7 @@ class AutoResource extends Resource
     public static function form(Form $form): Form
     {
         return $form
-            ->schema(FormGenerator::makeFormSchema(static::getModel(), static::$enumDictionary))
+            ->schema(FormGenerator::make(modelClass: static::getModel(), enumDictionary: static::$enumDictionary))
             ->columns(3);
     }
 
@@ -93,10 +93,10 @@ class AutoResource extends Resource
     public static function getPages(): array
     {
         return [...static::getExtraPages(), ...[
-            'index' => PageGenerator::makeList(static::class),
-            'create' => PageGenerator::makeCreate(static::class),
-            'edit' => PageGenerator::makeEdit(static::class),
-            'view' => PageGenerator::makeView(static::class),
+            'index' => PageMounter::makeList(static::class),
+            'create' => PageMounter::makeCreate(static::class),
+            'edit' => PageMounter::makeEdit(static::class),
+            'view' => PageMounter::makeView(static::class),
         ]];
     }
 

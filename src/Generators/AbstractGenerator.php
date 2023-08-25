@@ -17,9 +17,16 @@ abstract class AbstractGenerator
 
     protected Model $modelInstance;
 
-    public function __construct(protected string $modelClass)
+    public function __construct(string $modelClass)
     {
         $this->modelInstance = new $modelClass();
+    }
+
+    public static function make(string $modelClass, array $exceptColumns = [], array $overwriteColumns = [], array $enumDictionary = []): array
+    {
+        $cacheKey = md5(json_encode(func_get_args()) . static::class);
+
+        return static::$generatedSchemas[$cacheKey] ??= (new static($modelClass))->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary);
     }
 
     abstract protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent;
@@ -62,7 +69,7 @@ abstract class AbstractGenerator
 
             // Try to match relationship
             if (Str::of($columnName)->endsWith('_id')) {
-                $guessedRelationshipName = $this->guessBelongsToRelationshipName($column, $this->modelInstance);
+                $guessedRelationshipName = $this->guessBelongsToRelationshipName($column, $this->modelInstance::class);
 
                 if (filled($guessedRelationshipName)) {
                     $guessedRelationshipTitleColumnName = $this->guessBelongsToRelationshipTitleColumnName(
@@ -79,10 +86,11 @@ abstract class AbstractGenerator
 
             // Handle column matching type
             $columns[$columnName] = match($column->getType()::class) {
-                Types\DateType::class, Types\DateTimeType::class => $this->handleDateColumn($column),
-                Types\BooleanType::class                         => $this->handleBooleanColumn($column),
-                Types\TextType::class                            => $this->handleTextColumn($column),
-                default                                          => $this->handleDefaultColumn($column),
+                \Doctrine\DBAL\Types\DateType::class     => $this->handleDateColumn($column),
+                \Doctrine\DBAL\Types\DateTimeType::class => $this->handleDateColumn($column),
+                \Doctrine\DBAL\Types\BooleanType::class  => $this->handleBooleanColumn($column),
+                \Doctrine\DBAL\Types\TextType::class     => $this->handleTextColumn($column),
+                default                                  => $this->handleDefaultColumn($column),
             };
         }
 
@@ -106,19 +114,12 @@ abstract class AbstractGenerator
         return in_array(
             $column->getType()::class,
             [
-                Types\DecimalType::class,
-                Types\FloatType::class,
-                Types\BigIntType::class,
-                Types\IntegerType::class,
-                Types\SmallIntType::class,
+                \Doctrine\DBAL\Types\DecimalType::class,
+                \Doctrine\DBAL\Types\FloatType::class,
+                \Doctrine\DBAL\Types\BigIntType::class,
+                \Doctrine\DBAL\Types\IntegerType::class,
+                \Doctrine\DBAL\Types\SmallIntType::class,
             ]
         );
-    }
-
-    protected static function getCachedSchema(string $modelClass, array $exceptColumns, array $overwriteColumns, array $enumDictionary): array
-    {
-        $cacheKey = md5(json_encode(func_get_args()) . static::class);
-
-        return static::$generatedSchemas[$cacheKey] ??= (new self($modelClass))->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary);
     }
 }

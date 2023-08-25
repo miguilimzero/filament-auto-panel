@@ -32,10 +32,10 @@ class AutoRelationManager extends RelationManager
     public function form(Form $form): Form
     {
         return $form
-            ->schema(FormGenerator::makeFormSchema(
-                model: $this->getRelationship()->getModel()::class,
+            ->schema(FormGenerator::make(
+                modelClass: $this->getRelationship()->getModel()::class,
+                exceptColumns: [$this->getRelationship()->getForeignKeyName()],
                 enumDictionary: static::$enumDictionary,
-                except: [$this->getRelationship()->getForeignKeyName()]
             ))
             ->columns(3);
     }

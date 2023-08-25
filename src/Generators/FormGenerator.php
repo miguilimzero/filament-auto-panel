@@ -70,12 +70,17 @@ class FormGenerator extends AbstractGenerator
             }
         }
 
-        return Forms\Components\TextInput::make($column->getName())
+        $textInput = Forms\Components\TextInput::make($column->getName())
             ->required($column->getNotNull())
-            ->maxLength($column->getLength())
             ->email(Str::contains($column->getName(), 'email'))
             ->tel(Str::contains($column->getName(), ['phone', 'tel']))
             ->numeric($this->isNumericColumn($column));
+
+        if (! $this->isNumericColumn($column)) {
+            $textInput->maxLength($column->getLength());
+        }
+
+        return $textInput;
     }
 
     protected function generateSchema(array $exceptColumns, array $overwriteColumns, array $enumDictionary): array
