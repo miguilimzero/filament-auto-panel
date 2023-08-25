@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Miguilim\FilamentAutoResource\Filament\Actions\CreateAction as CreateActionModified;
 use Miguilim\FilamentAutoResource\Filament\Actions\EditAction as EditActionModified;
 use Miguilim\FilamentAutoResource\Generators\FormGenerator;
@@ -32,7 +33,7 @@ class AutoRelationManager extends RelationManager
     {
         return $form
             ->schema(FormGenerator::makeFormSchema(
-                model: $this->getOwnerRecord()::class,
+                model: $this->getRelationship()->getModel()::class,
                 enumDictionary: static::$enumDictionary,
                 except: [$this->getRelationship()->getForeignKeyName()]
             ))
@@ -47,7 +48,7 @@ class AutoRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         $finalTable     = $this->tableExtra($table);
-        $hasSoftDeletes = method_exists($this->getOwnerRecord(), 'bootSoftDeletes');
+        $hasSoftDeletes = method_exists($this->getRelationship()->getModel(), 'bootSoftDeletes');
 
         $defaultFilters       = [];
         $defaultHeaderActions = [CreateActionModified::make()];
@@ -56,7 +57,7 @@ class AutoRelationManager extends RelationManager
 
         // Associate action
         if (
-            method_exists($this->getOwnerRecord(), $table->getInverseRelationship())
+            method_exists($this->getRelationship()->getModel(), $table->getInverseRelationship())
             && ($this->getRelationship() instanceof HasMany || $this->getRelationship() instanceof MorphMany)
         ) {
             $defaultHeaderActions = [Tables\Actions\AssociateAction::make(), ...$defaultHeaderActions];
@@ -82,13 +83,13 @@ class AutoRelationManager extends RelationManager
         }
 
         return $finalTable
-            ->query(fn(Builder $builder): Builder => $builder
+            ->modifyQueryUsing(fn(Builder $query): Builder => $query
                 ->withoutGlobalScopes(array_filter([
                     $hasSoftDeletes ? SoftDeletingScope::class : null,
                 ]))
             )
             ->columns(TableGenerator::makeTableSchema(
-                model: $this->getOwnerRecord()::class,
+                model: $this->getRelationship()->getModel()::class,
                 visibleColumns: static::$visibleColumns,
                 searchableColumns: static::$searchableColumns,
                 enumDictionary: static::$enumDictionary,
