@@ -87,11 +87,11 @@ class AutoResource extends Resource
             $modelClass = static::getModel();
             $dummyModel = new $modelClass;
 
-            if ($sortColumnsAvailable->contains('created_at')) {
-                $table = $table->defaultSort('created_at', 'desc');
-            } else if ($dummyModel->getIncrementing() && $sortColumnsAvailable->contains($dummyModel->getKeyName())) {
+            if ($dummyModel->getIncrementing() && $sortColumnsAvailable->contains($dummyModel->getKeyName())) {
                 $table = $table->defaultSort($dummyModel->getKeyName(), 'desc');
-            } else if ($sortColumnsAvailable->contains('updated_at')) {
+            } else if ($sortColumnsAvailable->contains('created_at')) {
+                $table = $table->defaultSort('created_at', 'desc');
+            } else  if ($sortColumnsAvailable->contains('updated_at')) {
                 $table = $table->defaultSort('updated_at', 'desc');
             }
         }

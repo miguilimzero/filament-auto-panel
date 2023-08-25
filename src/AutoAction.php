@@ -6,6 +6,7 @@ use Closure;
 use Filament\Actions\Action as PageAction;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\BulkAction;
+use Illuminate\Database\Eloquent\Collection;
 
 class AutoAction
 {
@@ -66,8 +67,9 @@ class AutoAction
 
     public function convertToBulkAction(): BulkAction
     {
-        $action = BulkAction::make($this->name)
-            ->action($this->action);
+        $actionClosure = $this->action;
+        $action        = BulkAction::make($this->name)
+            ->action($actionClosure);
 
         foreach ($this->actionMethodsAndArguments as $method => $arguments) {
             $action->{$method}(...$arguments);
@@ -78,8 +80,9 @@ class AutoAction
 
     public function convertToTableAction(): Action
     {
-        $action = Action::make($this->name)
-            ->action(fn($record) => $this->action(collect([$record])));
+        $actionClosure = $this->action;
+        $action        = Action::make($this->name)
+            ->action(fn($record, $data) => $actionClosure(new Collection([$record]), $data));
 
         foreach ($this->actionMethodsAndArguments as $method => $arguments) {
             $action->{$method}(...$arguments);
@@ -90,8 +93,9 @@ class AutoAction
 
     public function convertToViewPageAction(): PageAction
     {
-        $action = PageAction::make($this->name)
-            ->action(fn($record) => $this->action(collect([$record])));
+        $actionClosure = $this->action;
+        $action        = PageAction::make($this->name)
+            ->action(fn($record, $data) => $actionClosure(new Collection([$record]), $data));
         
         foreach ($this->actionMethodsAndArguments as $method => $arguments) {
             $action->{$method}(...$arguments);
