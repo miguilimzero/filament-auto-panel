@@ -12,6 +12,8 @@ use Miguilim\FilamentAutoResource\Doctrine\CustomMySQLSchemaManager;
 abstract class AbstractGenerator
 {
     use CanReadModelSchemas;
+    
+    protected static array $generatedSchemas = [];
 
     protected Model $modelInstance;
 
@@ -22,6 +24,8 @@ abstract class AbstractGenerator
 
     abstract protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent;
 
+    abstract protected function handleEnumDictionaryColumn(Column $column, array $dictionary): ViewComponent;
+
     abstract protected function handleDateColumn(Column $column): ViewComponent;
 
     abstract protected function handleBooleanColumn(Column $column): ViewComponent;
@@ -30,15 +34,29 @@ abstract class AbstractGenerator
 
     abstract protected function handleDefaultColumn(Column $column): ViewComponent;
 
-    protected function getResourceColumns(array $exceptColumn): array
+    abstract protected function generateSchema(array $exceptColumns, array $overwriteColumns, array $enumDictionary): array;
+
+    protected function getResourceColumns(array $exceptColumn, array $overwriteColumns, array $enumDictionary): array
     {
         $columns = [];
 
         foreach ($this->introspectTable()->getColumns() as $column) {
             $columnName = $column->getName();
 
-            // Skip specific columns
+            // Skip specific column
             if (in_array($columnName, $exceptColumn)) {
+                continue;
+            }
+
+            // Overwrite specific column
+            if (isset($overwriteColumns[$columnName])) {
+                $columns[$columnName] = $overwriteColumns[$columnName];
+                continue;
+            }
+
+            // Is $enumDictionary column
+            if (isset($enumDictionary[$columnName])) {
+                $columns[$columnName] = $this->handleEnumDictionaryColumn($column, $enumDictionary[$columnName]);
                 continue;
             }
 
@@ -95,5 +113,12 @@ abstract class AbstractGenerator
                 Types\SmallIntType::class,
             ]
         );
+    }
+
+    protected static function getCachedSchema(string $modelClass, array $exceptColumns, array $overwriteColumns, array $enumDictionary): array
+    {
+        $cacheKey = md5(json_encode(func_get_args()) . static::class);
+
+        return static::$generatedSchemas[$cacheKey] ??= (new self($modelClass))->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary);
     }
 }
