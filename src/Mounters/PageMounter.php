@@ -4,7 +4,6 @@ namespace Miguilim\FilamentAutoResource\Mounters;
 
 use Filament\Resources\Pages\PageRegistration;
 use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceCreate;
-use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceEdit;
 use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceList;
 use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceView;
 
@@ -25,11 +24,6 @@ class PageMounter
     public static function makeView(string $resource): PageRegistration
     {
         return static::generateAnonymousClass(FilamentAutoResourceView::class, $resource)::route('/{record}');
-    }
-
-    public static function makeEdit(string $resource): PageRegistration
-    {
-        return static::generateAnonymousClass(FilamentAutoResourceEdit::class, $resource)::route('/{record}/edit');
     }
 
     protected static function generateAnonymousClass(string $filamentPage, string $resource): string

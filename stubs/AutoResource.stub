@@ -18,28 +18,21 @@ class {{ resourceClass }} extends AutoResource
 
     protected static array $searchableColumns = [];
 
-    public static function tableExtra(Table $table): Table
-    {
-        return $table
-            ->filters([
-                //
-            ])
-            ->actions([
-                //
-            ])
-            ->bulkActions([
-                //
-            ]);
-    }
-    
-    public static function getRelations(): array
+    public static function getFilters(): array
     {
         return [
             //
         ];
     }
 
-    public static function getPagesActions(): array
+    public static function getActions(): array
+    {
+        return [
+            //
+        ];
+    }
+    
+    public static function getRelations(): array
     {
         return [
             //
