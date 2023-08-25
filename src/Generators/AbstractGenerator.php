@@ -8,7 +8,6 @@ use Filament\Support\Commands\Concerns\CanReadModelSchemas;
 use Filament\Support\Components\ViewComponent;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
-use Laravel\SerializableClosure\Contracts\Serializable;
 use Laravel\SerializableClosure\SerializableClosure;
 use Miguilim\FilamentAutoResource\Doctrine\CustomMySQLSchemaManager;
 

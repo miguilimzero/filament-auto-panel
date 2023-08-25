@@ -11,7 +11,7 @@ use Filament\Tables\Columns\Column as TableColumn;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
- 
+
 class TableGenerator extends AbstractGenerator
 {
     protected array $visibleColumns;
