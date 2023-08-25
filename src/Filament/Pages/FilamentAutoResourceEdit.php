@@ -2,8 +2,8 @@
 
 namespace Miguilim\FilamentAutoResource\Filament\Pages;
 
+use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
-use Filament\Pages\Actions;
 use Illuminate\Database\Eloquent\Model;
 
 class FilamentAutoResourceEdit extends EditRecord

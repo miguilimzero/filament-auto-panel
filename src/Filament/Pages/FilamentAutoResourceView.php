@@ -2,7 +2,7 @@
 
 namespace Miguilim\FilamentAutoResource\Filament\Pages;
 
-use Filament\Pages\Actions;
+use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 
 class FilamentAutoResourceView extends ViewRecord

@@ -21,7 +21,7 @@ class InfolistGenerator extends AbstractGenerator
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
         return Infolists\Components\TextEntry::make("{$relationshipName}.{$relationshipTitleColumnName}")
-            ->weight('bold')
+            ->weight(FontWeight::Bold)
             ->color('primary')
             ->url(function ($record) use ($column) {
                 if ($record === null) {

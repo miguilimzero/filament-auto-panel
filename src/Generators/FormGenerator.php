@@ -35,12 +35,17 @@ class FormGenerator extends AbstractGenerator
 
     protected function handleDateColumn(Column $column): ViewComponent
     {
+        $isDisabled = in_array($column->getName(), ['created_at', 'updated_at', 'deleted_at']);
+
         if ($column->getType() instanceof Types\DateTimeType) {
-            return Forms\Components\DateTimePicker::make($column->getName());
+            return Forms\Components\DateTimePicker::make($column->getName())
+                ->required($column->getNotNull())
+                ->disabled($isDisabled);
         }
 
         return Forms\Components\DatePicker::make($column->getName())
-            ->required($column->getNotNull());
+            ->required($column->getNotNull())
+            ->disabled($isDisabled);
     }
 
     protected function handleBooleanColumn(Column $column): ViewComponent
@@ -87,6 +92,6 @@ class FormGenerator extends AbstractGenerator
 
     protected function generateSchema(array $exceptColumns, array $overwriteColumns, array $enumDictionary): array
     {
-        return $this->getResourceColumns([...$exceptColumns, ...['created_at', 'updated_at', 'deleted_at']], $overwriteColumns, $enumDictionary);
+        return $this->getResourceColumns($exceptColumns, $overwriteColumns, $enumDictionary);
     }
 }

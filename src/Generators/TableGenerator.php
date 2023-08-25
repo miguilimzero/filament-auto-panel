@@ -6,10 +6,9 @@ use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Types;
 use Filament\Facades\Filament;
 use Filament\Support\Components\ViewComponent;
+use Filament\Support\Enums\FontWeight;
 use Filament\Tables;
 use Filament\Tables\Columns\Column as TableColumn;
-use Filament\Tables\Columns\TextColumn;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class TableGenerator extends AbstractGenerator
@@ -51,7 +50,7 @@ class TableGenerator extends AbstractGenerator
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
         return Tables\Columns\TextColumn::make("{$relationshipName}.{$relationshipTitleColumnName}")
-            ->weight('bold')
+            ->weight(FontWeight::Bold)
             ->color('primary')
             ->url(function ($record) use ($column) {
                 if ($record === null) {

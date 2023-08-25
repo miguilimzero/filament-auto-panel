@@ -2,7 +2,7 @@
 
 namespace Miguilim\FilamentAutoResource\Filament\Pages;
 
-use Filament\Pages\Actions;
+use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 
 class FilamentAutoResourceList extends ListRecords
