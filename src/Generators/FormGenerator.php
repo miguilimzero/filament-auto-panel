@@ -6,13 +6,10 @@ use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Types;
 use Filament\Forms;
 use Filament\Support\Components\ViewComponent;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class FormGenerator extends AbstractGenerator
 {
-    public static array $generatedFormSchemas = [];
-
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
         return Forms\Components\Select::make($column->getName())

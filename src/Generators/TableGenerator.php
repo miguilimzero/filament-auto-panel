@@ -2,209 +2,127 @@
 
 namespace Miguilim\FilamentAutoResource\Generators;
 
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Types;
 use Filament\Facades\Filament;
+use Filament\Support\Components\ViewComponent;
 use Filament\Tables;
+use Filament\Tables\Columns\Column as TableColumn;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
-
-class TableGenerator
+ 
+class TableGenerator extends AbstractGenerator
 {
-    use Concerns\CanReadModelSchemas;
+    protected array $visibleColumns;
 
-    public static array $generatedTableSchemas = [];
+    protected array $searchableColumns;
 
-    protected Model $dummyModel;
-
-    public function __construct(protected string $modelClass)
+    public function visibleColumns(array $visibleColumns)
     {
-        $this->dummyModel = new $modelClass();
+        $this->visibleColumns = $visibleColumns;
+
+        return $this;
     }
 
-    public static function makeTableSchema(string $model, array $visibleColumns, array $searchableColumns, array $enumDictionary = [], array $except = []): array
+    public function searchableColumns(array $searchableColumns)
     {
-        $cacheKey = md5($model . json_encode($visibleColumns) . json_encode($enumDictionary) . json_encode($except));
-    
-        return static::$generatedTableSchemas[$cacheKey] ??= (new self($model))->getResourceTableSchema($visibleColumns, $searchableColumns, $enumDictionary, $except);
+        $this->searchableColumns = $searchableColumns;
+
+        return $this;
     }
 
-    protected function getResourceTableSchema(array $visibleColumns, array $searchableColumns, array $enumDictionary, array $except): array
+    protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
-        $columns = $this->getResourceTableSchemaColumns($this->modelClass);
-
-        $columnInstances = [];
-
-        foreach ($columns as $key => $value) {
-            if (in_array($value['originalName'][0] ?? $key, $except)) {
-                continue;
-            }
-
-            if (($this->dummyModel->getCasts()[$key] ?? '') === 'json') {
-                continue;
-            }
-
-            $columnInstance = call_user_func([$value['type'], 'make'], $key);
-
-            if (isset($enumDictionary[$key])) {
-                $columnInstance->badge();
-
-                $columnInstance->formatStateUsing(function($state) use($enumDictionary, $key) {
-                    $dictionary  = $enumDictionary[$key];
-                    $finalFormat = $dictionary[$state] ?? $state;
-
-                    return (is_array($finalFormat)) ? $finalFormat[0] : $finalFormat;
-                });
-
-                $columnInstance->color(function($state) use($enumDictionary, $key) {
-                    $dictionary = $enumDictionary[$key];
-
-                    if (! is_array($dictionary[$state]) || ! array_key_exists(1, $dictionary[$state])) {
-                        return null;
+        return Tables\Columns\TextColumn::make("{$relationshipName}.{$relationshipTitleColumnName}")
+            ->weight('bold')
+            ->color('primary')
+            ->url(function ($record) use ($column) {
+                if ($record === null) {
+                    return null;
+                }
+            
+                $selectedResource = null;
+                $relationship = Str::before($column->getName(), '.');
+                $relatedRecord = $record->{$relationship};
+            
+                if ($relatedRecord === null) {
+                    return null;
+                }
+            
+                foreach (Filament::getResources() as $resource) {
+                    if ($relatedRecord instanceof ($resource::getModel())) {
+                        $selectedResource = $resource;
+                    
+                        break;
                     }
+                }
 
-                    return $dictionary[$state][1];
-                });
-            }
+                if ($selectedResource === null) {
+                    return null;
+                }
+            
+                return $selectedResource::getUrl('view', [$relatedRecord->getKey()]);
+            });
+    }
 
-            if (in_array($key, $searchableColumns)) {
-                $columnInstance->searchable();
-            }
+    protected function handleEnumDictionaryColumn(Column $column, array $dictionary): ViewComponent
+    {
+        return Tables\Columns\TextColumn::make($column->getName())
+            ->badge()
+            ->formatStateUsing(function($state) use($dictionary) {
+                $finalFormat = $dictionary[$state] ?? $state;
+    
+                return (is_array($finalFormat)) ? $finalFormat[0] : $finalFormat;
+            })->color(function($state) use($dictionary) {
+                if (! is_array($dictionary[$state]) || ! array_key_exists(1, $dictionary[$state])) {
+                    return null;
+                }
+    
+                return $dictionary[$state][1];
+            });
+    }
 
-            if ($this->dummyModel->getKeyName() === $key) {
-                $columnInstance->searchable();
-            } else {
-                $columnInstance->toggleable(
-                    isToggledHiddenByDefault: !empty($visibleColumns) && ! in_array($key, $visibleColumns)
+    protected function handleDateColumn(Column $column): ViewComponent
+    {
+        return Tables\Columns\TextColumn::make($column->getName())
+            ->date($column->getType() instanceof Types\DateType)
+            ->dateTime($column->getType() instanceof Types\DateTimeType);
+    }
+
+    protected function handleBooleanColumn(Column $column): ViewComponent
+    {
+        return Tables\Columns\IconColumn::make($column->getName());
+    }
+
+    protected function handleTextColumn(Column $column): ViewComponent
+    {
+        return Tables\Columns\TextColumn::make($column->getName())
+            ->wrap();
+    }
+
+    protected function handleDefaultColumn(Column $column): ViewComponent
+    {
+        if (Str::of($column->getName())->contains(['link', 'url'])) {
+            return Tables\Columns\TextColumn::make($column->getName())
+                ->url(fn($record) => $record->{$column->getName()})
+                ->color('primary')
+                ->openUrlInNewTab();
+        }
+
+        return Tables\Columns\TextColumn::make($column->getName())
+            ->sortable($this->isNumericColumn($column))
+            ->searchable($this->modelInstance->getKeyName() === $column->getName());
+    }
+
+    protected function generateSchema(array $exceptColumns, array $overwriteColumns, array $enumDictionary): array
+    {
+        return collect($this->getResourceColumns($exceptColumns, $overwriteColumns, $enumDictionary))->map(function(TableColumn $columnInstance) {
+            return $columnInstance
+                ->searchable($columnInstance->isSearchable() ?: in_array($columnInstance->getName(), $this->searchableColumns))
+                ->toggleable(
+                    isToggledHiddenByDefault: !empty($this->visibleColumns) && ! in_array($columnInstance->getName(), $this->visibleColumns)
                 );
-            }
-
-            if (isset($value['originalName'])) {
-                $this->bindRelatedResourceToRelationship($columnInstance);
-            }
-
-            foreach ($value as $valueName => $parameters) {
-                if($valueName === 'type' || $valueName === 'originalName') {
-                    continue;
-                }
-
-                if ($valueName === 'sortable' && array_key_exists('originalName', $value)) {
-                    continue; // You cannot sort by a relationship column
-                }
-                
-                $columnInstance->{$valueName}(...$parameters);
-            }
-
-            $columnInstances[] = $columnInstance;
-        }
-
-        return $columnInstances;
-    }
-
-    protected function getResourceTableSchemaColumns(string $model): array
-    {
-        $table = $this->introspectTable($model);
-
-        $columns = [];
-
-        foreach ($table->getColumns() as $column) {
-            $columnName = $column->getName();
-
-            if (Str::of($columnName)->contains([
-                'password',
-            ])) {
-                continue;
-            }
-
-            $columnData = [];
-
-            if ($column->getType() instanceof Types\BooleanType) {
-                $columnData['type'] = Tables\Columns\IconColumn::class;
-                $columnData['boolean'] = [];
-                $columnData['sortable'] = [];
-            } else {
-                $columnData['type'] = Tables\Columns\TextColumn::class;
-
-                if ($column->getType()::class === Types\DateType::class) {
-                    $columnData['date'] = [];
-                }
-
-                if ($column->getType()::class === Types\DateTimeType::class) {
-                    $columnData['dateTime'] = [];
-                }
-
-                if ($column->getType()::class === Types\TextType::class) {
-                    $columnData['wrap'] = [];
-                }
-
-                if (in_array(
-                    $column->getType()::class,
-                    [
-                        Types\DecimalType::class,
-                        Types\FloatType::class,
-                        Types\BigIntType::class,
-                        Types\IntegerType::class,
-                        Types\SmallIntType::class,
-                        Types\DateType::class,
-                        Types\DateTimeType::class
-                    ])) {
-                    $columnData['sortable'] = [];
-                }
-
-                if (Str::of($columnName)->contains(['link', 'url'])) {
-                    $columnData['url'] = [fn($record) => $record->{$columnName}];
-                    $columnData['color'] = ['primary'];
-                    $columnData['openUrlInNewTab'] = [];
-                }
-            }
-
-            if (Str::of($columnName)->endsWith('_id')) {
-                $guessedRelationshipName = $this->guessBelongsToRelationshipName($column, $model);
-
-                if (filled($guessedRelationshipName)) {
-                    $guessedRelationshipTitleColumnName = $this->guessBelongsToRelationshipTitleColumnName($column, app($model)->{$guessedRelationshipName}()->getModel()::class);
-
-                    $columnData['originalName'] = [$columnName];
-                    $columnName = "{$guessedRelationshipName}.{$guessedRelationshipTitleColumnName}";
-                }
-            }
-
-            $columns[$columnName] = $columnData;
-        }
-
-        return $columns;
-    }
-
-    protected function bindRelatedResourceToRelationship(TextColumn $column): TextColumn
-    {
-        $view = 'view';
-
-        return $column->weight('bold')->url(function ($record) use ($view, $column) {
-            if ($record === null) {
-                return null;
-            }
-      
-            $selectedResource = null;
-            $relationship = Str::before($column->getName(), '.');
-            $relatedRecord = $record->{$relationship};
-      
-            if ($relatedRecord === null) {
-                return null;
-            }
-      
-            foreach (Filament::getResources() as $resource) {
-                if ($relatedRecord instanceof ($resource::getModel())) {
-                    $selectedResource = $resource;
-      
-                    break;
-                }
-            }
-
-            if ($selectedResource === null) {
-                return null;
-            }
-      
-            return $selectedResource::getUrl($view, [$relatedRecord->getKey()]);
-        })->color('primary');
+        })->all();
     }
 }

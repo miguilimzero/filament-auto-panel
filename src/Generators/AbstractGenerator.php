@@ -55,6 +55,12 @@ abstract class AbstractGenerator
                 continue;
             }
 
+            // TODO: Add support for json & array cast columns
+            // Skip non-supported column casts
+            if (in_array($this->modelInstance->getCasts()[$column->getName()] ?? '', ['json', 'array'])) {
+                continue;
+            }
+
             // Overwrite specific column
             if (isset($overwriteColumns[$columnName])) {
                 $columns[$columnName] = $overwriteColumns[$columnName];
@@ -81,8 +87,6 @@ abstract class AbstractGenerator
                     continue;
                 }
             }
-
-            // TODO: Add support for json & array cast columns
 
             // Handle column matching type
             $columns[$columnName] = match($column->getType()::class) {

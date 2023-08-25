@@ -62,7 +62,9 @@ class AutoResource extends Resource
             $defaultBulkActions[] = Tables\Actions\ForceDeleteBulkAction::make();
         }
 
-        $tableSchema = TableGenerator::makeTableSchema(static::getModel(), static::$visibleColumns, static::$searchableColumns, static::$enumDictionary);
+        $tableSchema = TableGenerator::make(modelClass: static::getModel(), enumDictionary: static::$enumDictionary)
+            ->searchableColumns(static::$searchableColumns)
+            ->visibleColumns(static::$visibleColumns);
 
         // Define automatic sort by column
         if ($finalTable->getDefaultSortColumn() === null) {
