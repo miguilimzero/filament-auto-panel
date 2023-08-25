@@ -68,6 +68,7 @@ abstract class AbstractGenerator
                 continue;
             }
 
+            // TODO: Add support for morph relationships
             // Try to match relationship
             if (Str::of($columnName)->endsWith('_id')) {
                 $guessedRelationshipName = $this->guessBelongsToRelationshipName($column, $this->modelInstance::class);
