@@ -2,46 +2,69 @@
 
 namespace Miguilim\FilamentAutoResource\Generators;
 
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Types;
 use Filament\Forms;
+use Filament\Support\Components\ViewComponent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
-class FormGenerator 
+class FormGenerator extends AbstractGenerator
 {
-    use Concerns\CanReadModelSchemas;
-
     public static array $generatedFormSchemas = [];
 
-    protected Model $dummyModel;
-
-    public function __construct(protected string $modelClass)
-    {
-        $this->dummyModel = new $modelClass();
-    }
-
-    public static function makeFormSchema(string $model, array $enumDictionary = [], array $except = []): array
+    public static function makeSchema(string $model, array $enumDictionary = [], array $except = []): array
     {
         $cacheKey = md5($model . json_encode($enumDictionary) . json_encode($except));
     
         return static::$generatedFormSchemas[$cacheKey] ??= (new self($model))->getResourceFormSchema($except, $enumDictionary);
     }
 
-    protected function getResourceFormSchema(array $except, array $enumDictionary): array
+    protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
-        $columns = $this->getResourceFormSchemaColumns($this->modelClass);
-    
-        $columnInstances = [];
+        return Forms\Components\Select::make($column->getName())
+            ->relationship($relationshipName, $relationshipTitleColumnName)
+            ->searchable();
+            // ->preload();
+    }
+
+    protected function handleDateColumn(Column $column): ViewComponent
+    {
+        if ($column->getType() instanceof Types\DateTimeType) {
+            return Forms\Components\DateTimePicker::make($column->getName());
+        }
+
+        return Forms\Components\DatePicker::make($column->getName())
+            ->required($column->getNotNull());
+    }
+
+    protected function handleBooleanColumn(Column $column): ViewComponent
+    {
+        return Forms\Components\Toggle::make($column->getName())
+            ->columnSpan('full');
+    }
+
+    protected function handleTextColumn(Column $column): ViewComponent
+    {
+        return Forms\Components\Textarea::make($column->getName())
+            ->columnSpan('full')
+            ->maxLength($column->getLength());
+    }
+
+    protected function handleDefaultColumn(Column $column): ViewComponent
+    {
+        return Forms\Components\TextInput::make($column->getName())
+            ->maxLength($column->getLength())
+            ->email(Str::contains($column->getName(), 'email'))
+            ->tel(Str::contains($column->getName(), ['phone', 'tel']))
+            ->numeric($this->isNumericColumn($column));
+    }
+
+    protected function getResourceFormSchema(array $exceptColumns, array $enumDictionary): array
+    {
+        $columnInstances = $this->getResourceColumns([...$exceptColumns, ...['created_at', 'updated_at', 'deleted_at']]);
 
         foreach ($columns as $key => $value) {
-            if (in_array($key, $except)) {
-                continue;
-            }
-
-            if (($this->dummyModel->getCasts()[$key] ?? '') === 'json') { // TODO: Add support for json cast columns
-                continue;
-            }
-
             $columnInstance = call_user_func([$value['type'], 'make'], $key);
 
             if (isset($enumDictionary[$key])) {
@@ -63,27 +86,6 @@ class FormGenerator
                     unset($value['required']);
                 }
             }
-
-            if (
-                $columnInstance instanceof Forms\Components\Toggle
-                || $columnInstance instanceof Forms\Components\Textarea
-            ) {
-                $columnInstance->columnSpan('full');
-            }
-
-            foreach ($value as $valueName => $parameters) {
-                if($valueName === 'type') {
-                    continue;
-                }
-
-                if($valueName === 'maxLength' && !($columnInstance instanceof Forms\Components\TextInput)) {
-                    continue;
-                }
-                
-                $columnInstance->{$valueName}(...$parameters);
-            }
-
-            $columnInstances[] = $columnInstance;
         }
 
         return [
@@ -114,85 +116,5 @@ class FormGenerator
                 ->columnSpan(['lg' => 1])
                 ->hidden(fn ($record) => $record === null),
         ];
-    }
-
-    protected function getResourceFormSchemaColumns(string $model): array
-    {
-        $table = $this->introspectTable($model);
-
-        $components = [];
-
-        foreach ($table->getColumns() as $column) {
-            $columnName = $column->getName();
-
-            if (Str::of($columnName)->is([
-                'created_at',
-                'deleted_at',
-                'updated_at',
-            ])) {
-                continue;
-            }
-
-            $componentData = [];
-
-            $componentData['type'] = $type = match ($column->getType()::class) {
-                Types\BooleanType::class => Forms\Components\Toggle::class,
-                Types\DateType::class => Forms\Components\DatePicker::class,
-                Types\DateTimeType::class => Forms\Components\DateTimePicker::class,
-                Types\TextType::class => Forms\Components\Textarea::class,
-                default => Forms\Components\TextInput::class,
-            };
-
-            if (Str::of($columnName)->endsWith('_id')) {
-                $guessedRelationshipName = $this->guessBelongsToRelationshipName($column, $model);
-
-                if (filled($guessedRelationshipName)) {
-                    $guessedRelationshipTitleColumnName = $this->guessBelongsToRelationshipTitleColumnName($column, app($model)->{$guessedRelationshipName}()->getModel()::class);
-
-                    $componentData['type'] = $type = Forms\Components\Select::class;
-                    $componentData['relationship'] = [$guessedRelationshipName, $guessedRelationshipTitleColumnName];
-                    $componentData['searchable'] = [];
-                    // $componentData['preload'] = [];
-                }
-            }
-
-            if ($type === Forms\Components\TextInput::class) {
-                if (Str::of($columnName)->contains(['email'])) {
-                    $componentData['email'] = [];
-                }
-
-                if (Str::of($columnName)->contains(['password'])) {
-                    $componentData['password'] = [];
-                }
-
-                if (Str::of($columnName)->contains(['phone', 'tel'])) {
-                    $componentData['tel'] = [];
-                }
-
-                if (in_array(
-                    $column->getType()::class,
-                    [
-                        Types\DecimalType::class,
-                        Types\FloatType::class,
-                        Types\BigIntType::class,
-                        Types\IntegerType::class,
-                        Types\SmallIntType::class,
-                    ])) {
-                    $componentData['numeric'] = [];
-                }
-            }
-
-            if ($column->getNotnull()) {
-                $componentData['required'] = [];
-            }
-
-            if (in_array($type, [Forms\Components\TextInput::class, Forms\Components\Textarea::class]) && ($length = $column->getLength())) {
-                $componentData['maxLength'] = [$length];
-            }
-
-            $components[$columnName] = $componentData;
-        }
-
-        return $components;
     }
 }
