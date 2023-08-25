@@ -79,12 +79,14 @@ class InfolistGenerator extends AbstractGenerator
     {
         return Infolists\Components\IconEntry::make($column->getName())
             ->icon(fn (bool $state): string => $state ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle')
-            ->color(fn (bool $state): string => $state ? 'success' : 'danger');
+            ->color(fn (bool $state): string => $state ? 'success' : 'danger')
+            ->columnSpan('full');
     }
 
     protected function handleTextColumn(Column $column): ViewComponent
     {
         return Infolists\Components\TextEntry::make($column->getName())
+            ->placeholder('Null')
             ->columnSpan('full');
     }
 

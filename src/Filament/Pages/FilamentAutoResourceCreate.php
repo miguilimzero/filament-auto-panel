@@ -9,18 +9,8 @@ class FilamentAutoResourceCreate extends CreateRecord
 {
     protected function handleRecordCreation(array $data): Model
     {
-        if (static::getResource()::getIntrusive()) {
-            $model = new ($this->getModel());
-        
-            foreach ($data as $key => $value) {
-                $model->{$key} = $value;
-            }
-        
-            $model->save();
-        
-            return $model;
-        }
-
-        return $this->getModel()::create($data);
+        return (static::getResource()::getIntrusive())
+            ? $this->getModel()::forceCreate($data)
+            : $this->getModel()::create($data);
     }
 }

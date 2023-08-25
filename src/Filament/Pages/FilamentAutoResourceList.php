@@ -7,8 +7,6 @@ use Filament\Resources\Pages\ListRecords;
 
 class FilamentAutoResourceList extends ListRecords
 {
-    use Concerns\OverwriteActionInjection;
-
     protected function getActions(): array
     {
         return [

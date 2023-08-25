@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Miguilim\FilamentAutoResource\Filament\Actions\CreateAction as CreateActionModified;
 use Miguilim\FilamentAutoResource\Generators\FormGenerator;
 use Miguilim\FilamentAutoResource\Generators\TableGenerator;
 
@@ -50,7 +49,7 @@ class AutoRelationManager extends RelationManager
         $hasSoftDeletes = method_exists($this->getRelationship()->getModel(), 'bootSoftDeletes');
 
         $defaultFilters       = [];
-        $defaultHeaderActions = [CreateActionModified::make()];
+        $defaultHeaderActions = [];
         $defaultActions       = [Tables\Actions\ViewAction::make()];
         $defaultBulkActions   = [Tables\Actions\DeleteBulkAction::make()];
 
