@@ -70,9 +70,13 @@ class InfolistGenerator extends AbstractGenerator
 
     protected function handleDateColumn(Column $column): ViewComponent
     {
-        return Infolists\Components\TextEntry::make($column->getName())
-            ->date($column->getType() instanceof Types\DateType)
-            ->dateTime($column->getType() instanceof Types\DateTimeType);
+        $textEntry = Infolists\Components\TextEntry::make($column->getName());
+
+        if ($column->getType() instanceof Types\DateTimeType) {
+            return $textEntry->dateTime();
+        }
+
+        return $textEntry->date();
     }
 
     protected function handleBooleanColumn(Column $column): ViewComponent

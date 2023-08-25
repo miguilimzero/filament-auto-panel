@@ -100,9 +100,13 @@ class TableGenerator extends AbstractGenerator
 
     protected function handleDateColumn(Column $column): ViewComponent
     {
-        return Tables\Columns\TextColumn::make($column->getName())
-            ->date($column->getType() instanceof Types\DateType)
-            ->dateTime($column->getType() instanceof Types\DateTimeType);
+        $textColumn = Tables\Columns\TextColumn::make($column->getName());
+
+        if ($column->getType() instanceof Types\DateTimeType) {
+            return $textColumn->dateTime();
+        }
+
+        return $textColumn->date();
     }
 
     protected function handleBooleanColumn(Column $column): ViewComponent
@@ -127,9 +131,15 @@ class TableGenerator extends AbstractGenerator
                 ->openUrlInNewTab();
         }
 
-        return Tables\Columns\TextColumn::make($column->getName())
+        $textColumn = Tables\Columns\TextColumn::make($column->getName())
             ->sortable($this->isNumericColumn($column))
             ->searchable($this->modelInstance->getKeyName() === $column->getName());
+
+        if ($this->isNumericColumn($column)) {
+            return $textColumn->numeric();
+        }
+
+        return $textColumn;
     }
 
     protected function generateSchema(array $exceptColumns, array $overwriteColumns, array $enumDictionary): array

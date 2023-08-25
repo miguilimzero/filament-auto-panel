@@ -130,7 +130,7 @@ class AutoResource extends Resource
         return static::$intrusive;
     }
 
-    protected static function getBulkActions(): array
+    public static function getBulkActions(): array
     {
         return collect(static::getActions())
             ->filter(fn (AutoAction $action) => $action->showOnBulkAction)
@@ -138,7 +138,7 @@ class AutoResource extends Resource
             ->all();
     }
 
-    protected static function getTableActions(): array
+    public static function getTableActions(): array
     {
         return collect(static::getActions())
             ->filter(fn (AutoAction $action) => $action->showOnTable)
