@@ -34,7 +34,7 @@ class CustomMySQLSchemaManager extends MySQLSchemaManager
         $precision = null;
 
         // Modification to differentiate between tinyint(1) and tinyint(4)
-        // Between laravel migration ->boolean() and ->tinyInteger()
+        // Between laravel migration ->boolean() and ->tinyInteger() methods
         if($dbType === 'tinyint') {
             $type = ($length === '1') ? 'boolean' : 'smallint';
         } else {

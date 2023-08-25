@@ -1,6 +1,6 @@
 <?php
 
-namespace Miguilim\FilamentAutoResource\Generators;
+namespace Miguilim\FilamentAutoResource\Mounters;
 
 use Filament\Resources\Pages\PageRegistration;
 use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceCreate;
@@ -8,9 +8,9 @@ use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceEdit;
 use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceList;
 use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceView;
 
-class PageGenerator
+class PageMounter
 {
-    public static array $generatedPageClasses = [];
+    public static array $mountedClasses = [];
 
     public static function makeList(string $resource): PageRegistration
     {
@@ -39,8 +39,8 @@ class PageGenerator
 
         $anonymousClass = "{$filamentPageName}{$resourceName}";
 
-        if (! in_array($anonymousClass, static::$generatedPageClasses)) {
-            static::$generatedPageClasses[] = $anonymousClass;
+        if (! in_array($anonymousClass, static::$mountedClasses)) {
+            static::$mountedClasses[] = $anonymousClass;
             eval("class {$anonymousClass} extends {$filamentPage} {protected static string \$resource = '{$resource}';};");
         }
 

@@ -1,14 +1,14 @@
 <?php
 
-namespace Miguilim\FilamentAutoResource\Generators;
+namespace Miguilim\FilamentAutoResource\Mounters;
 
 use Miguilim\FilamentAutoResource\AutoRelationManager;
 
-class RelationManagerGenerator
+class RelationManagerMounter
 {
-    public static array $generatedRelationClasses = [];
+    public static array $mountedClasses = [];
 
-    public static function makeRelationManager(string $resource, string $relation, string $recordTitleAttribute, array $visibleColumns, array $searchableColumns = [])
+    public static function make(string $resource, string $relation, string $recordTitleAttribute, array $visibleColumns, array $searchableColumns = [])
     {
         $resourceName = array_reverse(explode('\\', $resource))[0];
         $anonymousClass = "{$resourceName}{$relation}RelationManager";
@@ -18,8 +18,8 @@ class RelationManagerGenerator
         $visibleColumns = implode(',', array_map(fn ($column) => "'{$column}'", $visibleColumns));
         $searchableColumns = implode(',', array_map(fn ($column) => "'{$column}'", $searchableColumns));
     
-        if (! in_array($anonymousClass, static::$generatedRelationClasses)) {
-            static::$generatedRelationClasses[] = $anonymousClass;
+        if (! in_array($anonymousClass, static::$mountedClasses)) {
+            static::$mountedClasses[] = $anonymousClass;
             eval("class {$anonymousClass} extends {$relationManagerClass} {
                 protected static string \$relatedResource = $resource::class;
                 protected static string \$relationship = '{$relation}';
