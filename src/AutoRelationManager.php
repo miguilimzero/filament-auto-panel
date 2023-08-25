@@ -13,7 +13,6 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Miguilim\FilamentAutoResource\Filament\Actions\CreateAction as CreateActionModified;
-use Miguilim\FilamentAutoResource\Filament\Actions\EditAction as EditActionModified;
 use Miguilim\FilamentAutoResource\Generators\FormGenerator;
 use Miguilim\FilamentAutoResource\Generators\TableGenerator;
 
@@ -52,7 +51,7 @@ class AutoRelationManager extends RelationManager
 
         $defaultFilters       = [];
         $defaultHeaderActions = [CreateActionModified::make()];
-        $defaultActions       = [Tables\Actions\ViewAction::make(), EditActionModified::make()];
+        $defaultActions       = [Tables\Actions\ViewAction::make()];
         $defaultBulkActions   = [Tables\Actions\DeleteBulkAction::make()];
 
         // Associate action
