@@ -16,7 +16,7 @@ class RelationManagerMounter
         $relationManagerClass = AutoRelationManager::class;
 
         $visibleColumns = implode(',', array_map(fn ($column) => "'{$column}'", $visibleColumns));
-        $searchableColumns = implode(',', array_map(fn ($column) => "'{$column}'", $searchableColumns));
+        $searchableColumns = str_replace(['{', '}', ':'], ['[', ']', '=>'], json_encode($searchableColumns));
     
         if (! in_array($anonymousClass, static::$mountedClasses)) {
             static::$mountedClasses[] = $anonymousClass;
