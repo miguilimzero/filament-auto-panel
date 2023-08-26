@@ -22,11 +22,15 @@ class {{ managerClass }} extends AutoRelationManager
 
     public function getFilters(): array
     {
-        return [];
+        return [
+            //
+        ];
     }
 
     public function getActions(): array
     {
-        return [];
+        return [
+            //
+        ];
     }
 }

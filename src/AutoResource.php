@@ -24,17 +24,27 @@ class AutoResource extends Resource
 
     protected static bool $intrusive = true;
 
-    public static function getExtraPages(): array
-    {
-        return [];
-    }
-
     public static function getFilters(): array
     {
         return [];
     }
 
     public static function getActions(): array
+    {
+        return [];
+    }
+
+    public static function getHeaderWidgets(): array
+    {
+        return [];
+    }
+
+    public static function getFooterWidgets(): array
+    {
+        return [];
+    }
+
+    public static function getExtraPages(): array
     {
         return [];
     }

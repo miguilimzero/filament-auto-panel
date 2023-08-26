@@ -8,6 +8,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class FilamentAutoResourceView extends ViewRecord
 {
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            ...static::getResource()::getHeaderWidgets(),
+        ];
+    }
+
+    protected function getFooterWidgets(): array
+    {
+        return [
+            ...static::getResource()::getFooterWidgets(),
+        ];
+    }
+
     protected function fillForm(): void
     {
         if (static::getResource()::getIntrusive()) {
