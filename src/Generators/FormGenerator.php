@@ -1,6 +1,6 @@
 <?php
 
-namespace Miguilim\FilamentAutoResource\Generators;
+namespace Miguilim\FilamentAuto\Generators;
 
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Types;

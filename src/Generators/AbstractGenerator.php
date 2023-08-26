@@ -1,6 +1,6 @@
 <?php
 
-namespace Miguilim\FilamentAutoResource\Generators;
+namespace Miguilim\FilamentAuto\Generators;
 
 use Closure;
 use Doctrine\DBAL\Schema\Column;
@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\HtmlString;
 use Illuminate\Database\Eloquent\Model;
 use Laravel\SerializableClosure\SerializableClosure;
-use Miguilim\FilamentAutoResource\Doctrine\CustomMySQLSchemaManager;
+use Miguilim\FilamentAuto\Doctrine\CustomMySQLSchemaManager;
 
 abstract class AbstractGenerator
 {

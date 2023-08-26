@@ -1,6 +1,6 @@
 <?php
 
-namespace Miguilim\FilamentAutoResource;
+namespace Miguilim\FilamentAuto;
 
 use Filament\Forms\Form;
 use Filament\Infolists\Infolist;
@@ -13,9 +13,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Miguilim\FilamentAutoResource\Generators\FormGenerator;
-use Miguilim\FilamentAutoResource\Generators\InfolistGenerator;
-use Miguilim\FilamentAutoResource\Generators\TableGenerator;
+use Miguilim\FilamentAuto\Generators\FormGenerator;
+use Miguilim\FilamentAuto\Generators\InfolistGenerator;
+use Miguilim\FilamentAuto\Generators\TableGenerator;
 
 class AutoRelationManager extends RelationManager
 {

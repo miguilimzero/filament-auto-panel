@@ -1,8 +1,8 @@
 <?php
 
-namespace Miguilim\FilamentAutoResource\Mounters;
+namespace Miguilim\FilamentAuto\Mounters;
 
-use Miguilim\FilamentAutoResource\AutoRelationManager;
+use Miguilim\FilamentAuto\AutoRelationManager;
 
 class RelationManagerMounter
 {

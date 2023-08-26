@@ -1,6 +1,6 @@
 {
-    "name": "miguilim/filament-auto-resource",
-    "description": "A plugin that allows your Resource table and form fields to be constructed at execution time.",
+    "name": "miguilim/filament-auto",
+    "description": "A plugin to construct your Filament Admin Panel resources, forms and views at execution time like magic.",
     "type": "library",
     "license": "MIT",
     "autoload": {
@@ -16,7 +16,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Miguilim\\FilamentAutoResource\\FilamentAutoResourceProvider"
+                "Miguilim\\FilamentAuto\\FilamentAutoProvider"
             ]
         }
     }

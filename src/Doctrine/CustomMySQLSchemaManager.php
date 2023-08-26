@@ -1,6 +1,6 @@
 <?php
 
-namespace Miguilim\FilamentAutoResource\Doctrine;
+namespace Miguilim\FilamentAuto\Doctrine;
 
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\MariaDb1027Platform;

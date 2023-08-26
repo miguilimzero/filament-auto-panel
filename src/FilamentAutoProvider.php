@@ -1,10 +1,10 @@
 <?php
 
-namespace Miguilim\FilamentAutoResource;
+namespace Miguilim\FilamentAuto;
 
 use Illuminate\Support\ServiceProvider;
 
-class FilamentAutoResourceProvider extends ServiceProvider
+class FilamentAutoProvider extends ServiceProvider
 {
     /**
      * Register services.

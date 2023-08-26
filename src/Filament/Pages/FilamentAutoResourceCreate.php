@@ -1,6 +1,6 @@
 <?php
 
-namespace Miguilim\FilamentAutoResource\Filament\Pages;
+namespace Miguilim\FilamentAuto\Filament\Pages;
 
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;

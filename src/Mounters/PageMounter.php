@@ -1,11 +1,11 @@
 <?php
 
-namespace Miguilim\FilamentAutoResource\Mounters;
+namespace Miguilim\FilamentAuto\Mounters;
 
 use Filament\Resources\Pages\PageRegistration;
-use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceCreate;
-use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceList;
-use Miguilim\FilamentAutoResource\Filament\Pages\FilamentAutoResourceView;
+use Miguilim\FilamentAuto\Filament\Pages\FilamentAutoResourceCreate;
+use Miguilim\FilamentAuto\Filament\Pages\FilamentAutoResourceList;
+use Miguilim\FilamentAuto\Filament\Pages\FilamentAutoResourceView;
 
 class PageMounter
 {
