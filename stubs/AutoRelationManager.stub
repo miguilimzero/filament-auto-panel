@@ -20,17 +20,13 @@ class {{ managerClass }} extends AutoRelationManager
 
     protected static array $searchableColumns = [];
 
-    public function tableExtra(Table $table): Table
+    public function getFilters(): array
     {
-        return $table
-            ->filters([
-                //
-            ])
-            ->actions([
-                //
-            ])
-            ->bulkActions([
-                //
-            ]);
+        return [];
+    }
+
+    public function getActions(): array
+    {
+        return [];
     }
 }
