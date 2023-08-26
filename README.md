@@ -68,10 +68,18 @@ in priority order respectively: `primary key (only if incremented)`, `created_at
 
 ## Auto Resource
 
+You can get started by creating your first Auto Resource using the following command:
+
+```sh
+php artisan make:filament-auto-resource
+```
+
+This command will create the auto resource class for you, just as the default filament command. However, it will use the `AutoResource` instead.
+You don't need to list anything now, you can just access the resource page and see the magic!
 
 ## Auto Relation Manager
 
-Auto Relation Manager construct a table containing the all relationship model columns, excluding the related id.
+Auto Relation Manager construct a table containing the all relationship model columns, excluding the related id or morph.
 You can generate your Auto Relation Manager using the following command:
 
 ```sh
