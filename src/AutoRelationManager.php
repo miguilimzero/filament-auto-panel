@@ -39,7 +39,7 @@ class AutoRelationManager extends RelationManager
         return [];
     }
 
-    public static function getColumnsOverwrite(): array
+    public function getColumnsOverwrite(): array
     {
         return [
             'table' => [],
@@ -54,7 +54,7 @@ class AutoRelationManager extends RelationManager
             ->schema(InfolistGenerator::make(
                 modelClass: $this->getRelationship()->getModel()::class,
                 exceptColumns: [$this->getRelationship()->getForeignKeyName()], 
-                overwriteColumns: static::getColumnsOverwrite()['infolist'],
+                overwriteColumns: $this->getColumnsOverwriteMapped('infolist'),
                 enumDictionary: static::$enumDictionary,
             ))
             ->columns(2);
@@ -66,7 +66,7 @@ class AutoRelationManager extends RelationManager
             ->schema(FormGenerator::make(
                 modelClass: $this->getRelationship()->getModel()::class,
                 exceptColumns: [$this->getRelationship()->getForeignKeyName()],
-                overwriteColumns: static::getColumnsOverwrite()['form'],
+                overwriteColumns: $this->getColumnsOverwriteMapped('form'),
                 enumDictionary: static::$enumDictionary,
             ))
             ->columns(2);
@@ -118,7 +118,7 @@ class AutoRelationManager extends RelationManager
             ->columns(TableGenerator::make(
                 modelClass: $this->getRelationship()->getModel()::class,
                 exceptColumns: [$this->getRelationship()->getForeignKeyName()],
-                overwriteColumns: static::getColumnsOverwrite()['table'],
+                overwriteColumns: $this->getColumnsOverwriteMapped('table'),
                 enumDictionary: static::$enumDictionary,
                 visibleColumns: static::$visibleColumns,
                 searchableColumns: static::$searchableColumns,
@@ -147,6 +147,13 @@ class AutoRelationManager extends RelationManager
         return collect($this->getActions())
             ->filter(fn (AutoAction $action) => $action->showOnTable)
             ->map(fn (AutoAction $action) => $action->convertToTableAction())
+            ->all();
+    }
+
+    protected function getColumnsOverwriteMapped(string $type)
+    {
+        return collect($this->getColumnsOverwrite()[$type])
+            ->mapWithKeys(fn ($column) => [$column->getName() => $column])
             ->all();
     }
 }

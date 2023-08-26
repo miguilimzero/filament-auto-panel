@@ -34,7 +34,7 @@ class {{ managerClass }} extends AutoRelationManager
         ];
     }
 
-    public static function getColumnsOverwrite(): array
+    public function getColumnsOverwrite(): array
     {
         return [
             'table' => [

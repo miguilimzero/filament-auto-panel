@@ -197,7 +197,7 @@ public static function getColumnsOverwrite(): array
 {
     return [
         'table' => [
-            'profile_photo_url' => ImageColumn::make('profile_photo_url')
+            ImageColumn::make('profile_photo_url')
                 ->label('Profile Photo')
         ],
         'form' => [

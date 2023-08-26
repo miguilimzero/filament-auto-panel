@@ -69,7 +69,7 @@ class AutoResource extends Resource
         return $infolist
             ->schema(InfolistGenerator::make(
                 modelClass: static::getModel(), 
-                overwriteColumns: static::getColumnsOverwrite()['infolist'],
+                overwriteColumns: static::getColumnsOverwriteMapped('infolist'),
                 enumDictionary: static::$enumDictionary,
             ))
             ->columns(3);
@@ -80,7 +80,7 @@ class AutoResource extends Resource
         return $form
             ->schema(FormGenerator::make(
                 modelClass: static::getModel(), 
-                overwriteColumns: static::getColumnsOverwrite()['form'],
+                overwriteColumns: static::getColumnsOverwriteMapped('form'),
                 enumDictionary: static::$enumDictionary,
             ))
             ->columns(2);
@@ -105,7 +105,7 @@ class AutoResource extends Resource
 
         $tableSchema = TableGenerator::make(
             modelClass: static::getModel(), 
-            overwriteColumns: static::getColumnsOverwrite()['table'],
+            overwriteColumns: static::getColumnsOverwriteMapped('table'),
             enumDictionary: static::$enumDictionary, 
             searchableColumns: static::$searchableColumns, 
             visibleColumns: static::$visibleColumns
@@ -114,9 +114,9 @@ class AutoResource extends Resource
         // Define automatic sort by column
         if ($table->getDefaultSortColumn() === null) {
             $sortColumnsAvailable = collect($tableSchema)
-            ->filter(fn ($column) => $column->isSortable())
-            ->map(fn ($column) => $column->getName())
-            ->values();
+                ->filter(fn ($column) => $column->isSortable())
+                ->map(fn ($column) => $column->getName())
+                ->values();
 
             $modelClass = static::getModel();
             $dummyModel = new $modelClass;
@@ -185,6 +185,13 @@ class AutoResource extends Resource
         return collect(static::getActions())
             ->filter(fn (AutoAction $action) => $action->showOnViewPage)
             ->map(fn (AutoAction $action) => $action->convertToViewPageAction())
+            ->all();
+    }
+
+    protected static function getColumnsOverwriteMapped(string $type)
+    {
+        return collect(static::getColumnsOverwrite()[$type])
+            ->mapWithKeys(fn ($column) => [$column->getName() => $column])
             ->all();
     }
 }
