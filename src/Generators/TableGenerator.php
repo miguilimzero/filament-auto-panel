@@ -157,10 +157,28 @@ class TableGenerator extends AbstractGenerator
     {
         return collect($this->getResourceColumns($exceptColumns, $overwriteColumns, $enumDictionary))->map(function (TableColumn $columnInstance) {
             return $columnInstance
-                ->searchable($columnInstance->isSearchable() ?: in_array($columnInstance->getName(), $this->searchableColumns))
+                ->searchable(
+                    isGlobal: $columnInstance->isGloballySearchable() ?: $this->isSearchableColumnByType($columnInstance, 'global'),
+                    isIndividual: $columnInstance->isIndividuallySearchable() ?: $this->isSearchableColumnByType($columnInstance, 'individual'),
+                )
                 ->toggleable(
                     isToggledHiddenByDefault: ! empty($this->visibleColumns) && ! in_array($columnInstance->getName(), $this->visibleColumns)
                 );
         })->all();
+    }
+
+    protected function isSearchableColumnByType(TableColumn $column, string $type): bool
+    {
+        if (! array_key_exists($column->getName(), $this->searchableColumns)) {
+            return false;
+        }
+
+        $searchableType = $this->searchableColumns[$column->getName()];
+
+        if ($searchableType === 'both') {
+            return true;
+        }
+
+        return $searchableType === $type;
     }
 }
