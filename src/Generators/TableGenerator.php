@@ -34,16 +34,15 @@ class TableGenerator extends AbstractGenerator
     }
 
     public static function make(
-        string $modelClass, 
-        array $exceptColumns = [], 
-        array $overwriteColumns = [], 
-        array $enumDictionary = [], 
-        array $visibleColumns = [], 
+        string $modelClass,
+        array $exceptColumns = [],
+        array $overwriteColumns = [],
+        array $enumDictionary = [],
+        array $visibleColumns = [],
         array $searchableColumns = []
-    ): array
-    {
+    ): array {
         return static::getCachedSchema(
-            fn() => (new static($modelClass))->visibleColumns($visibleColumns)
+            fn () => (new static($modelClass))->visibleColumns($visibleColumns)
                 ->searchableColumns($searchableColumns)
                 ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary)
         );
@@ -54,23 +53,22 @@ class TableGenerator extends AbstractGenerator
         return Tables\Columns\TextColumn::make("{$relationshipName}.{$relationshipTitleColumnName}")
             ->weight(FontWeight::Bold)
             ->color('primary')
-            ->url(function ($record) use ($column) {
+            ->url(function ($record) use ($relationshipName) {
                 if ($record === null) {
                     return null;
                 }
-            
+
                 $selectedResource = null;
-                $relationship = Str::before($column->getName(), '.');
-                $relatedRecord = $record->{$relationship};
-            
+                $relatedRecord    = $record->{$relationshipName};
+
                 if ($relatedRecord === null) {
                     return null;
                 }
-            
+
                 foreach (Filament::getResources() as $resource) {
                     if ($relatedRecord instanceof ($resource::getModel())) {
                         $selectedResource = $resource;
-                    
+
                         break;
                     }
                 }
@@ -78,7 +76,7 @@ class TableGenerator extends AbstractGenerator
                 if ($selectedResource === null) {
                     return null;
                 }
-            
+
                 return $selectedResource::getUrl('view', [$relatedRecord->getKey()]);
             });
     }
@@ -87,15 +85,15 @@ class TableGenerator extends AbstractGenerator
     {
         return Tables\Columns\TextColumn::make($column->getName())
             ->badge()
-            ->formatStateUsing(function($state) use($dictionary) {
+            ->formatStateUsing(function ($state) use ($dictionary) {
                 $finalFormat = $dictionary[$state] ?? $state;
-    
+
                 return (is_array($finalFormat)) ? $finalFormat[0] : $finalFormat;
-            })->color(function($state) use($dictionary) {
+            })->color(function ($state) use ($dictionary) {
                 if (! is_array($dictionary[$state]) || ! array_key_exists(1, $dictionary[$state])) {
                     return null;
                 }
-    
+
                 return $dictionary[$state][1];
             });
     }
@@ -128,7 +126,7 @@ class TableGenerator extends AbstractGenerator
     {
         if (Str::of($column->getName())->contains(['link', 'url'])) {
             return Tables\Columns\TextColumn::make($column->getName())
-                ->url(fn($record) => $record->{$column->getName()})
+                ->url(fn ($record) => $record->{$column->getName()})
                 ->color('primary')
                 ->openUrlInNewTab();
         }
@@ -144,7 +142,7 @@ class TableGenerator extends AbstractGenerator
             ->icon($isPrimaryKey ? 'heroicon-m-clipboard-document' : null)
             ->iconPosition($isPrimaryKey ? IconPosition::After : null);
 
-        if ($this->isNumericColumn($column)) {
+        if (! $isPrimaryKey && $this->isNumericColumn($column)) {
             return $textColumn->numeric();
         }
 
@@ -153,11 +151,11 @@ class TableGenerator extends AbstractGenerator
 
     protected function generateSchema(array $exceptColumns, array $overwriteColumns, array $enumDictionary): array
     {
-        return collect($this->getResourceColumns($exceptColumns, $overwriteColumns, $enumDictionary))->map(function(TableColumn $columnInstance) {
+        return collect($this->getResourceColumns($exceptColumns, $overwriteColumns, $enumDictionary))->map(function (TableColumn $columnInstance) {
             return $columnInstance
                 ->searchable($columnInstance->isSearchable() ?: in_array($columnInstance->getName(), $this->searchableColumns))
                 ->toggleable(
-                    isToggledHiddenByDefault: !empty($this->visibleColumns) && ! in_array($columnInstance->getName(), $this->visibleColumns)
+                    isToggledHiddenByDefault: ! empty($this->visibleColumns) && ! in_array($columnInstance->getName(), $this->visibleColumns)
                 );
         })->all();
     }

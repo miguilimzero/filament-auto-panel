@@ -10,7 +10,6 @@ use Filament\Support\Components\ViewComponent;
 use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\IconPosition;
-use Illuminate\Support\Str;
 
 class InfolistGenerator extends AbstractGenerator
 {
@@ -22,17 +21,16 @@ class InfolistGenerator extends AbstractGenerator
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
         return Infolists\Components\TextEntry::make("{$relationshipName}.{$relationshipTitleColumnName}")
-            ->placeholder(fn() => $this->placeholderHtml())
+            ->placeholder(fn () => $this->placeholderHtml())
             ->weight(FontWeight::Bold)
             ->color('primary')
-            ->url(function ($record) use ($column) {
+            ->url(function ($record) use ($relationshipName) {
                 if ($record === null) {
                     return null;
                 }
 
                 $selectedResource = null;
-                $relationship     = Str::before($column->getName(), '.');
-                $relatedRecord    = $record->{$relationship};
+                $relatedRecord    = $record->{$relationshipName};
 
                 if ($relatedRecord === null) {
                     return null;
@@ -57,6 +55,7 @@ class InfolistGenerator extends AbstractGenerator
     protected function handleEnumDictionaryColumn(Column $column, array $dictionary): ViewComponent
     {
         return Infolists\Components\TextEntry::make($column->getName())
+            ->badge()
             ->formatStateUsing(function ($state) use ($dictionary) {
                 $finalFormat = $dictionary[$state] ?? $state;
 
@@ -73,7 +72,7 @@ class InfolistGenerator extends AbstractGenerator
     protected function handleDateColumn(Column $column): ViewComponent
     {
         $textEntry = Infolists\Components\TextEntry::make($column->getName())
-            ->placeholder(fn() => $this->placeholderHtml());
+            ->placeholder(fn () => $this->placeholderHtml());
 
         if ($column->getType() instanceof Types\DateTimeType) {
             return $textEntry->dateTime();
@@ -93,7 +92,7 @@ class InfolistGenerator extends AbstractGenerator
     protected function handleTextColumn(Column $column): ViewComponent
     {
         return Infolists\Components\TextEntry::make($column->getName())
-            ->placeholder(fn() => $this->placeholderHtml())
+            ->placeholder(fn () => $this->placeholderHtml())
             ->columnSpan('full');
     }
 
@@ -101,13 +100,19 @@ class InfolistGenerator extends AbstractGenerator
     {
         $isPrimaryKey = $this->modelInstance->getKeyName() === $column->getName();
 
-        return Infolists\Components\TextEntry::make($column->getName())
+        $textEntry = Infolists\Components\TextEntry::make($column->getName())
             ->copyable($isPrimaryKey)
             ->weight($isPrimaryKey ? FontWeight::Bold : null)
             ->fontFamily($isPrimaryKey ? FontFamily::Mono : null)
             ->icon($isPrimaryKey ? 'heroicon-s-clipboard-document' : null)
             ->iconPosition($isPrimaryKey ? IconPosition::After : null)
-            ->placeholder(fn() => $this->placeholderHtml());
+            ->placeholder(fn () => $this->placeholderHtml());
+
+        if (! $isPrimaryKey && $this->isNumericColumn($column)) {
+            return $textEntry->numeric();
+        }
+
+        return $textEntry;
     }
 
     protected function generateSchema(array $exceptColumns, array $overwriteColumns, array $enumDictionary): array
