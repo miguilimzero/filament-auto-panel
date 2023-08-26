@@ -8,7 +8,7 @@ This package provide custom Resources and Relation Managers classes that mounts 
 ## Contents
 
 - [Installation](#installation)
-- [Understanding](#understanding)
+- [Usage](#usage)
 - [Auto Resource](#auto-resource)
 - [Auto Relation Manager](#auto-relation-manager)
 - [Auto Action](#auto-action)
@@ -27,7 +27,7 @@ You can install the package via composer:
 composer require miguilim/filament-auto
 ```
 
-## Understanding
+## Usage
 
 Before getting started with the package, you must know some behaviors that the table schema reader have. 
 The Filament Auto will take into consideration your actual table schema in the database and not your migration file.
@@ -77,9 +77,56 @@ in priority order: `primary key (only if incremented)`, `created_at`, `updated_a
 
 ## Auto Action
 
+The Auto Resource and Auto Relation Manager will provider a `getActions()` method, however you cannot use the default Filament action. You must use the `AutoAction` class.
+This action type have same methods as Filament Actions, however it provide new methods to set where the action will be shown. This is needed since there is only this array
+for all resource actions.
+
+The resource action always receive a collection of models and it can be used in the following way:
+
+```php
+use Illuminate\Database\Eloquent\Collection;
+use Miguilim\FilamentAutoResource\AutoAction;
+
+public static function getActions(): array
+{
+    return [
+        AutoAction::make('refund')
+            ->label('Refund')
+            ->icon('heroicon-o-arrow-path')
+            ->color('danger')
+            ->action(fn (Collection $records) => $records->each->refund())
+            ->showOnTable()
+            ->showOnViewPage(),
+    ];
+}
+``` 
+
+By default the auto action will not be shown anywhere, so you must set one of the following methods: `showOnTable()`, `showOnBulkAction()` or `showOnViewPage()`.
 
 ## Enum Dictionary
 
+Enum dictionary is a feature available to help you formatting a value for your resource. This feature will set a `Badge` in table and infolist, 
+and a `Select` in the form with the values you set. You can use it in the following way:
+
+```php
+protected static array $enumDictionary = [
+    'type' => [
+        0 => 'Default',
+        1 => 'Administrator',
+    ]
+];
+```
+
+You may customize the badge colors using the following syntax:
+
+```php
+protected static array $enumDictionary = [
+    'type' => [
+        0 => ['Default', 'blue'],
+        1 => ['Administrator', 'red'],
+    ]
+];
+```
 
 ## Visible Columns
 
@@ -93,11 +140,11 @@ protected static array $visibleColumns = [
 
 This feature only sets the column default visibility in the top-right menu of your table. You can enable/disable any column at any time using the panel.
 
-> The primary key column will always be shown.
+> The primary key column will always be shown. You cannot customize form or infolist columns.
 
 ## Searchable Columns
 
-You can set searchable columns for your Auto Resource or Auto Relation Manager using the `$searchableColumns` attribute:
+You can set searchable columns for your Auto Resource or Auto Relation Manager using:
 
 ```php
 protected static array $searchableColumns = [
