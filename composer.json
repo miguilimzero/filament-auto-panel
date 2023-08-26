@@ -5,7 +5,7 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Miguilim\\FilamentAutoResource\\": "src/"
+            "Miguilim\\FilamentAuto\\": "src/"
         }
     },
     "require": {
