@@ -44,6 +44,11 @@ class AutoResource extends Resource
         return [];
     }
 
+    public static function getTableColumnsOverwrite(): array
+    {
+        return [];
+    }
+
     public static function getExtraPages(): array
     {
         return [];
@@ -83,6 +88,7 @@ class AutoResource extends Resource
         $tableSchema = TableGenerator::make(
             modelClass: static::getModel(), 
             enumDictionary: static::$enumDictionary, 
+            overwriteColumns: static::getTableColumnsOverwrite(),
             searchableColumns: static::$searchableColumns, 
             visibleColumns: static::$visibleColumns
         );
@@ -98,11 +104,11 @@ class AutoResource extends Resource
             $dummyModel = new $modelClass;
 
             if ($dummyModel->getIncrementing() && $sortColumnsAvailable->contains($dummyModel->getKeyName())) {
-                $table = $table->defaultSort($dummyModel->getKeyName(), 'desc');
+                $table->defaultSort($dummyModel->getKeyName(), 'desc');
             } else if ($sortColumnsAvailable->contains('created_at')) {
-                $table = $table->defaultSort('created_at', 'desc');
+                $table->defaultSort('created_at', 'desc');
             } else  if ($sortColumnsAvailable->contains('updated_at')) {
-                $table = $table->defaultSort('updated_at', 'desc');
+                $table->defaultSort('updated_at', 'desc');
             }
         }
 

@@ -39,6 +39,11 @@ class AutoRelationManager extends RelationManager
         return [];
     }
 
+    public static function getTableColumnsOverwrite(): array
+    {
+        return [];
+    }
+
     public function infolist(Infolist $infolist): Infolist
     {
         return $infolist
@@ -107,6 +112,7 @@ class AutoRelationManager extends RelationManager
             ->columns(TableGenerator::make(
                 modelClass: $this->getRelationship()->getModel()::class,
                 exceptColumns: [$this->getRelationship()->getForeignKeyName()],
+                overwriteColumns: static::getTableColumnsOverwrite(),
                 enumDictionary: static::$enumDictionary,
                 visibleColumns: static::$visibleColumns,
                 searchableColumns: static::$searchableColumns,

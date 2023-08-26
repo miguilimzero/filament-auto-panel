@@ -39,6 +39,27 @@ class {{ resourceClass }} extends AutoResource
         ];
     }
 
+    public static function getHeaderWidgets(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    public static function getFooterWidgets(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    public static function getTableColumnsOverwrite(): array
+    {
+        return [
+            //
+        ];
+    }
+
     public static function getExtraPages(): array
     {
         return [
