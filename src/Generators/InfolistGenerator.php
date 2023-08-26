@@ -15,7 +15,7 @@ class InfolistGenerator extends AbstractGenerator
 {
     public static function make(string $modelClass, array $exceptColumns = [], array $overwriteColumns = [], array $enumDictionary = []): array
     {
-        return static::getCachedSchema(fn() => (new static($modelClass))->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary));
+        return static::getCachedSchema(fn () => (new static($modelClass))->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary));
     }
 
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
@@ -27,19 +27,19 @@ class InfolistGenerator extends AbstractGenerator
                 if ($record === null) {
                     return null;
                 }
-            
+
                 $selectedResource = null;
-                $relationship = Str::before($column->getName(), '.');
-                $relatedRecord = $record->{$relationship};
-            
+                $relationship     = Str::before($column->getName(), '.');
+                $relatedRecord    = $record->{$relationship};
+
                 if ($relatedRecord === null) {
                     return null;
                 }
-            
+
                 foreach (Filament::getResources() as $resource) {
                     if ($relatedRecord instanceof ($resource::getModel())) {
                         $selectedResource = $resource;
-                    
+
                         break;
                     }
                 }
@@ -47,7 +47,7 @@ class InfolistGenerator extends AbstractGenerator
                 if ($selectedResource === null) {
                     return null;
                 }
-            
+
                 return $selectedResource::getUrl('view', [$relatedRecord->getKey()]);
             });
     }
@@ -55,11 +55,11 @@ class InfolistGenerator extends AbstractGenerator
     protected function handleEnumDictionaryColumn(Column $column, array $dictionary): ViewComponent
     {
         return Infolists\Components\TextEntry::make($column->getName())
-            ->formatStateUsing(function($state) use($dictionary) {
+            ->formatStateUsing(function ($state) use ($dictionary) {
                 $finalFormat = $dictionary[$state] ?? $state;
 
                 return (is_array($finalFormat)) ? $finalFormat[0] : $finalFormat;
-            })->color(function($state) use($dictionary) {
+            })->color(function ($state) use ($dictionary) {
                 if (! is_array($dictionary[$state]) || ! array_key_exists(1, $dictionary[$state])) {
                     return 'primary';
                 }
@@ -70,7 +70,8 @@ class InfolistGenerator extends AbstractGenerator
 
     protected function handleDateColumn(Column $column): ViewComponent
     {
-        $textEntry = Infolists\Components\TextEntry::make($column->getName());
+        $textEntry = Infolists\Components\TextEntry::make($column->getName())
+            ->placeholder('null');
 
         if ($column->getType() instanceof Types\DateTimeType) {
             return $textEntry->dateTime();
@@ -90,7 +91,7 @@ class InfolistGenerator extends AbstractGenerator
     protected function handleTextColumn(Column $column): ViewComponent
     {
         return Infolists\Components\TextEntry::make($column->getName())
-            ->placeholder('Null')
+            ->placeholder('null')
             ->columnSpan('full');
     }
 
@@ -118,7 +119,7 @@ class InfolistGenerator extends AbstractGenerator
                 ])
                 ->columnSpan(['lg' => fn ($record) => $record === null ? 3 : 2]),
 
-                Infolists\Components\Section::make()
+            Infolists\Components\Section::make()
                 ->schema(array_filter([
                     Infolists\Components\TextEntry::make('created_at')->since(),
                     (! $this->modelInstance::isIgnoringTouch()) ? Infolists\Components\TextEntry::make('updated_at')->since() : null,
