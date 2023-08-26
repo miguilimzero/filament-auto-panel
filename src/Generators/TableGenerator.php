@@ -92,7 +92,7 @@ class TableGenerator extends AbstractGenerator
                 return (is_array($finalFormat)) ? $finalFormat[0] : $finalFormat;
             })->color(function ($state) use ($dictionary) {
                 if (! is_array($dictionary[$state]) || ! array_key_exists(1, $dictionary[$state])) {
-                    return null;
+                    return 'primary';
                 }
 
                 return $dictionary[$state][1];

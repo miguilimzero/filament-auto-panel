@@ -42,14 +42,24 @@ class {{ resourceClass }} extends AutoResource
     public static function getHeaderWidgets(): array
     {
         return [
-            //
+            'list' => [
+                //
+            ],
+            'view' => [
+                //
+            ],
         ];
     }
 
     public static function getFooterWidgets(): array
     {
         return [
-            //
+            'list' => [
+                //
+            ],
+            'view' => [
+                //
+            ],
         ];
     }
 

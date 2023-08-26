@@ -7,6 +7,20 @@ use Filament\Resources\Pages\ListRecords;
 
 class FilamentAutoResourceList extends ListRecords
 {
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            ...static::getResource()::getHeaderWidgets()['list'],
+        ];
+    }
+
+    protected function getFooterWidgets(): array
+    {
+        return [
+            ...static::getResource()::getFooterWidgets()['list'],
+        ];
+    }
+
     protected function getActions(): array
     {
         return [

@@ -11,14 +11,14 @@ class FilamentAutoResourceView extends ViewRecord
     protected function getHeaderWidgets(): array
     {
         return [
-            ...static::getResource()::getHeaderWidgets(),
+            ...static::getResource()::getHeaderWidgets()['view'],
         ];
     }
 
     protected function getFooterWidgets(): array
     {
         return [
-            ...static::getResource()::getFooterWidgets(),
+            ...static::getResource()::getFooterWidgets()['view'],
         ];
     }
 

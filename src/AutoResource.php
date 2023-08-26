@@ -36,12 +36,18 @@ class AutoResource extends Resource
 
     public static function getHeaderWidgets(): array
     {
-        return [];
+        return [
+            'list' => [],
+            'view' => [],
+        ];
     }
 
     public static function getFooterWidgets(): array
     {
-        return [];
+        return [
+            'list' => [],
+            'view' => [],
+        ];
     }
 
     public static function getTableColumnsOverwrite(): array
