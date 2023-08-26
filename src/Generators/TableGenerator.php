@@ -6,7 +6,9 @@ use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Types;
 use Filament\Facades\Filament;
 use Filament\Support\Components\ViewComponent;
+use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\FontWeight;
+use Filament\Support\Enums\IconPosition;
 use Filament\Tables;
 use Filament\Tables\Columns\Column as TableColumn;
 use Illuminate\Support\Str;
@@ -131,9 +133,16 @@ class TableGenerator extends AbstractGenerator
                 ->openUrlInNewTab();
         }
 
+        $isPrimaryKey = $this->modelInstance->getKeyName() === $column->getName();
+
         $textColumn = Tables\Columns\TextColumn::make($column->getName())
             ->sortable($this->isNumericColumn($column))
-            ->searchable($this->modelInstance->getKeyName() === $column->getName());
+            ->searchable($isPrimaryKey)
+            ->copyable($isPrimaryKey)
+            ->weight($isPrimaryKey ? FontWeight::Bold : null)
+            ->fontFamily($isPrimaryKey ? FontFamily::Mono : null)
+            ->icon($isPrimaryKey ? 'heroicon-m-clipboard-document' : null)
+            ->iconPosition($isPrimaryKey ? IconPosition::After : null);
 
         if ($this->isNumericColumn($column)) {
             return $textColumn->numeric();

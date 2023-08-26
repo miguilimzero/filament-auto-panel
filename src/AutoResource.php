@@ -68,7 +68,7 @@ class AutoResource extends Resource
         $hasSoftDeletes = method_exists(static::getModel(), 'bootSoftDeletes');
 
         $defaultFilters = [...static::getFilters()];
-        $defaultTableActions = [...static::getTableActions(), Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make()];
+        $defaultTableActions = [...static::getTableActions(), Tables\Actions\ViewAction::make()];
         $defaultBulkActions = [...static::getBulkActions(), Tables\Actions\DeleteBulkAction::make()];
 
         if ($hasSoftDeletes) {

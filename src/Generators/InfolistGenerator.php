@@ -9,6 +9,7 @@ use Filament\Infolists;
 use Filament\Support\Components\ViewComponent;
 use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\FontWeight;
+use Filament\Support\Enums\IconPosition;
 use Illuminate\Support\Str;
 
 class InfolistGenerator extends AbstractGenerator
@@ -104,6 +105,8 @@ class InfolistGenerator extends AbstractGenerator
             ->copyable($isPrimaryKey)
             ->weight($isPrimaryKey ? FontWeight::Bold : null)
             ->fontFamily($isPrimaryKey ? FontFamily::Mono : null)
+            ->icon($isPrimaryKey ? 'heroicon-s-clipboard-document' : null)
+            ->iconPosition($isPrimaryKey ? IconPosition::After : null)
             ->placeholder(fn() => $this->placeholderHtml());
     }
 
