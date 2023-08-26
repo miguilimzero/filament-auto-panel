@@ -26,6 +26,11 @@ class PageMounter
         return static::generateAnonymousClass(FilamentAutoResourceView::class, $resource)::route('/{record}');
     }
 
+    public static function makeCustom(string $resource, string $pageClass, string $pageRoute): PageRegistration
+    {
+        return static::generateAnonymousClass($pageClass, $resource)::route($pageRoute);
+    }
+
     protected static function generateAnonymousClass(string $filamentPage, string $resource): string
     {
         $filamentPageName = array_reverse(explode('\\', $filamentPage))[0];
