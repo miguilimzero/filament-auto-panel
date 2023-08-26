@@ -16,6 +16,7 @@ This package provide custom Resources and Relation Managers classes that mounts 
 - [Visible Columns](#visible-columns)
 - [Searchable Columns](#searchable-columns)
 - [Overwrite Columns](#overwrite-columns)
+- [Widgets](#widgets)
 - [Extra Pages](#extra-pages)
 - [License](#license)
 
@@ -41,16 +42,12 @@ it is being used as a boolean.
 #### Soft Deletes
 
 The package will detect if the table has soft deletes or not by checking if it has the `SoftDeletes` trait, 
-by checking if `bootSoftDeletes` method exists, in the Model.
+by checking if `bootSoftDeletes` method exists, in the Model. If soft deletes is detected, the will appended the `TrashedFilter` to the filters.
 
 #### Primary Key
 
 Filament Auto will try to detect the primary key by using the `getKeyName()` from the resource or relation manager Model. The primary key
 will be searchable by default. It will also be copyable in table and infolist.
-
-#### Default Filters
-
-By default, the `Auto Resource` and `Auto Relation Manager` will append the `TrashedFilter` to the filters if it has soft deletes.
 
 #### Default Actions
 
@@ -62,18 +59,44 @@ By default, Auto Resource will append the following default actions:
 
 #### Default Pages
 
-By default, the Auto Resource will have a list and view pages. The create and edit record is available as a modal action in the list and view pages respectively.
+By default, the Auto Resource will have a list `and view pages. The create and edit record is available as a modal action in the list and view pages respectively.
 
 #### Default Sorting
 
 By default, the Auto Resource and Auto Relation Manager will try to set the table default sort for the following columns, 
-in priority order: `primary key (only if incremented)`, `created_at`, `updated_at`.
+in priority order respectively: `primary key (only if incremented)`, `created_at`, `updated_at`.
 
 ## Auto Resource
 
 
 ## Auto Relation Manager
 
+Auto Relation Manager construct a table containing the all relationship model columns, excluding the related id.
+You can generate your Auto Relation Manager using the following command:
+
+```sh
+php artisan make:filament-auto-relation-manager
+```
+
+This command will create the auto relation manager for you and you must list it in the `getRelations()` method of your resource.
+However, sometimes you may want something more handier. You can create a relation manager inside your resource using the `RelationManagerMounter`.
+See the following example of how it works:
+
+```php
+use Miguilim\FilamentAuto\Mounters\RelationManagerMounter;
+
+public static function getRelations(): array
+{
+    return [
+        RelationManagerMounter::make(
+            resource: static::class,
+            relation: 'userBans',
+            recordTitleAttribute: 'Bans',
+            visibleColumns: ['reason', 'created_at'],
+        ),
+    ];
+}
+```
 
 ## Auto Action
 
@@ -81,11 +104,11 @@ The Auto Resource and Auto Relation Manager will provider a `getActions()` metho
 This action type have same methods as Filament Actions, however it provide new methods to set where the action will be shown. This is needed since there is only this array
 for all resource actions.
 
-The resource action always receive a collection of models and it can be used in the following way:
+The resource `action` always receive a collection of models and it can be used in the following way:
 
 ```php
+use Miguilim\FilamentAuto\AutoAction;
 use Illuminate\Database\Eloquent\Collection;
-use Miguilim\FilamentAutoResource\AutoAction;
 
 public static function getActions(): array
 {
@@ -180,6 +203,10 @@ public static function getColumnsOverwrite(): array
 ```
 
 > You cannot append new columns using this method, only overwrite detected columns. The `make()` parameter name must be the same as the column name in the database.
+
+## Widgets
+
+
 
 ## Extra Pages
 
