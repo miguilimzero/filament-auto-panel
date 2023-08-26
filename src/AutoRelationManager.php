@@ -39,9 +39,13 @@ class AutoRelationManager extends RelationManager
         return [];
     }
 
-    public static function getTableColumnsOverwrite(): array
+    public static function getColumnsOverwrite(): array
     {
-        return [];
+        return [
+            'table' => [],
+            'form' => [],
+            'infolist' => [],
+        ];
     }
 
     public function infolist(Infolist $infolist): Infolist
@@ -50,7 +54,8 @@ class AutoRelationManager extends RelationManager
             ->schema(InfolistGenerator::make(
                 modelClass: $this->getRelationship()->getModel()::class,
                 exceptColumns: [$this->getRelationship()->getForeignKeyName()], 
-                enumDictionary: static::$enumDictionary
+                overwriteColumns: static::getColumnsOverwrite()['infolist'],
+                enumDictionary: static::$enumDictionary,
             ))
             ->columns(2);
     }
@@ -61,6 +66,7 @@ class AutoRelationManager extends RelationManager
             ->schema(FormGenerator::make(
                 modelClass: $this->getRelationship()->getModel()::class,
                 exceptColumns: [$this->getRelationship()->getForeignKeyName()],
+                overwriteColumns: static::getColumnsOverwrite()['form'],
                 enumDictionary: static::$enumDictionary,
             ))
             ->columns(2);
@@ -112,7 +118,7 @@ class AutoRelationManager extends RelationManager
             ->columns(TableGenerator::make(
                 modelClass: $this->getRelationship()->getModel()::class,
                 exceptColumns: [$this->getRelationship()->getForeignKeyName()],
-                overwriteColumns: static::getTableColumnsOverwrite(),
+                overwriteColumns: static::getColumnsOverwrite()['table'],
                 enumDictionary: static::$enumDictionary,
                 visibleColumns: static::$visibleColumns,
                 searchableColumns: static::$searchableColumns,

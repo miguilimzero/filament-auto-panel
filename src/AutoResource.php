@@ -50,9 +50,13 @@ class AutoResource extends Resource
         ];
     }
 
-    public static function getTableColumnsOverwrite(): array
+    public static function getColumnsOverwrite(): array
     {
-        return [];
+        return [
+            'table' => [],
+            'form' => [],
+            'infolist' => [],
+        ];
     }
 
     public static function getExtraPages(): array
@@ -63,14 +67,22 @@ class AutoResource extends Resource
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist
-            ->schema(InfolistGenerator::make(modelClass: static::getModel(), enumDictionary: static::$enumDictionary))
+            ->schema(InfolistGenerator::make(
+                modelClass: static::getModel(), 
+                overwriteColumns: static::getColumnsOverwrite()['infolist'],
+                enumDictionary: static::$enumDictionary,
+            ))
             ->columns(3);
     }
 
     public static function form(Form $form): Form
     {
         return $form
-            ->schema(FormGenerator::make(modelClass: static::getModel(), enumDictionary: static::$enumDictionary))
+            ->schema(FormGenerator::make(
+                modelClass: static::getModel(), 
+                overwriteColumns: static::getColumnsOverwrite()['form'],
+                enumDictionary: static::$enumDictionary,
+            ))
             ->columns(2);
     }
 
@@ -93,8 +105,8 @@ class AutoResource extends Resource
 
         $tableSchema = TableGenerator::make(
             modelClass: static::getModel(), 
+            overwriteColumns: static::getColumnsOverwrite()['table'],
             enumDictionary: static::$enumDictionary, 
-            overwriteColumns: static::getTableColumnsOverwrite(),
             searchableColumns: static::$searchableColumns, 
             visibleColumns: static::$visibleColumns
         );

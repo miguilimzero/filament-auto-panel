@@ -34,10 +34,18 @@ class {{ managerClass }} extends AutoRelationManager
         ];
     }
 
-    public static function getTableColumnsOverwrite(): array
+    public static function getColumnsOverwrite(): array
     {
         return [
-            //
+            'table' => [
+                //
+            ],
+            'form' => [
+                //
+            ],
+            'infolist' => [
+                //
+            ],
         ];
     }
 }
