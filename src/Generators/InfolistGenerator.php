@@ -21,6 +21,7 @@ class InfolistGenerator extends AbstractGenerator
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
         return Infolists\Components\TextEntry::make("{$relationshipName}.{$relationshipTitleColumnName}")
+            ->placeholder(fn() => $this->placeholderHtml())
             ->weight(FontWeight::Bold)
             ->color('primary')
             ->url(function ($record) use ($column) {
@@ -71,7 +72,7 @@ class InfolistGenerator extends AbstractGenerator
     protected function handleDateColumn(Column $column): ViewComponent
     {
         $textEntry = Infolists\Components\TextEntry::make($column->getName())
-            ->placeholder('null');
+            ->placeholder(fn() => $this->placeholderHtml());
 
         if ($column->getType() instanceof Types\DateTimeType) {
             return $textEntry->dateTime();
@@ -91,7 +92,7 @@ class InfolistGenerator extends AbstractGenerator
     protected function handleTextColumn(Column $column): ViewComponent
     {
         return Infolists\Components\TextEntry::make($column->getName())
-            ->placeholder('null')
+            ->placeholder(fn() => $this->placeholderHtml())
             ->columnSpan('full');
     }
 
@@ -103,7 +104,7 @@ class InfolistGenerator extends AbstractGenerator
             ->copyable($isPrimaryKey)
             ->weight($isPrimaryKey ? FontWeight::Bold : null)
             ->fontFamily($isPrimaryKey ? FontFamily::Mono : null)
-            ->placeholder('Null');
+            ->placeholder(fn() => $this->placeholderHtml());
     }
 
     protected function generateSchema(array $exceptColumns, array $overwriteColumns, array $enumDictionary): array
@@ -128,5 +129,10 @@ class InfolistGenerator extends AbstractGenerator
                 ->columnSpan(['lg' => 1])
                 ->hidden(fn ($record) => $record === null),
         ];
+    }
+
+    protected function placeholderHtml()
+    {
+        return new \Illuminate\Support\HtmlString('<span class="text-gray-500 dark:text-gray-400">null</span>');
     }
 }
