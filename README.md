@@ -3,7 +3,7 @@
 A plugin to construct your Filament Admin Panel resources, forms and views at execution time like magic. 
 This package provide custom Resources and Relation Managers classes that mounts it table, create, view and edit pages at execution time by scanning the table structure.
 
-> This package is intended for Admin Panels and is not recommended for final user panels. If you feels you need a more customized resource, re-consider using the plugin or not.
+> This package is intended for Admin Panels as a database navigator. If you feels you need a more customized resource, re-consider to not use this package.
 
 ## Contents
 
@@ -59,7 +59,7 @@ By default, Auto Resource will append the following default actions:
 
 #### Default Pages
 
-By default, the Auto Resource will have a list `and view pages. The create and edit record is available as a modal action in the list and view pages respectively.
+By default, the Auto Resource will have a list and view pages. The create and edit record is available as a modal action in the list and view pages respectively.
 
 #### Default Sorting
 
@@ -74,7 +74,7 @@ You can get started by creating your first Auto Resource using the following com
 php artisan make:filament-auto-resource
 ```
 
-This command will create the auto resource class for you, just as the default filament command. However, it will use the `AutoResource` instead.
+This command will create the Auto Resource class for you, just as the default filament command. However, it will use the `AutoResource` class instead.
 You don't need to list anything now, you can just access the resource page and see the magic!
 
 ## Auto Relation Manager
@@ -86,7 +86,7 @@ You can generate your Auto Relation Manager using the following command:
 php artisan make:filament-auto-relation-manager
 ```
 
-This command will create the auto relation manager for you and you must list it in the `getRelations()` method of your resource.
+This command will create the Auto Relation Manager for you and you must list it in the `getRelations()` method of your resource.
 However, sometimes you may want something more handier. You can create a relation manager inside your resource using the `RelationManagerMounter`.
 See the following example of how it works:
 
@@ -214,7 +214,33 @@ public static function getColumnsOverwrite(): array
 
 ## Widgets
 
+You can set widgets to the `list` and `view` pages for your Auto Resource independently in the following way:
 
+```php
+public static function getHeaderWidgets(): array
+{
+    return [
+        'list' => [
+            MyCoolStatsWidget::class,
+        ],
+        'view' => [
+            //
+        ],
+    ];
+}
+
+public static function getFooterWidgets(): array
+{
+    return [
+        'list' => [
+            //
+        ],
+        'view' => [
+            //
+        ],
+    ];
+}
+```
 
 ## Extra Pages
 
