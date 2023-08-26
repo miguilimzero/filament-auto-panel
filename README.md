@@ -1,7 +1,7 @@
 # Filament Auto
 
 A plugin to construct your Filament Admin Panel resources, forms and views at execution time like magic. 
-This package provide custom Resources and Relation Managers classes that mounts it table, create, view and edit pages at execution time by scanning the table structure.
+This package provide custom Resources and Relation Managers classes that mounts it table, create, view and edit pages at execution time by scanning the database table schema.
 
 > This package is intended for Admin Panels as a database navigator. If you feels you need a more customized resource, re-consider to not use this package.
 
@@ -75,7 +75,7 @@ php artisan make:filament-auto-resource
 ```
 
 This command will create the Auto Resource class for you, just as the default filament command. However, it will use the `AutoResource` class instead.
-You don't need to list anything now, you can just access the resource page and see the magic!
+You don't need to list anything now, **you can just access the resource page and see the magic!**
 
 ## Auto Relation Manager
 
