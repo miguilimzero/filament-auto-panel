@@ -51,6 +51,7 @@ class TableGenerator extends AbstractGenerator
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
         return Tables\Columns\TextColumn::make("{$relationshipName}.{$relationshipTitleColumnName}")
+            ->placeholder(fn () => $this->placeholderHtml())
             ->weight(FontWeight::Bold)
             ->color('primary')
             ->url(function ($record) use ($relationshipName) {
@@ -100,7 +101,8 @@ class TableGenerator extends AbstractGenerator
 
     protected function handleDateColumn(Column $column): ViewComponent
     {
-        $textColumn = Tables\Columns\TextColumn::make($column->getName());
+        $textColumn = Tables\Columns\TextColumn::make($column->getName())
+            ->placeholder(fn () => $this->placeholderHtml());
 
         if ($column->getType() instanceof Types\DateTimeType) {
             return $textColumn->dateTime();
@@ -119,7 +121,8 @@ class TableGenerator extends AbstractGenerator
     protected function handleTextColumn(Column $column): ViewComponent
     {
         return Tables\Columns\TextColumn::make($column->getName())
-            ->wrap();
+            ->wrap()
+            ->placeholder(fn () => $this->placeholderHtml());
     }
 
     protected function handleDefaultColumn(Column $column): ViewComponent
@@ -140,7 +143,8 @@ class TableGenerator extends AbstractGenerator
             ->weight($isPrimaryKey ? FontWeight::Bold : null)
             ->fontFamily($isPrimaryKey ? FontFamily::Mono : null)
             ->icon($isPrimaryKey ? 'heroicon-m-clipboard-document' : null)
-            ->iconPosition($isPrimaryKey ? IconPosition::After : null);
+            ->iconPosition($isPrimaryKey ? IconPosition::After : null)
+            ->placeholder(fn () => $this->placeholderHtml());
 
         if (! $isPrimaryKey && $this->isNumericColumn($column)) {
             return $textColumn->numeric();

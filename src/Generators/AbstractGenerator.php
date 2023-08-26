@@ -7,6 +7,7 @@ use Doctrine\DBAL\Schema\Column;
 use Filament\Support\Commands\Concerns\CanReadModelSchemas;
 use Filament\Support\Components\ViewComponent;
 use Illuminate\Support\Str;
+use Illuminate\Support\HtmlString;
 use Illuminate\Database\Eloquent\Model;
 use Laravel\SerializableClosure\SerializableClosure;
 use Miguilim\FilamentAutoResource\Doctrine\CustomMySQLSchemaManager;
@@ -128,5 +129,10 @@ abstract class AbstractGenerator
         $cacheKey = md5(serialize(new SerializableClosure($function)) . static::class);
 
         return static::$generatedSchemas[$cacheKey] ??= $function();
+    }
+
+    protected function placeholderHtml(string $placeholder = 'null'): HtmlString
+    {
+        return new HtmlString("<span class=\"text-gray-500 dark:text-gray-400\">{$placeholder}</span>");
     }
 }

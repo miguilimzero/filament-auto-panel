@@ -132,15 +132,10 @@ class InfolistGenerator extends AbstractGenerator
                 ->schema(array_filter([
                     Infolists\Components\TextEntry::make('created_at')->since(),
                     (! $this->modelInstance::isIgnoringTouch()) ? Infolists\Components\TextEntry::make('updated_at')->since() : null,
-                    (method_exists($this->modelInstance, 'bootSoftDeletes')) ? Infolists\Components\TextEntry::make('deleted_at')->since()->placeholder('Never') : null,
+                    (method_exists($this->modelInstance, 'bootSoftDeletes')) ? Infolists\Components\TextEntry::make('deleted_at')->since()->placeholder(fn () => $this->placeholderHtml('Never')) : null,
                 ]))
                 ->columnSpan(['lg' => 1])
                 ->hidden(fn ($record) => $record === null),
         ];
-    }
-
-    protected function placeholderHtml()
-    {
-        return new \Illuminate\Support\HtmlString('<span class="text-gray-500 dark:text-gray-400">null</span>');
     }
 }
