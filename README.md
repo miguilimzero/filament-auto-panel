@@ -138,12 +138,12 @@ public static function getActions(): array
 }
 ``` 
 
-By default the auto action will not be shown anywhere, so you must set one of the following methods: `showOnTable()`, `showOnBulkAction()` or `showOnViewPage()`.
+By default the auto action will not be shown anywhere, so you must set at least one of the following methods: `showOnTable()`, `showOnBulkAction()` or `showOnViewPage()`.
 
 ## Enum Dictionary
 
-Enum dictionary is a feature available to help you formatting a value for your resource. This feature will set a `Badge` in table and infolist, 
-and a `Select` in the form with the values you set. You can use it in the following way:
+Enum dictionary is a feature available to help you formatting a value from a column for your resource. This feature will set a `badge()` in table and infolist, 
+and use a `Select` in the form with the values you set. You can use it in the following way:
 
 ```php
 protected static array $enumDictionary = [
@@ -175,7 +175,7 @@ protected static array $visibleColumns = [
 ];
 ```
 
-This feature only sets the column default visibility in the top-right menu of your table. You can enable/disable any column at any time using the panel.
+This feature only sets the column default visibility in the top-right menu of your table. You can enable/disable any column visibility at any time using the panel.
 
 > The primary key column will always be shown. You cannot customize form or infolist columns.
 
