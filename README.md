@@ -113,9 +113,10 @@ public static function getRelations(): array
 
 ## Auto Action
 
-The Auto Resource and Auto Relation Manager will provider a `getActions()` method, however you cannot use the default Filament action. You must use the `AutoAction` class.
-This action type have same methods as Filament Actions, however it provide new methods to set where the action will be shown. This is needed since there is only this array
-for all resource actions.
+The Auto Resource and Auto Relation Manager provides a `getActions()` method, however you cannot use the default Filament action on it. 
+
+Instead, you must use the `AutoAction` class. This action type have same methods as Filament Actions, however it provide new methods to 
+set where the action will be shown. This is needed since there is only this array for all resource actions.
 
 The resource `action` always receive a collection of models and it can be used in the following way:
 
