@@ -63,7 +63,12 @@ will be searchable by default. It will also be copyable in table and infolist.
 The package will try to link any columns that ends with `_id` with a belongsTo relationship. It will set a searchable `Select` for create/edit actions, and an URL
 linking to the respective resource in table and infolists (if the resource exists).
 
-This auto-detection currently do not support morphsTo (PRs are welcome!).
+> [!NOTE]
+> This auto-detection currently do not support morphsTo. PRs are welcome!
+
+#### Default Pages
+
+By default, the Auto Resource will have a list and view pages. The create and edit record is available as a modal action in the list and view pages respectively.
 
 #### Default Actions
 
@@ -73,14 +78,13 @@ By default, Auto Resource will append the following default actions:
 - Table Actions: `ViewAction or RestoreAction`
 - Page Actions: `DeleteAction or RestoreAction, ForceDeleteAction`
 
-#### Default Pages
-
-By default, the Auto Resource will have a list and view pages. The create and edit record is available as a modal action in the list and view pages respectively.
-
 #### Default Sorting
 
 By default, the Auto Resource and Auto Relation Manager will try to set the table default sort for the following columns, 
 in priority order respectively: `primary key (only if incremented)`, `created_at`, `updated_at`.
+
+> [!NOTE]
+> You can customize the defaultSort() of your table (and any other method) by extending the `getTable()` and use `parent::getTable($table)->defaultSort()`.
 
 ## Auto Resource
 
