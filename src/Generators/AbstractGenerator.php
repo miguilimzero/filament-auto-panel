@@ -2,14 +2,11 @@
 
 namespace Miguilim\FilamentAutoPanel\Generators;
 
-use Closure;
 use Doctrine\DBAL\Schema\Column;
 use Filament\Support\Commands\Concerns\CanReadModelSchemas;
 use Filament\Support\Components\ViewComponent;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
-use InvalidArgumentException;
-use Laravel\SerializableClosure\SerializableClosure;
 
 abstract class AbstractGenerator
 {
@@ -79,7 +76,7 @@ abstract class AbstractGenerator
 
             // Handle column matching type
             $columns[$columnName] = match($column->getType()::class) {
-                // \Doctrine\DBAL\Types\JsonType::class     => throw new InvalidArgumentException("Column named \"{$columnName}\" is of type \"json\" and therefore cannot be decoded by Filament Auto. Use getColumnsOverwrite() to create a custom handle for it."),
+                // \Doctrine\DBAL\Types\JsonType::class     => throw new \InvalidArgumentException("Column named \"{$columnName}\" is of type \"json\" and therefore cannot be decoded by Filament Auto. Use getColumnsOverwrite() to create a custom handle for it."),
                 \Doctrine\DBAL\Types\ArrayType::class    => $this->handleArrayColumn($column),
                 \Doctrine\DBAL\Types\DateType::class     => $this->handleDateColumn($column),
                 \Doctrine\DBAL\Types\DateTimeType::class => $this->handleDateColumn($column),

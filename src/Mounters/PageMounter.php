@@ -3,9 +3,9 @@
 namespace Miguilim\FilamentAutoPanel\Mounters;
 
 use Filament\Resources\Pages\PageRegistration;
-use Miguilim\FilamentAutoPanel\Filament\Pages\FilamentAutoPanelResourceCreate;
-use Miguilim\FilamentAutoPanel\Filament\Pages\FilamentAutoPanelResourceList;
-use Miguilim\FilamentAutoPanel\Filament\Pages\FilamentAutoPanelResourceView;
+use Miguilim\FilamentAutoPanel\Filament\Pages\FilamentAutoResourceCreate;
+use Miguilim\FilamentAutoPanel\Filament\Pages\FilamentAutoResourceList;
+use Miguilim\FilamentAutoPanel\Filament\Pages\FilamentAutoResourceView;
 
 class PageMounter
 {
