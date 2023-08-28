@@ -58,6 +58,11 @@ by checking if `bootSoftDeletes` method exists, in the Model. If soft deletes is
 Filament Auto will try to detect the primary key by using the `getKeyName()` from the resource or relation manager Model. The primary key
 will be searchable by default. It will also be copyable in table and infolist.
 
+#### Relationship Linking
+
+The package will try to link any columns that ends with `_id` with a belongsTo relationship. It will set a searchable `Select` for create/edit actions, and an URL
+linking to the respective resource in table and infolists (if the resource exists).
+
 #### Default Actions
 
 By default, Auto Resource will append the following default actions:
@@ -74,11 +79,6 @@ By default, the Auto Resource will have a list and view pages. The create and ed
 
 By default, the Auto Resource and Auto Relation Manager will try to set the table default sort for the following columns, 
 in priority order respectively: `primary key (only if incremented)`, `created_at`, `updated_at`.
-
-#### Relationship Linking
-
-The package will try to link any columns that ends with `_id` with a belongsTo relationship. It will set a searchable `Select` for create/edit actions, and an URL
-linking to the respective resource in table and infolists (if the resource exists).
 
 ## Auto Resource
 
@@ -187,7 +187,7 @@ protected static array $visibleColumns = [
 This feature only sets the column default visibility in the top-right menu of your table. You can enable/disable any column visibility at any time using the panel.
 
 > [!NOTE]
-> The primary key column will always be shown. You cannot customize form or infolist columns.
+> The primary key column will always be shown. You cannot customize form or infolist columns visibility.
 
 ## Searchable Columns
 
