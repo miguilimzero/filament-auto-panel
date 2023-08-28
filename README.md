@@ -9,7 +9,7 @@ A plugin to construct your Filament Admin Panel resources, forms and views at ex
 This package provide custom Resources and Relation Managers classes that mounts it table, create, view and edit pages at execution time by scanning the database table schema.
 
 > [!IMPORTANT]
-> This package is intended for Admin Panels, similar to how Laravel Nova works + everything auto-generated. You can also think it as a database management package. If you feels you need a more customized resource, re-consider to not use this package.
+> This package is intended for Admin Panels, similar to how Laravel Nova works + everything auto-generated. You can also think it as a database management tool. If you feels you need a more customized resource, re-consider to not use this package.
 
 ## Contents
 
