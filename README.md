@@ -5,11 +5,11 @@
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/miguilim/filament-auto.svg?style=flat-square)](https://packagist.org/packages/miguilim/filament-auto)
 [![Total Downloads](https://img.shields.io/packagist/dt/miguilim/filament-auto.svg?style=flat-square)](https://packagist.org/packages/miguilim/filament-auto)
 
-A plugin to construct your Filament Admin Panel resources, forms and views at execution time like magic. 
-This package provide custom Resources and Relation Managers classes that mounts it table, create, view and edit pages at execution time by scanning the database table schema.
+Construct your Filament admin panel Resources and Relation Managers at execution time like magic. 
+This package provide custom Resources and Relation Managers classes that mounts it table, create, view and edit pages at execution time by scanning the database current table schema.
 
 > [!IMPORTANT]
-> This package is intended for Admin Panels, similar to how Laravel Nova works + everything auto-generated. You can also think it as a database management tool. If you feels you need a more customized resource, re-consider to not use this package.
+> This package is intended for admin panels, similar to how Laravel Nova works + everything auto-generated. You can also think it as a database management tool. If you feels you need a more customized resource, re-consider to not use this package.
 
 ## Contents
 
