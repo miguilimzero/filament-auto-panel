@@ -8,7 +8,8 @@
 A plugin to construct your Filament Admin Panel resources, forms and views at execution time like magic. 
 This package provide custom Resources and Relation Managers classes that mounts it table, create, view and edit pages at execution time by scanning the database table schema.
 
-> This package is intended for Admin Panels as a database navigator. If you feels you need a more customized resource, re-consider to not use this package.
+> [!IMPORTANT]
+> This package is intended for Admin Panels similar to how Laravel Nova works + everything auto-generated. If you feels you need a more customized resource, re-consider to not use this package.
 
 ## Contents
 
@@ -44,6 +45,9 @@ specific column type and length will be used by Filament Auto to detect its a bo
 method, it will generate a `tinyint(4)` table column, and therefore will be identified as a numeric column, even if in its context 
 it is being used as a boolean.
 
+> [!NOTE]
+> You can overwrite this auto-detection behavior by setting the cast for the column in your model class.
+
 #### Soft Deletes
 
 The package will detect if the table has soft deletes or not by checking if it has the `SoftDeletes` trait, 
@@ -70,6 +74,11 @@ By default, the Auto Resource will have a list and view pages. The create and ed
 
 By default, the Auto Resource and Auto Relation Manager will try to set the table default sort for the following columns, 
 in priority order respectively: `primary key (only if incremented)`, `created_at`, `updated_at`.
+
+#### Relationship Linking
+
+The package will try to link any columns that ends with `_id` with a belongsTo relationship. It will set a searchable `Select` for create/edit actions, and an URL
+linking to the respective resource in table and infolists (if the resource exists).
 
 ## Auto Resource
 
@@ -177,6 +186,7 @@ protected static array $visibleColumns = [
 
 This feature only sets the column default visibility in the top-right menu of your table. You can enable/disable any column visibility at any time using the panel.
 
+> [!NOTE]
 > The primary key column will always be shown. You cannot customize form or infolist columns.
 
 ## Searchable Columns
@@ -216,6 +226,7 @@ public static function getColumnsOverwrite(): array
 }
 ```
 
+> [!NOTE]
 > You cannot append new columns using this method, only overwrite detected columns. The `make()` parameter name must be the same as the column name in the database.
 
 ## Widgets
