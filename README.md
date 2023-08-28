@@ -196,7 +196,7 @@ protected static array $visibleColumns = [
 This feature only sets the column default visibility in the top-right menu of your table. You can enable/disable any column visibility at any time using the panel.
 
 > [!NOTE]
-> The primary key column is always shown. You cannot customize form or infolist columns visibility.
+> You cannot customize form or infolist columns visibility.
 
 ## Searchable Columns
 
