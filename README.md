@@ -51,11 +51,11 @@ it is being used as a boolean.
 #### Soft Deletes
 
 The package will detect if the table has soft deletes or not by checking if it has the `SoftDeletes` trait, 
-by checking if `bootSoftDeletes` method exists, in the Model. If soft deletes is detected, the will appended the `TrashedFilter` to the filters.
+by checking if `bootSoftDeletes` method exists in the model. If soft deletes is detected, it will append the `TrashedFilter` to the table filters.
 
 #### Primary Key
 
-Filament Auto will try to detect the primary key by using the `getKeyName()` from the resource or relation manager Model. The primary key
+Filament Auto will try to detect the primary key by using the `getKeyName()` from the resource / relation manager model. The primary key
 will be searchable by default. It will also be copyable in table and infolist.
 
 #### Relationship Linking
