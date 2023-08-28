@@ -2,8 +2,8 @@
 
 # Filament Auto Panel
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/miguilim/filament-auto.svg?style=flat-square)](https://packagist.org/packages/miguilim/filament-auto)
-[![Total Downloads](https://img.shields.io/packagist/dt/miguilim/filament-auto.svg?style=flat-square)](https://packagist.org/packages/miguilim/filament-auto)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/miguilim/filament-auto-panel.svg?style=flat-square)](https://packagist.org/packages/miguilim/filament-auto-panel)
+[![Total Downloads](https://img.shields.io/packagist/dt/miguilim/filament-auto-panel.svg?style=flat-square)](https://packagist.org/packages/miguilim/filament-auto-panel)
 
 Construct your Filament panel Resources and Relation Managers at execution time like magic. 
 This package provide custom Resources and Relation Managers classes that mounts it table, create, view 
