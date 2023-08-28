@@ -37,7 +37,7 @@ composer require miguilim/filament-auto
 ## Usage
 
 Before getting started with the package, you must know some behaviors that the table schema reader have. 
-The Filament Auto will take into consideration your actual table schema in the database and not your migration file.
+Filament Auto takes into consideration your actual table schema in the database and not your migration file.
 However, it is extremely important to use the correct fields in the migration in order to generate the correct columns.
 
 An example of that is when you use the `boolean()` column method, Laravel will generate a `tinyint(1)` table column. This
@@ -50,29 +50,29 @@ it is being used as a boolean.
 
 #### Soft Deletes
 
-The package will detect if the table has soft deletes or not by checking if it has the `SoftDeletes` trait, 
+The package detects if the table has soft deletes or not by checking if it has the `SoftDeletes` trait, 
 by checking if `bootSoftDeletes` method exists in the model. If soft deletes is detected, it will append the `TrashedFilter` to the table filters.
 
 #### Primary Key
 
-Filament Auto will try to detect the primary key by using the `getKeyName()` from the resource / relation manager model. The primary key
-will be searchable by default. It will also be copyable in table and infolist.
+Filament Auto tries to detect the primary key by calling the `getKeyName()` method from the resource / relation manager model. The primary key
+is searchable by default and it will also be copyable in table and infolist view.
 
 #### Relationship Linking
 
-The package will try to link any columns that ends with `_id` with a belongsTo relationship. It will set a searchable `Select` for create/edit actions, and an URL
+The package tries to link any columns that ends with `_id` with a belongsTo relationship. It sets a searchable `Select` for create/edit actions, and an URL
 linking to the respective resource in table and infolists (if the resource exists).
 
 > [!NOTE]
-> This auto-detection currently do not support morphsTo. PRs are welcome!
+> This linking currently do not support morphsTo detection. PRs are welcome!
 
 #### Default Pages
 
-By default, the Auto Resource will have a list and view pages. The create and edit record is available as a modal action in the list and view pages respectively.
+By default, the Auto Resource have a list and view pages. The create and edit record is available as a modal action in the list and view pages respectively.
 
 #### Default Actions
 
-By default, Auto Resource will append the following default actions:
+By default, Auto Resource appends the following default actions:
 
 - Bulk Actions: `DeleteBulkAction or RestoreBulkAction, ForceDeleteBulkAction`
 - Table Actions: `ViewAction or RestoreAction`
@@ -80,11 +80,11 @@ By default, Auto Resource will append the following default actions:
 
 #### Default Sorting
 
-By default, the Auto Resource and Auto Relation Manager will try to set the table default sort for the following columns, 
-in priority order respectively: `primary key (only if incremented)`, `created_at`, `updated_at`.
+By default, the Auto Resource and Auto Relation Manager tries to set the table default sort for the following columns, 
+in priority order respectively: `primary key (only if incremented)`, `created_at (if exists)`, `updated_at (if exists)`.
 
 > [!NOTE]
-> You can customize the defaultSort() of your table (and any other method) by extending the `table(Table $table)` and use `parent::table($table)->defaultSort()`.
+> You can customize the defaultSort() of your table (and any other method) by extending the `table(Table $table)` and use `parent::table($table)->defaultSort(...)`.
 
 ## Auto Resource
 
@@ -94,7 +94,7 @@ You can get started by creating your first Auto Resource using the following com
 php artisan make:filament-auto-resource
 ```
 
-This command will create the Auto Resource class for you, just as the default filament command. However, it will use the `AutoResource` class instead.
+This command creates the Auto Resource class for you, just as the default filament command. However, it uses the `AutoResource` class instead.
 You don't need to list anything now, **you can just access the resource page and see the magic!**
 
 ## Auto Relation Manager
@@ -106,7 +106,7 @@ You can generate your Auto Relation Manager using the following command:
 php artisan make:filament-auto-relation-manager
 ```
 
-This command will create the Auto Relation Manager for you and you must list it in the `getRelations()` method of your resource.
+This command creates the Auto Relation Manager for you and you must list it in the `getRelations()` method of your resource.
 However, sometimes you may want something more handier. You can create a relation manager inside your resource using the `RelationManagerMounter`.
 See the following example of how it works:
 
@@ -131,7 +131,7 @@ public static function getRelations(): array
 The Auto Resource and Auto Relation Manager provides a `getActions()` method, however you cannot use the default Filament action on it. 
 
 Instead, you must use the `AutoAction` class. This action type have same methods as Filament Actions, however it provide new methods to 
-set where the action will be shown. This is needed since there is only this array for all resource actions.
+set where the action will be shown. This is needed since there is only this array for all resource action positions.
 
 The resource `action` always receive a collection of models and it can be used in the following way:
 
@@ -153,11 +153,11 @@ public static function getActions(): array
 }
 ``` 
 
-By default the auto action will not be shown anywhere, so you must set at least one of the following methods: `showOnTable()`, `showOnBulkAction()` or `showOnViewPage()`.
+By default the auto action are not shown anywhere, so you must set at least one of the following methods: `showOnTable()`, `showOnBulkAction()` or `showOnViewPage()`.
 
 ## Enum Dictionary
 
-Enum dictionary is a feature available to help you formatting a value from a column for your resource. This feature will set a `badge()` in table and infolist, 
+Enum dictionary is a feature available to help you formatting a value from a column for your resource. This feature sets a `badge()` in table and infolist, 
 and use a `Select` in the form with the values you set. You can use it in the following way:
 
 ```php
@@ -182,7 +182,7 @@ protected static array $enumDictionary = [
 
 ## Visible Columns
 
-By default all columns will be shown in the Auto Resource or Auto Relation Manager listing. You can customize the visible table columns using:
+By default all columns are shown in the Auto Resource or Auto Relation Manager table. You can customize the columns visibility using:
 
 ```php
 protected static array $visibleColumns = [
@@ -193,7 +193,7 @@ protected static array $visibleColumns = [
 This feature only sets the column default visibility in the top-right menu of your table. You can enable/disable any column visibility at any time using the panel.
 
 > [!NOTE]
-> The primary key column will always be shown. You cannot customize form or infolist columns visibility.
+> The primary key column is always shown. You cannot customize form or infolist columns visibility.
 
 ## Searchable Columns
 
