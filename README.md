@@ -133,7 +133,7 @@ The Auto Resource and Auto Relation Manager provides a `getActions()` method, ho
 Instead, you must use the `AutoAction` class. This action type have same methods as Filament Actions, however it provide new methods to 
 set where the action will be shown. This is needed since there is only this array for all resource action positions.
 
-The resource `action` always receive a collection of models and it can be used in the following way:
+The resource `action` closure always receive a collection of models. See how it works in the example below:
 
 ```php
 use Miguilim\FilamentAuto\AutoAction;
@@ -153,7 +153,8 @@ public static function getActions(): array
 }
 ``` 
 
-By default the auto action are not shown anywhere, so you must set at least one of the following methods: `showOnTable()`, `showOnBulkAction()` or `showOnViewPage()`.
+> [!NOTE]
+> By default the auto action are not shown anywhere, so you must set at least one of the following methods: `showOnTable()`, `showOnBulkAction()` or `showOnViewPage()`.
 
 ## Enum Dictionary
 
@@ -169,7 +170,7 @@ protected static array $enumDictionary = [
 ];
 ```
 
-You may customize the badge colors using the following syntax:
+You may customize the badge colors with the following syntax:
 
 ```php
 protected static array $enumDictionary = [
