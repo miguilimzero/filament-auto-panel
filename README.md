@@ -5,7 +5,7 @@
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/miguilim/filament-auto.svg?style=flat-square)](https://packagist.org/packages/miguilim/filament-auto)
 [![Total Downloads](https://img.shields.io/packagist/dt/miguilim/filament-auto.svg?style=flat-square)](https://packagist.org/packages/miguilim/filament-auto)
 
-Construct your Filament admin panel Resources and Relation Managers at execution time like magic. 
+Construct your Filament panel Resources and Relation Managers at execution time like magic. 
 This package provide custom Resources and Relation Managers classes that mounts it table, create, view 
 and edit pages at execution time by scanning the database current table schema while still giving you
 the freedom to create actions, widgets and various customizations to your panel.
