@@ -83,15 +83,8 @@ class FormGenerator extends AbstractGenerator
         $textInput = Forms\Components\TextInput::make($column->getName())
             ->required($column->getNotNull())
             ->email(Str::contains($column->getName(), 'email'))
-            ->tel(Str::contains($column->getName(), ['phone', 'tel']));
-
-        if ($this->isNumericColumn($column)) {
-            $precision = ($column->getType() instanceof Types\FloatType)
-                ? $column->getPrecision()
-                : null;
-
-            return $textInput->numeric($precision);
-        }
+            ->tel(Str::contains($column->getName(), ['phone', 'tel']))
+            ->numeric($this->isNumericColumn($column)); // TextInput numeric method does not have precision parameter
 
         return $textInput->maxLength($column->getLength());
     }

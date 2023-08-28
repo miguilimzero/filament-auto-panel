@@ -72,9 +72,14 @@ abstract class AbstractGenerator
             // Try to handle column matching cast
             $this->tryToTransformColumnCast($column);
 
+            // TODO: Add proper support for Json type
+            if($column->getType() instanceof \Doctrine\DBAL\Types\JsonType) {
+                continue;
+            }
+
             // Handle column matching type
             $columns[$columnName] = match($column->getType()::class) {
-                \Doctrine\DBAL\Types\JsonType::class     => throw new InvalidArgumentException("Column named \"{$columnName}\" is of type \"json\" and therefore cannot be decoded by Filament Auto. Use getColumnsOverwrite() to create a custom handle for it."),
+                // \Doctrine\DBAL\Types\JsonType::class     => throw new InvalidArgumentException("Column named \"{$columnName}\" is of type \"json\" and therefore cannot be decoded by Filament Auto. Use getColumnsOverwrite() to create a custom handle for it."),
                 \Doctrine\DBAL\Types\ArrayType::class    => $this->handleArrayColumn($column),
                 \Doctrine\DBAL\Types\DateType::class     => $this->handleDateColumn($column),
                 \Doctrine\DBAL\Types\DateTimeType::class => $this->handleDateColumn($column),
