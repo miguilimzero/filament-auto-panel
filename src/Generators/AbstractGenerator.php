@@ -7,16 +7,14 @@ use Doctrine\DBAL\Schema\Column;
 use Filament\Support\Commands\Concerns\CanReadModelSchemas;
 use Filament\Support\Components\ViewComponent;
 use Illuminate\Support\Str;
-use Illuminate\Support\HtmlString;
 use Illuminate\Database\Eloquent\Model;
+use InvalidArgumentException;
 use Laravel\SerializableClosure\SerializableClosure;
-use Miguilim\FilamentAuto\Doctrine\CustomMySQLSchemaManager;
 
 abstract class AbstractGenerator
 {
     use CanReadModelSchemas;
-    
-    protected static array $generatedSchemas = [];
+    use Concerns\HasGeneratorHelpers;
 
     protected Model $modelInstance;
 
@@ -28,6 +26,8 @@ abstract class AbstractGenerator
     abstract protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent;
 
     abstract protected function handleEnumDictionaryColumn(Column $column, array $dictionary): ViewComponent;
+
+    abstract protected function handleArrayColumn(Column $column): ViewComponent;
 
     abstract protected function handleDateColumn(Column $column): ViewComponent;
 
@@ -51,12 +51,6 @@ abstract class AbstractGenerator
                 continue;
             }
 
-            // TODO: Add support for json & array cast columns
-            // Skip non-supported column casts
-            if (in_array($this->modelInstance->getCasts()[$column->getName()] ?? '', ['json', 'array'])) {
-                continue;
-            }
-
             // Overwrite specific column
             if (isset($overwriteColumns[$columnName])) {
                 $columns[$columnName] = $overwriteColumns[$columnName];
@@ -69,24 +63,19 @@ abstract class AbstractGenerator
                 continue;
             }
 
-            // TODO: Add support for morph relationships
-            // Try to match relationship
-            if (Str::of($columnName)->endsWith('_id')) {
-                $guessedRelationshipName = $this->guessBelongsToRelationshipName($column, $this->modelInstance::class);
-
-                if (filled($guessedRelationshipName)) {
-                    $guessedRelationshipTitleColumnName = $this->guessBelongsToRelationshipTitleColumnName(
-                        column: $column, 
-                        model: $this->modelInstance->{$guessedRelationshipName}()->getModel()::class
-                    );
-
-                    $columns[$columnName] = $this->handleRelationshipColumn($column, $guessedRelationshipName, $guessedRelationshipTitleColumnName);
-                    continue;
-                }
+            // Try to guess, match and handle relationship
+            if ($guessedRelationship = $this->tryToGuessRelationshipName($column)) {
+                $columns[$columnName] = $this->handleRelationshipColumn($column, $guessedRelationship[0], $guessedRelationship[1]);
+                continue;
             }
+
+            // Try to handle column matching cast
+            $this->tryToTransformColumnCast($column);
 
             // Handle column matching type
             $columns[$columnName] = match($column->getType()::class) {
+                \Doctrine\DBAL\Types\JsonType::class     => throw new InvalidArgumentException("Column named \"{$columnName}\" is of type \"json\" and therefore cannot be decoded by Filament Auto. Use getColumnsOverwrite() to create a custom handle for it."),
+                \Doctrine\DBAL\Types\ArrayType::class    => $this->handleArrayColumn($column),
                 \Doctrine\DBAL\Types\DateType::class     => $this->handleDateColumn($column),
                 \Doctrine\DBAL\Types\DateTimeType::class => $this->handleDateColumn($column),
                 \Doctrine\DBAL\Types\BooleanType::class  => $this->handleBooleanColumn($column),
@@ -98,41 +87,76 @@ abstract class AbstractGenerator
         return $columns;
     }
 
-    protected function introspectTable()
+    protected function tryToGuessRelationshipName(Column $column): ?array
     {
-        $doctrineConnection = $this->modelInstance
-            ->getConnection()
-            ->getDoctrineConnection();
+        if (Str::of($column->getName())->endsWith('_id')) {
+            $guessedRelationshipName = $this->guessBelongsToRelationshipName($column, $this->modelInstance::class);
+        
+            if (filled($guessedRelationshipName)) {
+                $guessedRelationshipTitleColumnName = $this->guessBelongsToRelationshipTitleColumnName(
+                    column: $column, 
+                    model: $this->modelInstance->{$guessedRelationshipName}()->getModel()::class
+                );
 
-        $table = (new CustomMySQLSchemaManager($doctrineConnection, $doctrineConnection->getDatabasePlatform()))
-            ->introspectTable($this->modelInstance->getTable());
+                return [$guessedRelationshipName, $guessedRelationshipTitleColumnName];
+            }
+        }
 
-        return $table;
+        // TODO: Add support for morphTo relationships
+
+        return null;
     }
 
-    protected function isNumericColumn(Column $column)
+    protected function tryToTransformColumnCast(Column $column): void
     {
-        return in_array(
-            $column->getType()::class,
-            [
-                \Doctrine\DBAL\Types\DecimalType::class,
-                \Doctrine\DBAL\Types\FloatType::class,
-                \Doctrine\DBAL\Types\BigIntType::class,
-                \Doctrine\DBAL\Types\IntegerType::class,
-                \Doctrine\DBAL\Types\SmallIntType::class,
-            ]
-        );
-    }
+        $columnCast = $this->modelInstance->getCasts()[$column->getName()] ?? null;
 
-    protected static function getCachedSchema(Closure $function): array
-    {
-        $cacheKey = md5(serialize(new SerializableClosure($function)) . static::class);
+        if (! $columnCast) {
+            return;
+        }
 
-        return static::$generatedSchemas[$cacheKey] ??= $function();
-    }
+        // Array cast
+        if ($columnCast === 'array') {
+            $column->setType(\Doctrine\DBAL\Types\Type::getType('array'));
+        }
 
-    protected function placeholderHtml(string $placeholder = 'null'): HtmlString
-    {
-        return new HtmlString("<span class=\"text-gray-500 dark:text-gray-400\">{$placeholder}</span>");
+        // Boolean cast
+        if ($columnCast === 'boolean') {
+            $column->setType(\Doctrine\DBAL\Types\Type::getType('boolean'));
+        }
+
+        // Date casts
+        if (str_starts_with($columnCast, 'date')) {
+            $column->setType(\Doctrine\DBAL\Types\Type::getType('date'));
+        }
+        if (str_starts_with($columnCast, 'datetime')) {
+            $column->setType(\Doctrine\DBAL\Types\Type::getType('datetime'));
+        }
+
+        // Numeric casts
+        if (str_starts_with($columnCast, 'decimal')) {
+            $precision = explode(':', $columnCast)[1] ?? null;
+
+            if ($precision !== null) {
+                $column->setType(\Doctrine\DBAL\Types\Type::getType('float'));
+                $column->setPrecision($precision);
+            } else {
+                $column->setType(\Doctrine\DBAL\Types\Type::getType('integer'));
+            }
+        }
+        if ($columnCast === 'integer') {
+            $column->setType(\Doctrine\DBAL\Types\Type::getType('integer'));
+        }
+        if (
+            (! ($column->getType() instanceof \Doctrine\DBAL\Types\FloatType))
+            && ($columnCast === 'double' || $columnCast === 'float' || $columnCast === 'real')
+        ) {
+            $column->setType(\Doctrine\DBAL\Types\Type::getType('integer')); // Set as integer as there is no way to know the precision
+        }
+
+        // Object casts
+        if ($columnCast === 'collection' || $columnCast === 'object' || $columnCast === 'json') {
+            $column->setType(\Doctrine\DBAL\Types\Type::getType('json'));
+        }
     }
 }

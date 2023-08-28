@@ -99,16 +99,21 @@ class TableGenerator extends AbstractGenerator
             });
     }
 
+    protected function handleArrayColumn(Column $column): ViewComponent
+    {
+        return Tables\Columns\TextColumn::make($column->getName())
+            ->badge()
+            ->placeholder(fn () => $this->placeholderHtml());
+    }
+
     protected function handleDateColumn(Column $column): ViewComponent
     {
         $textColumn = Tables\Columns\TextColumn::make($column->getName())
             ->placeholder(fn () => $this->placeholderHtml());
 
-        if ($column->getType() instanceof Types\DateTimeType) {
-            return $textColumn->dateTime();
-        }
-
-        return $textColumn->date();
+        return ($column->getType() instanceof Types\DateTimeType) 
+            ? $textColumn->dateTime()
+            : $textColumn->date();
     }
 
     protected function handleBooleanColumn(Column $column): ViewComponent
@@ -147,7 +152,11 @@ class TableGenerator extends AbstractGenerator
             ->placeholder(fn () => $this->placeholderHtml());
 
         if (! $isPrimaryKey && $this->isNumericColumn($column)) {
-            return $textColumn->numeric();
+            $precision = ($column->getType() instanceof Types\FloatType)
+                ? $column->getPrecision()
+                : null;
+
+            return $textColumn->numeric($precision);
         }
 
         return $textColumn;

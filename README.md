@@ -9,7 +9,7 @@ A plugin to construct your Filament Admin Panel resources, forms and views at ex
 This package provide custom Resources and Relation Managers classes that mounts it table, create, view and edit pages at execution time by scanning the database table schema.
 
 > [!IMPORTANT]
-> This package is intended for Admin Panels similar to how Laravel Nova works + everything auto-generated. If you feels you need a more customized resource, re-consider to not use this package.
+> This package is intended for Admin Panels, similar to how Laravel Nova works + everything auto-generated. If you feels you need a more customized resource, re-consider to not use this package.
 
 ## Contents
 
@@ -62,6 +62,8 @@ will be searchable by default. It will also be copyable in table and infolist.
 
 The package will try to link any columns that ends with `_id` with a belongsTo relationship. It will set a searchable `Select` for create/edit actions, and an URL
 linking to the respective resource in table and infolists (if the resource exists).
+
+This auto-detection currently do not support morphsTo (PRs are welcome!).
 
 #### Default Actions
 

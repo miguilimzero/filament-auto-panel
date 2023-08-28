@@ -5,6 +5,7 @@ namespace Miguilim\FilamentAuto\Generators;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Types;
 use Filament\Forms;
+use Filament\Forms\Components\TagsInput;
 use Filament\Support\Components\ViewComponent;
 use Illuminate\Support\Str;
 
@@ -33,19 +34,21 @@ class FormGenerator extends AbstractGenerator
             );
     }
 
+    protected function handleArrayColumn(Column $column): ViewComponent
+    {
+        return TagsInput::make($column->getName())
+            ->required($column->getNotNull());
+    }
+
     protected function handleDateColumn(Column $column): ViewComponent
     {
-        $isDisabled = in_array($column->getName(), ['created_at', 'updated_at', 'deleted_at']);
+        $dateColumn = ($column->getType() instanceof Types\DateTimeType)
+            ? Forms\Components\DateTimePicker::make($column->getName())
+            : Forms\Components\DatePicker::make($column->getName());
 
-        if ($column->getType() instanceof Types\DateTimeType) {
-            return Forms\Components\DateTimePicker::make($column->getName())
-                ->required($column->getNotNull())
-                ->disabled($isDisabled);
-        }
-
-        return Forms\Components\DatePicker::make($column->getName())
+        return $dateColumn
             ->required($column->getNotNull())
-            ->disabled($isDisabled);
+            ->disabled(in_array($column->getName(), ['created_at', 'updated_at', 'deleted_at']));
     }
 
     protected function handleBooleanColumn(Column $column): ViewComponent
@@ -80,14 +83,17 @@ class FormGenerator extends AbstractGenerator
         $textInput = Forms\Components\TextInput::make($column->getName())
             ->required($column->getNotNull())
             ->email(Str::contains($column->getName(), 'email'))
-            ->tel(Str::contains($column->getName(), ['phone', 'tel']))
-            ->numeric($this->isNumericColumn($column));
+            ->tel(Str::contains($column->getName(), ['phone', 'tel']));
 
-        if (! $this->isNumericColumn($column)) {
-            $textInput->maxLength($column->getLength());
+        if ($this->isNumericColumn($column)) {
+            $precision = ($column->getType() instanceof Types\FloatType)
+                ? $column->getPrecision()
+                : null;
+
+            return $textInput->numeric($precision);
         }
 
-        return $textInput;
+        return $textInput->maxLength($column->getLength());
     }
 
     protected function generateSchema(array $exceptColumns, array $overwriteColumns, array $enumDictionary): array

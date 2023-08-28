@@ -69,16 +69,22 @@ class InfolistGenerator extends AbstractGenerator
             });
     }
 
+    protected function handleArrayColumn(Column $column): ViewComponent
+    {
+        return Infolists\Components\TextEntry::make($column->getName())
+            ->badge()
+            ->placeholder(fn () => $this->placeholderHtml())
+            ->columnSpan('full');
+    }
+
     protected function handleDateColumn(Column $column): ViewComponent
     {
         $textEntry = Infolists\Components\TextEntry::make($column->getName())
             ->placeholder(fn () => $this->placeholderHtml());
 
-        if ($column->getType() instanceof Types\DateTimeType) {
-            return $textEntry->dateTime();
-        }
-
-        return $textEntry->date();
+        return ($column->getType() instanceof Types\DateTimeType)
+            ? $textEntry->dateTime()
+            : $textEntry->date();
     }
 
     protected function handleBooleanColumn(Column $column): ViewComponent
@@ -109,7 +115,11 @@ class InfolistGenerator extends AbstractGenerator
             ->placeholder(fn () => $this->placeholderHtml());
 
         if (! $isPrimaryKey && $this->isNumericColumn($column)) {
-            return $textEntry->numeric();
+            $precision = ($column->getType() instanceof Types\FloatType)
+                ? $column->getPrecision()
+                : null;
+
+            return $textEntry->numeric($precision);
         }
 
         return $textEntry;
