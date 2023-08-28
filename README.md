@@ -84,7 +84,7 @@ By default, the Auto Resource and Auto Relation Manager will try to set the tabl
 in priority order respectively: `primary key (only if incremented)`, `created_at`, `updated_at`.
 
 > [!NOTE]
-> You can customize the defaultSort() of your table (and any other method) by extending the `getTable()` and use `parent::getTable($table)->defaultSort()`.
+> You can customize the defaultSort() of your table (and any other method) by extending the `table(Table $table)` and use `parent::table($table)->defaultSort()`.
 
 ## Auto Resource
 
