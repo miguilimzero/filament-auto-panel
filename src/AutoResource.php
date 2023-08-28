@@ -1,6 +1,6 @@
 <?php
 
-namespace Miguilim\FilamentAuto;
+namespace Miguilim\FilamentAutoPanel;
 
 use Filament\Tables;
 use Filament\Forms\Form;
@@ -9,10 +9,10 @@ use Filament\Resources\Resource;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Miguilim\FilamentAuto\Generators\FormGenerator;
-use Miguilim\FilamentAuto\Generators\InfolistGenerator;
-use Miguilim\FilamentAuto\Generators\TableGenerator;
-use Miguilim\FilamentAuto\Mounters\PageMounter;
+use Miguilim\FilamentAutoPanel\Generators\FormGenerator;
+use Miguilim\FilamentAutoPanel\Generators\InfolistGenerator;
+use Miguilim\FilamentAutoPanel\Generators\TableGenerator;
+use Miguilim\FilamentAutoPanel\Mounters\PageMounter;
 
 class AutoResource extends Resource
 {

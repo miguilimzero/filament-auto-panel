@@ -1,12 +1,12 @@
 <?php
 
-namespace Miguilim\FilamentAuto\Generators\Concerns;
+namespace Miguilim\FilamentAutoPanel\Generators\Concerns;
 
 use Closure;
 use Doctrine\DBAL\Schema\Column;
 use Illuminate\Support\HtmlString;
 use Laravel\SerializableClosure\SerializableClosure;
-use Miguilim\FilamentAuto\Doctrine\CustomMySQLSchemaManager;
+use Miguilim\FilamentAutoPanel\Doctrine\CustomMySQLSchemaManager;
 
 trait HasGeneratorHelpers
 {

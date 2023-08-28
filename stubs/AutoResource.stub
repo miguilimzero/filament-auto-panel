@@ -4,7 +4,7 @@ namespace {{ namespace }};
 
 use App\Models\{{ model }};
 use Filament\Tables\Table;
-use Miguilim\FilamentAutoResource\AutoResource;
+use Miguilim\FilamentAutoPanel\AutoResource;
 
 class {{ resourceClass }} extends AutoResource
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Miguilim\FilamentAuto\Filament\Pages;
+namespace Miguilim\FilamentAutoPanel\Filament\Pages;
 
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;

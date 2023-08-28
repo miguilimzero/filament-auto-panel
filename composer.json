@@ -1,11 +1,11 @@
 {
-    "name": "miguilim/filament-auto",
-    "description": "Construct your Filament admin panel Resources and Relation Managers at execution time like magic.",
+    "name": "miguilim/filament-auto-panel",
+    "description": "Construct your Filament panel Resources and Relation Managers at execution time like magic.",
     "type": "library",
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Miguilim\\FilamentAuto\\": "src/"
+            "Miguilim\\FilamentAutoPanel\\": "src/"
         }
     },
     "require": {
@@ -16,7 +16,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Miguilim\\FilamentAuto\\FilamentAutoProvider"
+                "Miguilim\\FilamentAutoPanel\\FilamentAutoPanelProvider"
             ]
         }
     }

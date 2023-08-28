@@ -1,6 +1,6 @@
-![Filament Auto art](./art/banner.png)
+![Filament Auto Panel art](./art/banner.png)
 
-# Filament Auto
+# Filament Auto Panel
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/miguilim/filament-auto.svg?style=flat-square)](https://packagist.org/packages/miguilim/filament-auto)
 [![Total Downloads](https://img.shields.io/packagist/dt/miguilim/filament-auto.svg?style=flat-square)](https://packagist.org/packages/miguilim/filament-auto)
@@ -33,17 +33,17 @@ the freedom to create actions, widgets and various customizations to your panel.
 You can install the package via composer:
 
 ```sh
-composer require miguilim/filament-auto
+composer require miguilim/filament-auto-panel
 ```
 
 ## Usage
 
 Before getting started with the package, you must know some behaviors that the table schema reader have. 
-Filament Auto takes into consideration your actual table schema in the database and not your migration file.
+The package takes into consideration your actual table schema in the database and not your migration file.
 However, it is extremely important to use the correct fields in the migration in order to generate the correct columns.
 
 An example of that is when you use the `boolean()` column method, Laravel will generate a `tinyint(1)` table column. This
-specific column type and length will be used by Filament Auto to detect its a boolean column. If you use the `tinyInteger()`
+specific column type and length will be used by Filament Auto Panel to detect its a boolean column. If you use the `tinyInteger()`
 method, it will generate a `tinyint(4)` table column, and therefore will be identified as a numeric column, even if in its context 
 it is being used as a boolean.
 
@@ -57,7 +57,7 @@ by checking if `bootSoftDeletes` method exists in the model. If soft deletes is 
 
 #### Primary Key
 
-Filament Auto tries to detect the primary key by calling the `getKeyName()` method from the resource / relation manager model. The primary key
+Filament Auto Panel tries to detect the primary key by calling the `getKeyName()` method from the resource / relation manager model. The primary key
 is searchable by default and it will also be copyable in table and infolist view.
 
 #### Relationship Linking
@@ -113,7 +113,7 @@ However, sometimes you may want something more handier. You can create a relatio
 See the following example of how it works:
 
 ```php
-use Miguilim\FilamentAuto\Mounters\RelationManagerMounter;
+use Miguilim\FilamentAutoPanel\Mounters\RelationManagerMounter;
 
 public static function getRelations(): array
 {
@@ -138,7 +138,7 @@ set where the action will be shown. This is needed since there is only this arra
 The resource `action` closure always receive a collection of models. See how it works in the example below:
 
 ```php
-use Miguilim\FilamentAuto\AutoAction;
+use Miguilim\FilamentAutoPanel\AutoAction;
 use Illuminate\Database\Eloquent\Collection;
 
 public static function getActions(): array
@@ -283,4 +283,4 @@ public static function getExtraPages(): array
 
 ## License
 
-Filament Auto is open-sourced software licensed under the [MIT license](LICENSE).
+Filament Auto Panel is open-sourced software licensed under the [MIT license](LICENSE).

@@ -1,6 +1,6 @@
 <?php
 
-namespace Miguilim\FilamentAuto\Commands;
+namespace Miguilim\FilamentAutoPanel\Commands;
 
 use ReflectionClass;
 use Illuminate\Support\Str;

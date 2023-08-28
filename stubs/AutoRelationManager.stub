@@ -4,7 +4,7 @@ namespace {{ namespace }};
 
 use App\Filament\Resources\{{ relatedResource }};
 use Filament\Tables\Table;
-use Miguilim\FilamentAutoResource\AutoRelationManager;
+use Miguilim\FilamentAutoPanel\AutoRelationManager;
 
 class {{ managerClass }} extends AutoRelationManager
 {

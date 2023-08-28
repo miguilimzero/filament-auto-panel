@@ -1,6 +1,6 @@
 <?php
 
-namespace Miguilim\FilamentAuto;
+namespace Miguilim\FilamentAutoPanel;
 
 use Closure;
 use Filament\Actions\Action as PageAction;

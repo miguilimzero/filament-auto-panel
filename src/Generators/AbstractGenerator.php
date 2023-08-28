@@ -1,6 +1,6 @@
 <?php
 
-namespace Miguilim\FilamentAuto\Generators;
+namespace Miguilim\FilamentAutoPanel\Generators;
 
 use Closure;
 use Doctrine\DBAL\Schema\Column;
