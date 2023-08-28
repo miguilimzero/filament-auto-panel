@@ -11,7 +11,7 @@ and edit pages at execution time by scanning the database current table schema w
 the freedom to create actions, widgets and various customizations to your panel.
 
 > [!IMPORTANT]
-> This package is intended for admin panels, similar to how Laravel Nova works + everything auto-generated. You can also think it as a database management tool. If you feels you need a more customized resource, re-consider to not use this package.
+> This package is intended for admin panels, similar to how Laravel Nova works + everything auto-generated. You can also think it as a database management tool. If you feels you need a more customized resource workflow, re-consider to not use this package.
 
 ## Contents
 
