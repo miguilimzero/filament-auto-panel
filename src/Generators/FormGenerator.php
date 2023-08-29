@@ -94,6 +94,9 @@ class FormGenerator extends AbstractGenerator
 
     protected function generateSchema(array $exceptColumns, array $overwriteColumns, array $enumDictionary): array
     {
-        return $this->getResourceColumns($exceptColumns, $overwriteColumns, $enumDictionary);
+        return Forms\Components\Section::make()
+            ->schema(
+                $this->getResourceColumns($exceptColumns, $overwriteColumns, $enumDictionary)
+            );
     }
 }
