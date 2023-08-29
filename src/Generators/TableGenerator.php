@@ -109,6 +109,7 @@ class TableGenerator extends AbstractGenerator
     protected function handleDateColumn(Column $column): ViewComponent
     {
         $textColumn = Tables\Columns\TextColumn::make($column->getName())
+            ->sortable()
             ->placeholder(fn () => $this->placeholderHtml());
 
         return ($column->getType() instanceof Types\DateTimeType) 
@@ -119,6 +120,7 @@ class TableGenerator extends AbstractGenerator
     protected function handleBooleanColumn(Column $column): ViewComponent
     {
         return Tables\Columns\IconColumn::make($column->getName())
+            ->sortable()
             ->icon(fn (bool $state): string => $state ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle')
             ->color(fn (bool $state): string => $state ? 'success' : 'danger');
     }
@@ -142,7 +144,7 @@ class TableGenerator extends AbstractGenerator
         $isPrimaryKey = $this->modelInstance->getKeyName() === $column->getName();
 
         $textColumn = Tables\Columns\TextColumn::make($column->getName())
-            ->sortable($this->isNumericColumn($column))
+            ->sortable($isPrimaryKey || $this->isNumericColumn($column))
             ->searchable($isPrimaryKey)
             ->copyable($isPrimaryKey)
             ->weight($isPrimaryKey ? FontWeight::Bold : null)
