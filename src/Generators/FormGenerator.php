@@ -105,6 +105,7 @@ class FormGenerator extends AbstractGenerator
             Forms\Components\Group::make()
                 ->schema($formsSchema)
                 ->columns(2)
+                ->columnSpanFull()
                 ->visibleOn('edit'),
         ];
     }
