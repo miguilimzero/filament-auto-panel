@@ -8,11 +8,13 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Arr;
 use Miguilim\FilamentAutoPanel\Generators\FormGenerator;
 use Miguilim\FilamentAutoPanel\Generators\InfolistGenerator;
 use Miguilim\FilamentAutoPanel\Generators\TableGenerator;
@@ -76,10 +78,9 @@ class AutoRelationManager extends RelationManager
     {
         $hasSoftDeletes = method_exists($this->getRelationship()->getModel(), 'bootSoftDeletes');
 
-        // TODO: Implement Create & Edit actions
         $defaultFilters       = [...$this->getFilters()];
-        $defaultHeaderActions = [];
-        $defaultActions       = [...$this->getTableActions(), Tables\Actions\ViewAction::make()];
+        $defaultHeaderActions = [$this->makeCreateAction()];
+        $defaultActions       = [...$this->getTableActions(), Tables\Actions\ViewAction::make(), $this->makeEditAction()];
         $defaultBulkActions   = [...$this->getBulkActions(), Tables\Actions\DeleteBulkAction::make()];
 
         // Associate action
@@ -150,10 +151,50 @@ class AutoRelationManager extends RelationManager
             ->all();
     }
 
-    protected function getColumnsOverwriteMapped(string $type)
+    protected function getColumnsOverwriteMapped(string $type): array
     {
         return collect($this->getColumnsOverwrite()[$type])
             ->mapWithKeys(fn ($column) => [$column->getName() => $column])
             ->all();
+    }
+
+    protected function makeCreateAction()
+    {
+        return Tables\Actions\CreateAction::make(); // TODO: Add support for intrusive mode
+    }
+
+    protected function makeEditAction()
+    {
+        return Tables\Actions\EditAction::make()
+            ->fillForm(function (Model $record): array {
+                if (static::getIntrusive()) {
+                    return $record->setHidden([])->attributesToArray();
+                } else {
+                    return $record->attributesToArray();
+                }
+            })->using(function (array $data, Model $record, Table $table) {
+                $relationship = $table->getRelationship();
+
+                if ($relationship instanceof BelongsToMany) {
+                    $pivotColumns = $relationship->getPivotColumns();
+                    $pivotData = Arr::only($data, $pivotColumns);
+
+                    if (count($pivotColumns)) {
+                        if (static::getIntrusive()) {
+                            $record->{$relationship->getPivotAccessor()}->forceFill($pivotData)->save();
+                        } else {
+                            $record->{$relationship->getPivotAccessor()}->update($pivotData);
+                        }
+                    }
+
+                    $data = Arr::except($data, $pivotColumns);
+                }
+
+                if (static::getIntrusive()) {
+                    $record->forceFill($data)->save();
+                } else {
+                    $record->update($data);
+                }
+            });
     }
 }

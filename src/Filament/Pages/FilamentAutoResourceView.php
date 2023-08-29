@@ -63,10 +63,7 @@ class FilamentAutoResourceView extends ViewRecord
                 }
             })->using(function (array $data, Model $record) {
                 if (static::getResource()::getIntrusive()) {
-                    foreach ($data as $key => $value) {
-                        $record->{$key} = $value;
-                    }
-                    $record->save();
+                    $record->forceFill($data)->save();
                 } else {
                     $record->update($data);
                 }
