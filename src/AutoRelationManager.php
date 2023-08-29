@@ -70,6 +70,7 @@ class AutoRelationManager extends RelationManager
                 exceptColumns: [$this->getRelationship()->getForeignKeyName()],
                 overwriteColumns: $this->getColumnsOverwriteMapped('form'),
                 enumDictionary: static::$enumDictionary,
+                relationManagerView: true,
             ))
             ->columns(2);
     }

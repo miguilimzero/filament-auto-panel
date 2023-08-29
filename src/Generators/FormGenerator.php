@@ -11,9 +11,21 @@ use Illuminate\Support\Str;
 
 class FormGenerator extends AbstractGenerator
 {
-    public static function make(string $modelClass, array $exceptColumns = [], array $overwriteColumns = [], array $enumDictionary = []): array
+    protected bool $relationManagerView;
+
+    public function relationManagerView(bool $relationManagerView)
     {
-        return static::getCachedSchema(fn() => (new static($modelClass))->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary));
+        $this->relationManagerView = $relationManagerView;
+
+        return $this;
+    }
+
+    public static function make(string $modelClass, array $exceptColumns = [], array $overwriteColumns = [], array $enumDictionary = [], bool $relationManagerView = false): array
+    {
+        return static::getCachedSchema(
+            fn() => (new static($modelClass))->relationManagerView($relationManagerView)
+                ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary)
+        );
     }
     
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
@@ -95,6 +107,10 @@ class FormGenerator extends AbstractGenerator
     protected function generateSchema(array $exceptColumns, array $overwriteColumns, array $enumDictionary): array
     {
         $formsSchema = $this->getResourceColumns($exceptColumns, $overwriteColumns, $enumDictionary);
+
+        if ($this->relationManagerView) {
+            return $formsSchema;
+        }
 
         return [
             Forms\Components\Section::make()
