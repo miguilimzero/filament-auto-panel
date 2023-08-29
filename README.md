@@ -17,6 +17,13 @@ the freedom to create actions, widgets and various customizations to your panel.
 
 - [Installation](#installation)
 - [Usage](#usage)
+  - [Soft Deletes](#soft-deletes)
+  - [Primary Key](#primary-key)
+  - [Relationship Linking](#relationship-linking)
+  - [Intrusive Mode](#intrusive-mode)
+  - [Default Pages](#default-pages)
+  - [Default Actions](#default-actions)
+  - [Default Sorting](#default-sorting)
 - [Auto Resource](#auto-resource)
 - [Auto Relation Manager](#auto-relation-manager)
 - [Auto Action](#auto-action)
@@ -68,6 +75,12 @@ linking to the respective resource in table and infolists (if the resource exist
 > [!NOTE]
 > This linking currently do not support morphsTo detection. PRs are welcome!
 
+#### Intrusive Mode
+
+Auto Resources and Auto Relation Managers have the intrusive mode by default. When this mode is activated, the create and edit actions will not respect
+the `$fillable` and `$hidden` model attributes. If you would like to disable this behavior, you can set `protected static bool $intrusive = false;` in your
+resource or relation manager class.
+
 #### Default Pages
 
 By default, the Auto Resource have a list and view pages. The create and edit record is available as a modal action in the list and view pages respectively.
@@ -78,7 +91,14 @@ By default, Auto Resource appends the following default actions:
 
 - Bulk Actions: `DeleteBulkAction or RestoreBulkAction, ForceDeleteBulkAction`
 - Table Actions: `ViewAction or RestoreAction`
-- Page Actions: `DeleteAction or RestoreAction, ForceDeleteAction`
+- List Page Actions: `CreateAction`
+- View Page Actions: `EditAction, DeleteAction or RestoreAction, ForceDeleteAction`
+
+and Auto Relation Manager appends the following default actions:
+
+- Bulk Actions: `DeleteBulkAction or RestoreBulkAction, ForceDeleteBulkAction`
+- Table Actions: `ViewAction, EditAction or RestoreAction`
+- Header Actions: `CreateAction`
 
 #### Default Sorting
 
