@@ -129,7 +129,22 @@ class InfolistGenerator extends AbstractGenerator
     {
         $columnInstances = $this->getResourceColumns([...$exceptColumns, ...['created_at', 'updated_at', 'deleted_at']], $overwriteColumns, $enumDictionary);
 
-        return [
+        $hasCreatedAt   = ! $this->modelInstance::isIgnoringTimestamps();
+        $hasUpdatedAt   = ! $this->modelInstance::isIgnoringTouch();
+        $hasSoftDeletes = method_exists($this->modelInstance, 'bootSoftDeletes') && method_exists($this->modelInstance, 'getDeletedAtColumn');
+
+        $timestampsSection = ($hasCreatedAt || $hasUpdatedAt || $hasSoftDeletes)
+            ? Infolists\Components\Section::make()
+                ->schema(array_filter([
+                    $hasCreatedAt ? Infolists\Components\TextEntry::make($this->modelInstance->getCreatedAtColumn())->since() : null,
+                    $hasUpdatedAt ? Infolists\Components\TextEntry::make($this->modelInstance->getUpdatedAtColumn())->since() : null,
+                    $hasSoftDeletes ? Infolists\Components\TextEntry::make($this->modelInstance->getDeletedAtColumn())->since()->placeholder(fn () => $this->placeholderHtml('Never')) : null,
+                ]))
+                ->columnSpan(['lg' => 1])
+                ->hidden(fn ($record) => $record === null)
+            : null;
+
+        return array_filter([
             Infolists\Components\Group::make()
                 ->schema([
                     Infolists\Components\Section::make()
@@ -138,14 +153,7 @@ class InfolistGenerator extends AbstractGenerator
                 ])
                 ->columnSpan(['lg' => fn ($record) => $record === null ? 3 : 2]),
 
-            Infolists\Components\Section::make()
-                ->schema(array_filter([
-                    Infolists\Components\TextEntry::make('created_at')->since(),
-                    (! $this->modelInstance::isIgnoringTouch()) ? Infolists\Components\TextEntry::make('updated_at')->since() : null,
-                    (method_exists($this->modelInstance, 'bootSoftDeletes')) ? Infolists\Components\TextEntry::make('deleted_at')->since()->placeholder(fn () => $this->placeholderHtml('Never')) : null,
-                ]))
-                ->columnSpan(['lg' => 1])
-                ->hidden(fn ($record) => $record === null),
-        ];
+            $timestampsSection,
+        ]);
     }
 }
