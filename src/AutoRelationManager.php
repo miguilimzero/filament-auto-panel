@@ -50,6 +50,11 @@ class AutoRelationManager extends RelationManager
         ];
     }
 
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     public function infolist(Infolist $infolist): Infolist
     {
         return $infolist
