@@ -2,6 +2,8 @@
 
 namespace Miguilim\FilamentAutoPanel\Commands;
 
+use function Laravel\Prompts\text;
+
 use ReflectionClass;
 use Illuminate\Support\Str;
 
@@ -22,6 +24,26 @@ class MakeAutoRelationManagerCommand extends MakeRelationManagerCommand
      * @var string
      */
     protected $description = 'Create a new Filament auto relation manager class for a resource';
+
+    public function handle(): int
+    {
+        $resource = (string) str(
+            $this->argument('resource') ?? text(
+                label: 'What is the resource you would like to create this in?',
+                placeholder: 'DepartmentResource',
+                required: true,
+            ),
+        )
+            ->studly()
+            ->trim('/')
+            ->trim('\\')
+            ->trim(' ')
+            ->replace('/', '\\');
+
+        $this->input->setArgument('resource', $resource);
+
+        return parent::handle();
+    }
 
     public function option($key = null) { 
         if ($key === 'soft-deletes' || $key === 'attach' || $key === 'associate' || $key === 'view') {
