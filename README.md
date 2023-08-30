@@ -60,7 +60,7 @@ it is being used as a boolean.
 #### Soft Deletes
 
 The package detects if the table has soft deletes or not by checking if it has the `SoftDeletes` trait, 
-by checking if `bootSoftDeletes` method exists in the model. If soft deletes is detected, it will append the `TrashedFilter` to the table filters.
+by checking if `getDeletedAtColumn` method exists in the model. If soft deletes is detected, it will append the `TrashedFilter` to the table filters.
 
 #### Primary Key
 

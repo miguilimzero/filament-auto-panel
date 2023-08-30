@@ -129,9 +129,9 @@ class InfolistGenerator extends AbstractGenerator
     {
         $columnInstances = $this->getResourceColumns([...$exceptColumns, ...['created_at', 'updated_at', 'deleted_at']], $overwriteColumns, $enumDictionary);
 
-        $hasCreatedAt   = ! $this->modelInstance::isIgnoringTimestamps();
-        $hasUpdatedAt   = ! $this->modelInstance::isIgnoringTouch();
-        $hasSoftDeletes = method_exists($this->modelInstance, 'bootSoftDeletes') && method_exists($this->modelInstance, 'getDeletedAtColumn');
+        $hasCreatedAt   = $this->modelInstance->usesTimestamps() && $this->modelInstance->getCreatedAtColumn() !== null;
+        $hasUpdatedAt   = $this->modelInstance->usesTimestamps() && $this->modelInstance->getUpdatedAtColumn() !== null;
+        $hasSoftDeletes = method_exists($this->modelInstance, 'getDeletedAtColumn') && $this->modelInstance->getDeletedAtColumn() !== null;
 
         $timestampsSection = ($hasCreatedAt || $hasUpdatedAt || $hasSoftDeletes)
             ? Infolists\Components\Section::make()
