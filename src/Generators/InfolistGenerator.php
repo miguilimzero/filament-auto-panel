@@ -10,6 +10,7 @@ use Filament\Support\Components\ViewComponent;
 use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\IconPosition;
+use Illuminate\Support\Str;
 
 class InfolistGenerator extends AbstractGenerator
 {
@@ -104,6 +105,13 @@ class InfolistGenerator extends AbstractGenerator
 
     protected function handleDefaultColumn(Column $column): ViewComponent
     {
+        if (Str::of($column->getName())->contains(['link', 'url'])) {
+            return Infolists\Components\TextEntry::make($column->getName())
+                ->url(fn ($record) => $record->{$column->getName()})
+                ->color('primary')
+                ->openUrlInNewTab();
+        }
+
         $isPrimaryKey = $this->modelInstance->getKeyName() === $column->getName();
 
         $textEntry = Infolists\Components\TextEntry::make($column->getName())
