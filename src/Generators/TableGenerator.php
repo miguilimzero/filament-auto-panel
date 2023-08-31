@@ -154,11 +154,7 @@ class TableGenerator extends AbstractGenerator
             ->placeholder(fn () => $this->placeholderHtml());
 
         if (! $isPrimaryKey && $this->isNumericColumn($column)) {
-            $precision = ($column->getType() instanceof Types\FloatType)
-                ? $column->getPrecision()
-                : null;
-
-            return $textColumn->numeric($precision);
+            return $textColumn->numeric($this->getColumnDecimalPlaces($column));
         }
 
         return $textColumn;

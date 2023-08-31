@@ -123,11 +123,7 @@ class InfolistGenerator extends AbstractGenerator
             ->placeholder(fn () => $this->placeholderHtml());
 
         if (! $isPrimaryKey && $this->isNumericColumn($column)) {
-            $precision = ($column->getType() instanceof Types\FloatType)
-                ? $column->getPrecision()
-                : null;
-
-            return $textEntry->numeric($precision);
+            return $textEntry->numeric($this->getColumnDecimalPlaces($column));
         }
 
         return $textEntry;

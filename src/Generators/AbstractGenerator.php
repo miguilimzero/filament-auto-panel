@@ -140,7 +140,7 @@ abstract class AbstractGenerator
             $precision = explode(':', $columnCast)[1] ?? null;
 
             if ($precision !== null) {
-                $column->setType(\Doctrine\DBAL\Types\Type::getType('float'));
+                $column->setType(\Doctrine\DBAL\Types\Type::getType('decimal'));
                 $column->setPrecision($precision);
             } else {
                 $column->setType(\Doctrine\DBAL\Types\Type::getType('integer'));
@@ -150,7 +150,7 @@ abstract class AbstractGenerator
             $column->setType(\Doctrine\DBAL\Types\Type::getType('integer'));
         }
         if (
-            (! ($column->getType() instanceof \Doctrine\DBAL\Types\FloatType))
+            (! ($column->getType() instanceof \Doctrine\DBAL\Types\DecimalType))
             && ($columnCast === 'double' || $columnCast === 'float' || $columnCast === 'real')
         ) {
             $column->setType(\Doctrine\DBAL\Types\Type::getType('integer')); // Set as integer as there is no way to know the precision
