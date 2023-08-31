@@ -42,7 +42,8 @@ class TableGenerator extends AbstractGenerator
         array $searchableColumns = []
     ): array {
         return static::getCachedSchema(
-            fn () => (new static($modelClass))->visibleColumns($visibleColumns)
+            parameters: func_get_args(),
+            function: fn () => (new static($modelClass))->visibleColumns($visibleColumns)
                 ->searchableColumns($searchableColumns)
                 ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary)
         );

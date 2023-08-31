@@ -23,7 +23,8 @@ class FormGenerator extends AbstractGenerator
     public static function make(string $modelClass, array $exceptColumns = [], array $overwriteColumns = [], array $enumDictionary = [], bool $relationManagerView = false): array
     {
         return static::getCachedSchema(
-            fn() => (new static($modelClass))->relationManagerView($relationManagerView)
+            parameters: func_get_args(),
+            function: fn() => (new static($modelClass))->relationManagerView($relationManagerView)
                 ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary)
         );
     }

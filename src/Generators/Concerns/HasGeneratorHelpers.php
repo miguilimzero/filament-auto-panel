@@ -53,9 +53,9 @@ trait HasGeneratorHelpers
         return new HtmlString("<span class=\"text-gray-500 dark:text-gray-400\">{$placeholder}</span>");
     }
 
-    protected static function getCachedSchema(Closure $function): array
+    protected static function getCachedSchema(array $parameters, Closure $function): array
     {
-        $cacheKey = md5(serialize(new SerializableClosure($function)) . static::class);
+        $cacheKey = md5(json_encode($parameters) . static::class);
 
         return static::$generatedSchemas[$cacheKey] ??= $function();
     }
