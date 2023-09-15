@@ -6,6 +6,7 @@ use Filament\Resources\Pages\PageRegistration;
 use Miguilim\FilamentAutoPanel\Filament\Pages\FilamentAutoResourceCreate;
 use Miguilim\FilamentAutoPanel\Filament\Pages\FilamentAutoResourceList;
 use Miguilim\FilamentAutoPanel\Filament\Pages\FilamentAutoResourceView;
+use Miguilim\FilamentAutoPanel\Filament\Pages\FilamentAutoResourceEdit;
 
 class PageMounter
 {
@@ -24,6 +25,11 @@ class PageMounter
     public static function makeView(string $resource): PageRegistration
     {
         return static::generateAnonymousClass(FilamentAutoResourceView::class, $resource)::route('/{record}');
+    }
+
+    public static function makeEdit(string $resource): PageRegistration
+    {
+        return static::generateAnonymousClass(FilamentAutoResourceEdit::class, $resource)::route('/{record}/edit');
     }
 
     public static function makeCustom(string $resource, string $pageClass, string $pageRoute): PageRegistration

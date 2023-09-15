@@ -143,6 +143,7 @@ class AutoResource extends Resource
             'index'  => PageMounter::makeList(static::class),
             'create' => PageMounter::makeCreate(static::class),
             'view'   => PageMounter::makeView(static::class),
+            'edit'   => PageMounter::makeEdit(static::class),
         ]];
     }
 

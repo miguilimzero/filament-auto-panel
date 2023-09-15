@@ -54,19 +54,21 @@ class FilamentAutoResourceView extends ViewRecord
 
     protected function makeEditAction()
     {
-        return Actions\EditAction::make()
-            ->fillForm(function (Model $record): array {
-                if (static::getResource()::getIntrusive()) {
-                    return $record->setHidden([])->attributesToArray();
-                } else {
-                    return $record->attributesToArray();
-                }
-            })->using(function (array $data, Model $record) {
-                if (static::getResource()::getIntrusive()) {
-                    $record->forceFill($data)->save();
-                } else {
-                    $record->update($data);
-                }
-            });
+        return Actions\EditAction::make();
+
+        // return Actions\EditAction::make()
+        //     ->fillForm(function (Model $record): array {
+        //         if (static::getResource()::getIntrusive()) {
+        //             return $record->setHidden([])->attributesToArray();
+        //         } else {
+        //             return $record->attributesToArray();
+        //         }
+        //     })->using(function (array $data, Model $record) {
+        //         if (static::getResource()::getIntrusive()) {
+        //             $record->forceFill($data)->save();
+        //         } else {
+        //             $record->update($data);
+        //         }
+        //     });
     }
 }
