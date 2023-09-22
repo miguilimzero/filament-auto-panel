@@ -60,7 +60,7 @@ class AutoRelationManager extends RelationManager
         return $infolist
             ->schema(InfolistGenerator::make(
                 modelClass: $this->getRelationship()->getModel()::class,
-                exceptColumns: [$this->getRelationship()->getForeignKeyName()], 
+                exceptColumns: $this->getExceptRelationshipColumns(), 
                 overwriteColumns: $this->getColumnsOverwriteMapped('infolist'),
                 enumDictionary: static::$enumDictionary,
             ))
@@ -72,7 +72,7 @@ class AutoRelationManager extends RelationManager
         return $form
             ->schema(FormGenerator::make(
                 modelClass: $this->getRelationship()->getModel()::class,
-                exceptColumns: [$this->getRelationship()->getForeignKeyName()],
+                exceptColumns: $this->getExceptRelationshipColumns(),
                 overwriteColumns: $this->getColumnsOverwriteMapped('form'),
                 enumDictionary: static::$enumDictionary,
                 relationManagerView: true,
@@ -124,7 +124,7 @@ class AutoRelationManager extends RelationManager
             )
             ->columns(TableGenerator::make(
                 modelClass: $this->getRelationship()->getModel()::class,
-                exceptColumns: [$this->getRelationship()->getForeignKeyName()],
+                exceptColumns: $this->getExceptRelationshipColumns(),
                 overwriteColumns: $this->getColumnsOverwriteMapped('table'),
                 enumDictionary: static::$enumDictionary,
                 visibleColumns: static::$visibleColumns,
@@ -155,6 +155,17 @@ class AutoRelationManager extends RelationManager
             ->filter(fn (AutoAction $action) => $action->showOnTable)
             ->map(fn (AutoAction $action) => $action->convertToTableAction())
             ->all();
+    }
+
+    protected function getExceptRelationshipColumns()
+    {
+        $relationship = $this->getRelationship();
+
+        if ($relationship instanceof BelongsToMany) {
+            return [];
+        }
+
+        return [$relationship->getForeignKeyName()];
     }
 
     protected function getColumnsOverwriteMapped(string $type): array
