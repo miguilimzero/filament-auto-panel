@@ -60,26 +60,19 @@ class TableGenerator extends AbstractGenerator
                     return null;
                 }
 
-                $selectedResource = null;
-                $relatedRecord    = $record->{$relationshipName};
+                $relatedRecord = $record->{$relationshipName};
 
                 if ($relatedRecord === null) {
                     return null;
                 }
 
-                foreach (Filament::getResources() as $resource) {
-                    if ($relatedRecord instanceof ($resource::getModel())) {
-                        $selectedResource = $resource;
-
-                        break;
-                    }
-                }
+                $selectedResource = static::tryToGuessRelatedResource($relatedRecord);
 
                 if ($selectedResource === null) {
                     return null;
                 }
 
-                return $selectedResource::getUrl('view', [$relatedRecord->getKey()]);
+                return $selectedResource::getUrl('view', [$record->{$relationshipName}->getKey()]);
             });
     }
 

@@ -3,6 +3,8 @@
 namespace Miguilim\FilamentAutoPanel\Generators;
 
 use Doctrine\DBAL\Schema\Column;
+use Filament\Facades\Filament;
+use Filament\Resources\Resource;
 use Filament\Support\Commands\Concerns\CanReadModelSchemas;
 use Filament\Support\Components\ViewComponent;
 use Illuminate\Support\Str;
@@ -35,6 +37,17 @@ abstract class AbstractGenerator
     abstract protected function handleDefaultColumn(Column $column): ViewComponent;
 
     abstract protected function generateSchema(array $exceptColumns, array $overwriteColumns, array $enumDictionary): array;
+
+    public static function tryToGuessRelatedResource(Model $relatedRecord): Resource
+    {
+        foreach (Filament::getResources() as $resource) {
+            if ($relatedRecord instanceof ($resource::getModel())) {
+                return $resource;
+            }
+        }
+
+        return null;
+    } 
 
     protected function getResourceColumns(array $exceptColumn, array $overwriteColumns, array $enumDictionary): array
     {

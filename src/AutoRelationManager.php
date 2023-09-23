@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -86,7 +87,7 @@ class AutoRelationManager extends RelationManager
 
         $defaultFilters       = [...$this->getFilters()];
         $defaultHeaderActions = [$this->makeCreateAction()];
-        $defaultActions       = [...$this->getTableActions(), Tables\Actions\ViewAction::make(), $this->makeEditAction()];
+        $defaultActions       = [...$this->getTableActions(), ...$this->makeViewAndEditActions()];
         $defaultBulkActions   = [...$this->getBulkActions(), Tables\Actions\DeleteBulkAction::make()];
 
         // Associate action
@@ -161,11 +162,11 @@ class AutoRelationManager extends RelationManager
     {
         $relationship = $this->getRelationship();
 
-        if ($relationship instanceof BelongsToMany) {
-            return [];
+        if ($relationship instanceof HasOne || $relationship instanceof HasMany) {
+            return [$relationship->getForeignKeyName()];
         }
 
-        return [$relationship->getForeignKeyName()];
+        return [];
     }
 
     protected function getColumnsOverwriteMapped(string $type): array
@@ -180,38 +181,48 @@ class AutoRelationManager extends RelationManager
         return Tables\Actions\CreateAction::make(); // TODO: Add support for intrusive mode
     }
 
-    protected function makeEditAction()
+    protected function makeViewAndEditActions(): array
     {
-        return Tables\Actions\EditAction::make()
-            ->fillForm(function (Model $record): array {
-                if (static::getIntrusive()) {
-                    return $record->setHidden([])->attributesToArray();
-                } else {
-                    return $record->attributesToArray();
-                }
-            })->using(function (array $data, Model $record, Table $table) {
-                $relationship = $table->getRelationship();
+        if ($relatedResource = TableGenerator::tryToGuessRelatedResource($this->getRelationship()->getModel())) {
+            return [
+                Tables\Actions\ViewAction::make()->url(fn ($record) => $relatedResource::getUrl('view', ['record' => $record])),
+            ];
+        }        
 
-                if ($relationship instanceof BelongsToMany) {
-                    $pivotColumns = $relationship->getPivotColumns();
-                    $pivotData = Arr::only($data, $pivotColumns);
+        return [
+            Tables\Actions\ViewAction::make(),
 
-                    if (count($pivotColumns)) {
-                        if (static::getIntrusive()) {
-                            $record->{$relationship->getPivotAccessor()}->forceFill($pivotData)->save();
-                        } else {
-                            $record->{$relationship->getPivotAccessor()}->update($pivotData);
+            Tables\Actions\EditAction::make()
+                ->fillForm(function (Model $record): array {
+                    if (static::getIntrusive()) {
+                        return $record->setHidden([])->attributesToArray();
+                    } else {
+                        return $record->attributesToArray();
+                    }
+                })->using(function (array $data, Model $record, Table $table) {
+                    $relationship = $table->getRelationship();
+
+                    if ($relationship instanceof BelongsToMany) {
+                        $pivotColumns = $relationship->getPivotColumns();
+                        $pivotData = Arr::only($data, $pivotColumns);
+
+                        if (count($pivotColumns)) {
+                            if (static::getIntrusive()) {
+                                $record->{$relationship->getPivotAccessor()}->forceFill($pivotData)->save();
+                            } else {
+                                $record->{$relationship->getPivotAccessor()}->update($pivotData);
+                            }
                         }
+
+                        $data = Arr::except($data, $pivotColumns);
                     }
 
-                    $data = Arr::except($data, $pivotColumns);
-                }
-
-                if (static::getIntrusive()) {
-                    $record->forceFill($data)->save();
-                } else {
-                    $record->update($data);
-                }
-            });
+                    if (static::getIntrusive()) {
+                        $record->forceFill($data)->save();
+                    } else {
+                        $record->update($data);
+                    }
+                })
+        ];
     }
 }
