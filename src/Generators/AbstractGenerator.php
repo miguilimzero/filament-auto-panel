@@ -38,7 +38,7 @@ abstract class AbstractGenerator
 
     abstract protected function generateSchema(array $exceptColumns, array $overwriteColumns, array $enumDictionary): array;
 
-    public static function tryToGuessRelatedResource(Model $relatedRecord): string
+    public static function tryToGuessRelatedResource(Model $relatedRecord): ?string
     {
         foreach (Filament::getResources() as $resource) {
             if ($relatedRecord instanceof ($resource::getModel())) {
