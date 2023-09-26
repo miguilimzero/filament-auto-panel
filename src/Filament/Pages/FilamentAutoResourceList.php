@@ -7,6 +7,13 @@ use Filament\Resources\Pages\ListRecords;
 
 class FilamentAutoResourceList extends ListRecords
 {
+    public function getTabs(): array
+    {
+        return [
+            ...static::getResource()::getTabs()
+        ];
+    }
+
     protected function getHeaderWidgets(): array
     {
         return [

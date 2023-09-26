@@ -34,6 +34,11 @@ class AutoResource extends Resource
         return [];
     }
 
+    public static function getTabs(): array
+    {
+        return [];
+    }
+
     public static function getHeaderWidgets(): array
     {
         return [
