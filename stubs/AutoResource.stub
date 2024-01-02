@@ -2,7 +2,7 @@
 
 namespace {{ namespace }};
 
-use App\Models\{{ model }};
+use {{ model }};
 use Filament\Tables\Table;
 use Miguilim\FilamentAutoPanel\AutoResource;
 
