@@ -2,7 +2,6 @@
 
 namespace Miguilim\FilamentAutoPanel\Filament\Pages;
 
-use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 
@@ -11,9 +10,9 @@ class FilamentAutoResourceEdit extends EditRecord
     protected function fillForm(): void
     {
         if (static::getResource()::getIntrusive()) {
-            $data = $this->getRecord()->setHidden([])->attributesToArray();
+            $data = $this->getRecord()->setHidden([]);
         } else {
-            $data = $this->getRecord()->attributesToArray();
+            $data = $this->getRecord();
         }
 
         $this->fillFormWithDataAndCallHooks($data);
