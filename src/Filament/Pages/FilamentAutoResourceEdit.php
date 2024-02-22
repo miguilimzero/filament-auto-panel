@@ -10,12 +10,12 @@ class FilamentAutoResourceEdit extends EditRecord
     protected function fillForm(): void
     {
         if (static::getResource()::getIntrusive()) {
-            $data = $this->getRecord()->setHidden([]);
+            $record = $this->getRecord()->setHidden([]);
         } else {
-            $data = $this->getRecord();
+            $record = $this->getRecord();
         }
 
-        $this->fillFormWithDataAndCallHooks($data);
+        $this->fillFormWithDataAndCallHooks($record);
     }
 
     protected function handleRecordUpdate(Model $record, array $data): Model
