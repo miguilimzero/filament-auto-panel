@@ -105,11 +105,11 @@ abstract class AbstractGenerator
     protected function tryToGuessRelationshipName(Column $column): ?array
     {
         if (Str::of($column->getName())->endsWith('_id')) {
-            $guessedRelationshipName = $this->guessBelongsToRelationshipName($column, $this->modelInstance::class);
+            $guessedRelationshipName = $this->guessBelongsToRelationshipName($column->getName(), $this->modelInstance::class);
         
             if (filled($guessedRelationshipName)) {
                 $guessedRelationshipTitleColumnName = $this->guessBelongsToRelationshipTitleColumnName(
-                    column: $column, 
+                    column: $column->getName(), 
                     model: $this->modelInstance->{$guessedRelationshipName}()->getModel()::class
                 );
 
