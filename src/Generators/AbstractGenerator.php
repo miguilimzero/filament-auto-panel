@@ -2,13 +2,12 @@
 
 namespace Miguilim\FilamentAutoPanel\Generators;
 
-use Doctrine\DBAL\Schema\Column;
 use Filament\Facades\Filament;
-use Filament\Resources\Resource;
 use Filament\Support\Commands\Concerns\CanReadModelSchemas;
 use Filament\Support\Components\ViewComponent;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
+use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
 
 abstract class AbstractGenerator
 {
@@ -53,7 +52,8 @@ abstract class AbstractGenerator
     {
         $columns = [];
 
-        foreach ($this->introspectTable()->getColumns() as $column) {
+        foreach ($this->introspectTable()->getColumns($this->modelInstance->getTable()) as $rawColumn) {
+            $column     = $this->constructColumnInstance($rawColumn);
             $columnName = $column->getName();
 
             // Skip specific column
@@ -79,23 +79,14 @@ abstract class AbstractGenerator
                 continue;
             }
 
-            // Try to handle column matching cast
-            $this->tryToTransformColumnCast($column);
-
-            // TODO: Add proper support for Json type
-            if($column->getType() instanceof \Doctrine\DBAL\Types\JsonType) {
-                continue;
-            }
-
             // Handle column matching type
-            $columns[$columnName] = match($column->getType()::class) {
-                // \Doctrine\DBAL\Types\JsonType::class     => throw new \InvalidArgumentException("Column named \"{$columnName}\" is of type \"json\" and therefore cannot be decoded by Filament Auto. Use getColumnsOverwrite() to create a custom handle for it."),
-                \Doctrine\DBAL\Types\ArrayType::class    => $this->handleArrayColumn($column),
-                \Doctrine\DBAL\Types\DateType::class     => $this->handleDateColumn($column),
-                \Doctrine\DBAL\Types\DateTimeType::class => $this->handleDateColumn($column),
-                \Doctrine\DBAL\Types\BooleanType::class  => $this->handleBooleanColumn($column),
-                \Doctrine\DBAL\Types\TextType::class     => $this->handleTextColumn($column),
-                default                                  => $this->handleDefaultColumn($column),
+            $columns[$columnName] = match($column->getType()) {
+                'json'     => $this->handleArrayColumn($column),
+                'date'     => $this->handleDateColumn($column),
+                'datetime' => $this->handleDateColumn($column),
+                'boolean'  => $this->handleBooleanColumn($column),
+                'textarea' => $this->handleTextColumn($column),
+                default    => $this->handleDefaultColumn($column),
             };
         }
 
@@ -122,56 +113,66 @@ abstract class AbstractGenerator
         return null;
     }
 
-    protected function tryToTransformColumnCast(Column $column): void
+    protected function constructColumnInstance(array $column): Column
     {
-        $columnCast = $this->modelInstance->getCasts()[$column->getName()] ?? null;
-
-        if (! $columnCast) {
-            return;
-        }
-
-        // Array cast
-        if ($columnCast === 'array') {
-            $column->setType(\Doctrine\DBAL\Types\Type::getType('array'));
-        }
-
         // Boolean cast
-        if ($columnCast === 'boolean') {
-            $column->setType(\Doctrine\DBAL\Types\Type::getType('boolean'));
+        if ($column['type_name'] === 'boolean' || $column['type'] === 'tinyint(1)') {
+            $column['type_name'] = 'boolean';
+            $column['type']      = 'boolean';
         }
 
-        // Date casts
-        if (str_starts_with($columnCast, 'date')) {
-            $column->setType(\Doctrine\DBAL\Types\Type::getType('date'));
-        }
-        if (str_starts_with($columnCast, 'datetime')) {
-            $column->setType(\Doctrine\DBAL\Types\Type::getType('datetime'));
-        }
-
-        // Numeric casts
-        if (str_starts_with($columnCast, 'decimal')) {
-            $precision = explode(':', $columnCast)[1] ?? null;
-
-            if ($precision !== null) {
-                $column->setType(\Doctrine\DBAL\Types\Type::getType('decimal'));
-                $column->setPrecision($precision);
-            } else {
-                $column->setType(\Doctrine\DBAL\Types\Type::getType('integer'));
-            }
-        }
-        if ($columnCast === 'integer') {
-            $column->setType(\Doctrine\DBAL\Types\Type::getType('integer'));
-        }
-        if (
-            (! ($column->getType() instanceof \Doctrine\DBAL\Types\DecimalType))
-            && ($columnCast === 'double' || $columnCast === 'float' || $columnCast === 'real')
-        ) {
-            $column->setType(\Doctrine\DBAL\Types\Type::getType('integer')); // Set as integer as there is no way to know the precision
+        // Json cast
+        $jsonColumns = ['json', 'jsonb'];
+        if (in_array($column['type_name'], $jsonColumns)) {
+            $column['type_name'] = 'json';
+            $column['type']      = str_replace($jsonColumns, 'json', $column['type']);
         }
 
-        // Object casts
-        if ($columnCast === 'collection' || $columnCast === 'object' || $columnCast === 'json') {
-            $column->setType(\Doctrine\DBAL\Types\Type::getType('json'));
+        // Integer cast
+        $integerColumns = [
+            'integer', 'int', 'int4', 'tinyint', 'smallint', 'int2', 'mediumint', 'bigint', 'int8',
+            'float', 'real', 'float4', 'double', 'float8'
+        ];
+        if (in_array($column['type_name'], $integerColumns)) {
+            $column['type_name'] = 'integer';
+            $column['type']      = str_replace($integerColumns, 'integer', $column['type']);
         }
+
+        // Decimal cast
+        $decimalColumns = ['decimal', 'numeric'];
+        if (in_array($column['type_name'], $decimalColumns)) {
+            $column['type_name'] = 'decimal';
+            $column['type']      = str_replace($decimalColumns, 'decimal', $column['type']);
+        }
+
+        // Textarea cast
+        $textColumns = ['text', 'tinytext', 'mediumtext', 'longtext'];
+        if (in_array($column['type_name'], $textColumns)) {
+            $originalTypeName = $column['type_name'];
+
+            $column['type_name'] = 'textarea';
+            $column['type']      = 'textarea(' . match($originalTypeName) {
+                'text'      => 65_535,
+                'tinytext'  => 255,
+                'mediumtext'=> 16_777_215,
+                'longtext'  => 4_294_967_295,
+            } . ')';
+        }
+
+        // String cast
+        $stringColumns = ['varchar', 'char'];
+        if (in_array($column['type_name'], $stringColumns)) {
+            $column['type_name'] = 'string';
+            $column['type']      = str_replace($stringColumns, 'string', $column['type']);
+        }
+
+        // Datetime cast
+        $datetimeColumns = ['datetime', 'timestamp'];
+        if (in_array($column['type_name'], $datetimeColumns)) {
+            $column['type_name'] = 'datetime';
+            $column['type']      = str_replace($datetimeColumns, 'datetime', $column['type']);
+        }
+
+        return new Column($column);
     }
 }

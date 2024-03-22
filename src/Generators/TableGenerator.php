@@ -2,9 +2,6 @@
 
 namespace Miguilim\FilamentAutoPanel\Generators;
 
-use Doctrine\DBAL\Schema\Column;
-use Doctrine\DBAL\Types;
-use Filament\Facades\Filament;
 use Filament\Support\Components\ViewComponent;
 use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\FontWeight;
@@ -12,6 +9,7 @@ use Filament\Support\Enums\IconPosition;
 use Filament\Tables;
 use Filament\Tables\Columns\Column as TableColumn;
 use Illuminate\Support\Str;
+use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
 
 class TableGenerator extends AbstractGenerator
 {
@@ -106,7 +104,7 @@ class TableGenerator extends AbstractGenerator
             ->sortable()
             ->placeholder(fn () => $this->placeholderHtml());
 
-        return ($column->getType() instanceof Types\DateTimeType) 
+        return ($column->getType() === 'datetime') 
             ? $textColumn->dateTime()
             : $textColumn->date();
     }
@@ -138,7 +136,7 @@ class TableGenerator extends AbstractGenerator
         $isPrimaryKey = $this->modelInstance->getKeyName() === $column->getName();
 
         $textColumn = Tables\Columns\TextColumn::make($column->getName())
-            ->sortable($isPrimaryKey || $this->isNumericColumn($column))
+            ->sortable($isPrimaryKey || $column->isNumeric())
             ->searchable($isPrimaryKey)
             ->copyable($isPrimaryKey)
             ->weight($isPrimaryKey ? FontWeight::Bold : null)
@@ -147,8 +145,8 @@ class TableGenerator extends AbstractGenerator
             ->iconPosition($isPrimaryKey ? IconPosition::After : null)
             ->placeholder(fn () => $this->placeholderHtml());
 
-        if (! $isPrimaryKey && $this->isNumericColumn($column)) {
-            return $textColumn->numeric($this->getColumnDecimalPlaces($column));
+        if (! $isPrimaryKey && $column->isNumeric()) {
+            return $textColumn->numeric($column->getDecimalPlaces());
         }
 
         return $textColumn;

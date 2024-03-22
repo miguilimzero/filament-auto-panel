@@ -2,12 +2,11 @@
 
 namespace Miguilim\FilamentAutoPanel\Generators;
 
-use Doctrine\DBAL\Schema\Column;
-use Doctrine\DBAL\Types;
 use Filament\Forms;
 use Filament\Forms\Components\TagsInput;
 use Filament\Support\Components\ViewComponent;
 use Illuminate\Support\Str;
+use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
 
 class FormGenerator extends AbstractGenerator
 {
@@ -55,7 +54,7 @@ class FormGenerator extends AbstractGenerator
 
     protected function handleDateColumn(Column $column): ViewComponent
     {
-        $dateColumn = ($column->getType() instanceof Types\DateTimeType)
+        $dateColumn = ($column->getType() === 'datetime')
             ? Forms\Components\DateTimePicker::make($column->getName())
             : Forms\Components\DatePicker::make($column->getName());
 
@@ -98,7 +97,7 @@ class FormGenerator extends AbstractGenerator
             ->email(Str::contains($column->getName(), 'email'))
             ->tel(Str::contains($column->getName(), ['phone', 'tel']));
 
-        if ($this->isNumericColumn($column)) {
+        if ($column->isNumeric()) {
             return $textInput->numeric(); // TextInput numeric method does not have precision parameter, and it cannot have a maxLength()
         }
 

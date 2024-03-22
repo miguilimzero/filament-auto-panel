@@ -4,48 +4,18 @@ namespace Miguilim\FilamentAutoPanel\Generators\Concerns;
 
 use Closure;
 use Doctrine\DBAL\Schema\Column;
-use Doctrine\DBAL\Schema\Table;
 use Illuminate\Support\HtmlString;
-use Laravel\SerializableClosure\SerializableClosure;
-use Miguilim\FilamentAutoPanel\Doctrine\CustomMySQLSchemaManager;
+use Illuminate\Database\Schema\Builder;
 
 trait HasGeneratorHelpers
 {
     protected static array $generatedSchemas = [];
 
-    protected function introspectTable(): Table
+    protected function introspectTable(): Builder
     {
-        $doctrineConnection = $this->modelInstance
+        return $this->modelInstance
             ->getConnection()
-            ->getDoctrineConnection();
-
-        $table = (new CustomMySQLSchemaManager($doctrineConnection, $doctrineConnection->getDatabasePlatform()))
-            ->introspectTable($this->modelInstance->getTable());
-
-        return $table;
-    }
-
-    protected function isNumericColumn(Column $column): bool
-    {
-        return in_array(
-            $column->getType()::class,
-            [
-                \Doctrine\DBAL\Types\DecimalType::class,
-                \Doctrine\DBAL\Types\FloatType::class,
-                \Doctrine\DBAL\Types\BigIntType::class,
-                \Doctrine\DBAL\Types\IntegerType::class,
-                \Doctrine\DBAL\Types\SmallIntType::class,
-            ]
-        );
-    }
-
-    protected function getColumnDecimalPlaces(Column $column): ?int
-    {
-        if (! ($column->getType() instanceof \Doctrine\DBAL\Types\DecimalType)) {
-            return null;
-        }
-
-        return $column->getScale();
+            ->getSchemaBuilder();
     }
 
     protected function placeholderHtml(string $placeholder = 'null'): HtmlString

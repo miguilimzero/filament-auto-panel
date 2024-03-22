@@ -1,16 +1,13 @@
 <?php
 
 namespace Miguilim\FilamentAutoPanel\Generators;
-
-use Doctrine\DBAL\Schema\Column;
-use Doctrine\DBAL\Types;
-use Filament\Facades\Filament;
 use Filament\Infolists;
 use Filament\Support\Components\ViewComponent;
 use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\IconPosition;
 use Illuminate\Support\Str;
+use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
 
 class InfolistGenerator extends AbstractGenerator
 {
@@ -79,7 +76,7 @@ class InfolistGenerator extends AbstractGenerator
         $textEntry = Infolists\Components\TextEntry::make($column->getName())
             ->placeholder(fn () => $this->placeholderHtml());
 
-        return ($column->getType() instanceof Types\DateTimeType)
+        return ($column->getType() === 'datetime')
             ? $textEntry->dateTime()
             : $textEntry->date();
     }
@@ -118,8 +115,8 @@ class InfolistGenerator extends AbstractGenerator
             ->iconPosition($isPrimaryKey ? IconPosition::After : null)
             ->placeholder(fn () => $this->placeholderHtml());
 
-        if (! $isPrimaryKey && $this->isNumericColumn($column)) {
-            return $textEntry->numeric($this->getColumnDecimalPlaces($column));
+        if (! $isPrimaryKey && $column->isNumeric()) {
+            return $textEntry->numeric($column->getDecimalPlaces());
         }
 
         return $textEntry;
