@@ -14,7 +14,7 @@ class MakeAutoResourceCommand extends MakeResourceCommand
      *
      * @var string
      */
-    protected $signature = 'make:filament-auto-resource {name?} {--model-namespace=} {--panel=} {--F|force}';
+    protected $signature = 'make:filament-auto-resource {name?} {--model-namespace=} {--panel=} {--model} {--migration} {--factory} {--F|force}';
 
     /**
      * The console command description.
