@@ -2,10 +2,9 @@
 
 namespace Miguilim\FilamentAutoPanel;
 
+use Filament\Actions\BulkAction;
 use Closure;
 use Filament\Actions\Action as PageAction;
-use Filament\Tables\Actions\Action;
-use Filament\Tables\Actions\BulkAction;
 use Illuminate\Database\Eloquent\Collection;
 
 class AutoAction
@@ -78,10 +77,10 @@ class AutoAction
         return $action;
     }
 
-    public function convertToTableAction(): Action
+    public function convertToTableAction(): PageAction
     {
         $actionClosure = $this->action;
-        $action        = Action::make($this->name)
+        $action        = PageAction::make($this->name)
             ->action(fn($record, $data) => $actionClosure(new Collection([$record]), $data));
 
         foreach ($this->actionMethodsAndArguments as $method => $arguments) {

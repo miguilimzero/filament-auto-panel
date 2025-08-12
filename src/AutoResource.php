@@ -2,9 +2,14 @@
 
 namespace Miguilim\FilamentAutoPanel;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\ViewAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Tables\Filters\TrashedFilter;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Tables;
-use Filament\Forms\Form;
-use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -69,10 +74,10 @@ class AutoResource extends Resource
         return [];
     }
 
-    public static function infolist(Infolist $infolist): Infolist
+    public static function infolist(Schema $schema): Schema
     {
-        return $infolist
-            ->schema(InfolistGenerator::make(
+        return $schema
+            ->components(InfolistGenerator::make(
                 modelClass: static::getModel(), 
                 overwriteColumns: static::getColumnsOverwriteMapped('infolist'),
                 enumDictionary: static::$enumDictionary,
@@ -80,10 +85,10 @@ class AutoResource extends Resource
             ->columns(3);
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema(FormGenerator::make(
+        return $schema
+            ->components(FormGenerator::make(
                 modelClass: static::getModel(), 
                 overwriteColumns: static::getColumnsOverwriteMapped('form'),
                 enumDictionary: static::$enumDictionary,
@@ -96,16 +101,16 @@ class AutoResource extends Resource
         $hasSoftDeletes = method_exists(static::getModel(), 'bootSoftDeletes');
 
         $defaultFilters = [...static::getFilters()];
-        $defaultTableActions = [...static::getTableActions(), Tables\Actions\ViewAction::make()];
-        $defaultBulkActions = [...static::getBulkActions(), Tables\Actions\DeleteBulkAction::make()];
+        $defaultTableActions = [...static::getTableActions(), ViewAction::make()];
+        $defaultBulkActions = [...static::getBulkActions(), DeleteBulkAction::make()];
 
         if ($hasSoftDeletes) {
-            $defaultFilters[] = Tables\Filters\TrashedFilter::make();
+            $defaultFilters[] = TrashedFilter::make();
 
-            $defaultTableActions[] = Tables\Actions\RestoreAction::make();
+            $defaultTableActions[] = RestoreAction::make();
 
-            $defaultBulkActions[] = Tables\Actions\RestoreBulkAction::make();
-            $defaultBulkActions[] = Tables\Actions\ForceDeleteBulkAction::make();
+            $defaultBulkActions[] = RestoreBulkAction::make();
+            $defaultBulkActions[] = ForceDeleteBulkAction::make();
         }
 
         $tableSchema = TableGenerator::make(
@@ -138,8 +143,8 @@ class AutoResource extends Resource
         return $table
             ->columns($tableSchema)
             ->filters($defaultFilters)
-            ->actions($defaultTableActions)
-            ->bulkActions($defaultBulkActions);
+            ->recordActions($defaultTableActions)
+            ->toolbarActions($defaultBulkActions);
     }
 
     public static function getPages(): array

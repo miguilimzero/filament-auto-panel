@@ -2,6 +2,10 @@
 
 namespace Miguilim\FilamentAutoPanel\Filament\Pages;
 
+use Filament\Actions\DeleteAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\EditAction;
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -39,22 +43,22 @@ class FilamentAutoResourceView extends ViewRecord
             return [
                 ...static::getResource()::getPagesActions(),
                 $this->makeEditAction(),
-                Actions\DeleteAction::make(),
-                Actions\ForceDeleteAction::make(),
-                Actions\RestoreAction::make(),
+                DeleteAction::make(),
+                ForceDeleteAction::make(),
+                RestoreAction::make(),
             ];
         }
 
         return [
             ...static::getResource()::getPagesActions(),
             $this->makeEditAction(),
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 
     protected function makeEditAction()
     {
-        return Actions\EditAction::make();
+        return EditAction::make();
 
         // return Actions\EditAction::make()
         //     ->fillForm(function (Model $record): array {

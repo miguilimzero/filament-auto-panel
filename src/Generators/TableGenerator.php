@@ -2,6 +2,8 @@
 
 namespace Miguilim\FilamentAutoPanel\Generators;
 
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Support\Components\ViewComponent;
 use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\FontWeight;
@@ -49,7 +51,7 @@ class TableGenerator extends AbstractGenerator
 
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
-        return Tables\Columns\TextColumn::make("{$relationshipName}.{$relationshipTitleColumnName}")
+        return TextColumn::make("{$relationshipName}.{$relationshipTitleColumnName}")
             ->placeholder(fn () => $this->placeholderHtml())
             ->weight(FontWeight::Bold)
             ->color('primary')
@@ -76,7 +78,7 @@ class TableGenerator extends AbstractGenerator
 
     protected function handleEnumDictionaryColumn(Column $column, array $dictionary): ViewComponent
     {
-        return Tables\Columns\TextColumn::make($column->getName())
+        return TextColumn::make($column->getName())
             ->badge()
             ->formatStateUsing(function ($state) use ($dictionary) {
                 $finalFormat = $dictionary[$state] ?? $state;
@@ -93,14 +95,14 @@ class TableGenerator extends AbstractGenerator
 
     protected function handleArrayColumn(Column $column): ViewComponent
     {
-        return Tables\Columns\TextColumn::make($column->getName())
+        return TextColumn::make($column->getName())
             ->badge()
             ->placeholder(fn () => $this->placeholderHtml());
     }
 
     protected function handleDateColumn(Column $column): ViewComponent
     {
-        $textColumn = Tables\Columns\TextColumn::make($column->getName())
+        $textColumn = TextColumn::make($column->getName())
             ->sortable()
             ->placeholder(fn () => $this->placeholderHtml());
 
@@ -111,7 +113,7 @@ class TableGenerator extends AbstractGenerator
 
     protected function handleBooleanColumn(Column $column): ViewComponent
     {
-        return Tables\Columns\IconColumn::make($column->getName())
+        return IconColumn::make($column->getName())
             ->sortable()
             ->icon(fn (bool $state): string => $state ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle')
             ->color(fn (bool $state): string => $state ? 'success' : 'danger');
@@ -119,7 +121,7 @@ class TableGenerator extends AbstractGenerator
 
     protected function handleTextColumn(Column $column): ViewComponent
     {
-        return Tables\Columns\TextColumn::make($column->getName())
+        return TextColumn::make($column->getName())
             ->wrap()
             ->placeholder(fn () => $this->placeholderHtml());
     }
@@ -127,7 +129,7 @@ class TableGenerator extends AbstractGenerator
     protected function handleDefaultColumn(Column $column): ViewComponent
     {
         if (Str::of($column->getName())->contains(['link', 'url'])) {
-            return Tables\Columns\TextColumn::make($column->getName())
+            return TextColumn::make($column->getName())
                 ->url(fn ($record) => $record->{$column->getName()})
                 ->color('primary')
                 ->openUrlInNewTab();
@@ -135,7 +137,7 @@ class TableGenerator extends AbstractGenerator
 
         $isPrimaryKey = $this->modelInstance->getKeyName() === $column->getName();
 
-        $textColumn = Tables\Columns\TextColumn::make($column->getName())
+        $textColumn = TextColumn::make($column->getName())
             ->sortable($isPrimaryKey || $column->isNumeric())
             ->searchable($isPrimaryKey)
             ->copyable($isPrimaryKey)

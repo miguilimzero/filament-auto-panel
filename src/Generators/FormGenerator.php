@@ -2,6 +2,14 @@
 
 namespace Miguilim\FilamentAutoPanel\Generators;
 
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Group;
 use Filament\Forms;
 use Filament\Forms\Components\TagsInput;
 use Filament\Support\Components\ViewComponent;
@@ -30,7 +38,7 @@ class FormGenerator extends AbstractGenerator
     
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
-        return Forms\Components\Select::make($column->getName())
+        return Select::make($column->getName())
             ->required($column->getNotNull())
             ->relationship($relationshipName, $relationshipTitleColumnName)
             // ->preload()
@@ -39,7 +47,7 @@ class FormGenerator extends AbstractGenerator
 
     protected function handleEnumDictionaryColumn(Column $column, array $dictionary): ViewComponent
     {
-        return Forms\Components\Select::make($column->getName())
+        return Select::make($column->getName())
             ->required($column->getNotNull())
             ->options(
                 collect($dictionary)->mapWithKeys(fn ($value, $key) => [$key => (is_array($value)) ? $value[0] : $value])->all()
@@ -55,8 +63,8 @@ class FormGenerator extends AbstractGenerator
     protected function handleDateColumn(Column $column): ViewComponent
     {
         $dateColumn = ($column->getType() === 'datetime')
-            ? Forms\Components\DateTimePicker::make($column->getName())
-            : Forms\Components\DatePicker::make($column->getName());
+            ? DateTimePicker::make($column->getName())
+            : DatePicker::make($column->getName());
 
         return $dateColumn
             ->required($column->getNotNull())
@@ -65,13 +73,13 @@ class FormGenerator extends AbstractGenerator
 
     protected function handleBooleanColumn(Column $column): ViewComponent
     {
-        return Forms\Components\Toggle::make($column->getName())
+        return Toggle::make($column->getName())
             ->columnSpan('full');
     }
 
     protected function handleTextColumn(Column $column): ViewComponent
     {
-        return Forms\Components\Textarea::make($column->getName())
+        return Textarea::make($column->getName())
             ->required($column->getNotNull())
             ->columnSpan('full')
             ->maxLength($column->getLength());
@@ -81,18 +89,18 @@ class FormGenerator extends AbstractGenerator
     {
         if ($this->modelInstance->getKeyName() === $column->getName()) {
             if (method_exists($this->modelInstance, 'initializeHasUuids')) {
-                return Forms\Components\TextInput::make($column->getName())
+                return TextInput::make($column->getName())
                     ->disabled()
                     ->default($this->modelInstance->newUniqueId());
             }
             if ($this->modelInstance->incrementing) {
-                return Forms\Components\TextInput::make($column->getName())
+                return TextInput::make($column->getName())
                     ->disabled()
                     ->placeholder('Auto-generated ID');
             }
         }
 
-        $textInput = Forms\Components\TextInput::make($column->getName())
+        $textInput = TextInput::make($column->getName())
             ->required($column->getNotNull())
             ->email(Str::contains($column->getName(), 'email'))
             ->tel(Str::contains($column->getName(), ['phone', 'tel']));
@@ -113,12 +121,12 @@ class FormGenerator extends AbstractGenerator
         }
 
         return [
-            Forms\Components\Section::make()
+            Section::make()
                 ->schema($formsSchema)
                 ->columns(2)
                 ->visibleOn('create'),
 
-            Forms\Components\Group::make()
+            Group::make()
                 ->schema($formsSchema)
                 ->columns(2)
                 ->columnSpanFull()

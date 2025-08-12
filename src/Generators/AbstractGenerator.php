@@ -2,6 +2,7 @@
 
 namespace Miguilim\FilamentAutoPanel\Generators;
 
+use Miguilim\FilamentAutoPanel\Generators\Concerns\HasGeneratorHelpers;
 use Filament\Facades\Filament;
 use Filament\Support\Commands\Concerns\CanReadModelSchemas;
 use Filament\Support\Components\ViewComponent;
@@ -12,7 +13,7 @@ use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
 abstract class AbstractGenerator
 {
     use CanReadModelSchemas;
-    use Concerns\HasGeneratorHelpers;
+    use HasGeneratorHelpers;
 
     protected Model $modelInstance;
 

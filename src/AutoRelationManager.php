@@ -2,8 +2,21 @@
 
 namespace Miguilim\FilamentAutoPanel;
 
-use Filament\Forms\Form;
-use Filament\Infolists\Infolist;
+use Filament\Schemas\Schema;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\AssociateAction;
+use Filament\Actions\DissociateAction;
+use Filament\Actions\DissociateBulkAction;
+use Filament\Actions\AttachAction;
+use Filament\Actions\DetachAction;
+use Filament\Actions\DetachBulkAction;
+use Filament\Tables\Filters\TrashedFilter;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\CreateAction;
+use Filament\Actions\ViewAction;
+use Filament\Actions\EditAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -22,7 +35,7 @@ use Miguilim\FilamentAutoPanel\Generators\TableGenerator;
 
 class AutoRelationManager extends RelationManager
 {
-    protected static string $relatedResource;
+    protected static ?string $relatedResource;
 
     protected static array $enumDictionary = [];
 
@@ -56,22 +69,22 @@ class AutoRelationManager extends RelationManager
         return false;
     }
 
-    public function infolist(Infolist $infolist): Infolist
+    public function infolist(Schema $schema): Schema
     {
-        return $infolist
-            ->schema(InfolistGenerator::make(
+        return $schema
+            ->components(InfolistGenerator::make(
                 modelClass: $this->getRelationship()->getModel()::class,
-                exceptColumns: $this->getExceptRelationshipColumns(), 
+                exceptColumns: $this->getExceptRelationshipColumns(),
                 overwriteColumns: $this->getColumnsOverwriteMapped('infolist'),
                 enumDictionary: static::$enumDictionary,
             ))
             ->columns(2);
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema(FormGenerator::make(
+        return $schema
+            ->components(FormGenerator::make(
                 modelClass: $this->getRelationship()->getModel()::class,
                 exceptColumns: $this->getExceptRelationshipColumns(),
                 overwriteColumns: $this->getColumnsOverwriteMapped('form'),
@@ -88,33 +101,33 @@ class AutoRelationManager extends RelationManager
         $defaultFilters       = [...$this->getFilters()];
         $defaultHeaderActions = [$this->makeCreateAction()];
         $defaultActions       = [...$this->getTableActions(), ...$this->makeViewAndEditActions()];
-        $defaultBulkActions   = [...$this->getBulkActions(), Tables\Actions\DeleteBulkAction::make()];
+        $defaultBulkActions   = [...$this->getBulkActions(), DeleteBulkAction::make()];
 
         // Associate action
         if (
             method_exists($this->getRelationship()->getModel(), $table->getInverseRelationship())
             && ($this->getRelationship() instanceof HasMany || $this->getRelationship() instanceof MorphMany)
         ) {
-            $defaultHeaderActions = [Tables\Actions\AssociateAction::make(), ...$defaultHeaderActions];
-            $defaultActions       = [Tables\Actions\DissociateAction::make(), ...$defaultActions];
-            $defaultBulkActions   = [Tables\Actions\DissociateBulkAction::make(), ...$defaultBulkActions];
+            $defaultHeaderActions = [AssociateAction::make(), ...$defaultHeaderActions];
+            $defaultActions       = [DissociateAction::make(), ...$defaultActions];
+            $defaultBulkActions   = [DissociateBulkAction::make(), ...$defaultBulkActions];
         }
 
         // Attach action
         if ($this->getRelationship() instanceof BelongsToMany || $this->getRelationship() instanceof MorphToMany) {
-            $defaultHeaderActions = [Tables\Actions\AttachAction::make(), ...$defaultHeaderActions];
-            $defaultActions       = [Tables\Actions\DetachAction::make(), ...$defaultActions];
-            $defaultBulkActions   = [Tables\Actions\DetachBulkAction::make(), ...$defaultBulkActions];
+            $defaultHeaderActions = [AttachAction::make(), ...$defaultHeaderActions];
+            $defaultActions       = [DetachAction::make(), ...$defaultActions];
+            $defaultBulkActions   = [DetachBulkAction::make(), ...$defaultBulkActions];
         }
 
         // Soft deletes
         if ($hasSoftDeletes) {
-            $defaultFilters[] = Tables\Filters\TrashedFilter::make();
+            $defaultFilters[] = TrashedFilter::make();
 
-            $defaultActions[] = Tables\Actions\RestoreAction::make();
+            $defaultActions[] = RestoreAction::make();
 
-            $defaultBulkActions[] = Tables\Actions\RestoreBulkAction::make();
-            $defaultBulkActions[] = Tables\Actions\ForceDeleteBulkAction::make();
+            $defaultBulkActions[] = RestoreBulkAction::make();
+            $defaultBulkActions[] = ForceDeleteBulkAction::make();
         }
 
         return $table
@@ -133,8 +146,8 @@ class AutoRelationManager extends RelationManager
             ))
             ->filters($defaultFilters)
             ->headerActions($defaultHeaderActions)
-            ->actions($defaultActions)
-            ->bulkActions($defaultBulkActions);
+            ->recordActions($defaultActions)
+            ->toolbarActions($defaultBulkActions);
     }
 
     public static function getIntrusive(): bool
@@ -178,21 +191,21 @@ class AutoRelationManager extends RelationManager
 
     protected function makeCreateAction()
     {
-        return Tables\Actions\CreateAction::make(); // TODO: Add support for intrusive mode
+        return CreateAction::make(); // TODO: Add support for intrusive mode
     }
 
     protected function makeViewAndEditActions(): array
     {
         if ($relatedResource = TableGenerator::tryToGuessRelatedResource($this->getRelationship()->getModel())) {
             return [
-                Tables\Actions\ViewAction::make()->url(fn ($record) => $relatedResource::getUrl('view', ['record' => $record])),
+                ViewAction::make()->url(fn ($record) => $relatedResource::getUrl('view', ['record' => $record])),
             ];
-        }        
+        }
 
         return [
-            Tables\Actions\ViewAction::make(),
+            ViewAction::make(),
 
-            Tables\Actions\EditAction::make()
+            EditAction::make()
                 ->fillForm(function (Model $record): array {
                     if (static::getIntrusive()) {
                         return $record->setHidden([])->attributesToArray();

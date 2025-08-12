@@ -2,6 +2,8 @@
 
 namespace Miguilim\FilamentAutoPanel;
 
+use Miguilim\FilamentAutoPanel\Commands\MakeAutoRelationManagerCommand;
+use Miguilim\FilamentAutoPanel\Commands\MakeAutoResourceCommand;
 use Illuminate\Support\ServiceProvider;
 
 class FilamentAutoPanelProvider extends ServiceProvider
@@ -35,8 +37,8 @@ class FilamentAutoPanelProvider extends ServiceProvider
         }
 
         $this->commands([
-            Commands\MakeAutoRelationManagerCommand::class,
-            Commands\MakeAutoResourceCommand::class,
+            MakeAutoRelationManagerCommand::class,
+            MakeAutoResourceCommand::class,
         ]);
     }
 }

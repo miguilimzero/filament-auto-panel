@@ -1,6 +1,10 @@
 <?php
 
 namespace Miguilim\FilamentAutoPanel\Generators;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\IconEntry;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Group;
 use Filament\Infolists;
 use Filament\Support\Components\ViewComponent;
 use Filament\Support\Enums\FontFamily;
@@ -21,7 +25,7 @@ class InfolistGenerator extends AbstractGenerator
 
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
-        return Infolists\Components\TextEntry::make("{$relationshipName}.{$relationshipTitleColumnName}")
+        return TextEntry::make("{$relationshipName}.{$relationshipTitleColumnName}")
             ->placeholder(fn () => $this->placeholderHtml())
             ->weight(FontWeight::Bold)
             ->color('primary')
@@ -48,7 +52,7 @@ class InfolistGenerator extends AbstractGenerator
 
     protected function handleEnumDictionaryColumn(Column $column, array $dictionary): ViewComponent
     {
-        return Infolists\Components\TextEntry::make($column->getName())
+        return TextEntry::make($column->getName())
             ->badge()
             ->formatStateUsing(function ($state) use ($dictionary) {
                 $finalFormat = $dictionary[$state] ?? $state;
@@ -65,7 +69,7 @@ class InfolistGenerator extends AbstractGenerator
 
     protected function handleArrayColumn(Column $column): ViewComponent
     {
-        return Infolists\Components\TextEntry::make($column->getName())
+        return TextEntry::make($column->getName())
             ->badge()
             ->placeholder(fn () => $this->placeholderHtml())
             ->columnSpan('full');
@@ -73,7 +77,7 @@ class InfolistGenerator extends AbstractGenerator
 
     protected function handleDateColumn(Column $column): ViewComponent
     {
-        $textEntry = Infolists\Components\TextEntry::make($column->getName())
+        $textEntry = TextEntry::make($column->getName())
             ->placeholder(fn () => $this->placeholderHtml());
 
         return ($column->getType() === 'datetime')
@@ -83,7 +87,7 @@ class InfolistGenerator extends AbstractGenerator
 
     protected function handleBooleanColumn(Column $column): ViewComponent
     {
-        return Infolists\Components\IconEntry::make($column->getName())
+        return IconEntry::make($column->getName())
             ->icon(fn (bool $state): string => $state ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle')
             ->color(fn (bool $state): string => $state ? 'success' : 'danger')
             ->columnSpan('full');
@@ -91,7 +95,7 @@ class InfolistGenerator extends AbstractGenerator
 
     protected function handleTextColumn(Column $column): ViewComponent
     {
-        return Infolists\Components\TextEntry::make($column->getName())
+        return TextEntry::make($column->getName())
             ->placeholder(fn () => $this->placeholderHtml())
             ->columnSpan('full');
     }
@@ -99,7 +103,7 @@ class InfolistGenerator extends AbstractGenerator
     protected function handleDefaultColumn(Column $column): ViewComponent
     {
         if (Str::of($column->getName())->contains(['link', 'url'])) {
-            return Infolists\Components\TextEntry::make($column->getName())
+            return TextEntry::make($column->getName())
                 ->url(fn ($record) => $record->{$column->getName()})
                 ->color('primary')
                 ->openUrlInNewTab();
@@ -107,7 +111,7 @@ class InfolistGenerator extends AbstractGenerator
 
         $isPrimaryKey = $this->modelInstance->getKeyName() === $column->getName();
 
-        $textEntry = Infolists\Components\TextEntry::make($column->getName())
+        $textEntry = TextEntry::make($column->getName())
             ->copyable($isPrimaryKey)
             ->weight($isPrimaryKey ? FontWeight::Bold : null)
             ->fontFamily($isPrimaryKey ? FontFamily::Mono : null)
@@ -131,20 +135,20 @@ class InfolistGenerator extends AbstractGenerator
         $hasSoftDeletes = method_exists($this->modelInstance, 'getDeletedAtColumn') && $this->modelInstance->getDeletedAtColumn() !== null;
 
         $timestampsSection = ($hasCreatedAt || $hasUpdatedAt || $hasSoftDeletes)
-            ? Infolists\Components\Section::make()
+            ? Section::make()
                 ->schema(array_filter([
-                    $hasCreatedAt ? Infolists\Components\TextEntry::make($this->modelInstance->getCreatedAtColumn())->since() : null,
-                    $hasUpdatedAt ? Infolists\Components\TextEntry::make($this->modelInstance->getUpdatedAtColumn())->since() : null,
-                    $hasSoftDeletes ? Infolists\Components\TextEntry::make($this->modelInstance->getDeletedAtColumn())->since()->placeholder(fn () => $this->placeholderHtml('Never')) : null,
+                    $hasCreatedAt ? TextEntry::make($this->modelInstance->getCreatedAtColumn())->since() : null,
+                    $hasUpdatedAt ? TextEntry::make($this->modelInstance->getUpdatedAtColumn())->since() : null,
+                    $hasSoftDeletes ? TextEntry::make($this->modelInstance->getDeletedAtColumn())->since()->placeholder(fn () => $this->placeholderHtml('Never')) : null,
                 ]))
                 ->columnSpan(['lg' => 1])
                 ->hidden(fn ($record) => $record === null)
             : null;
 
         return array_filter([
-            Infolists\Components\Group::make()
+            Group::make()
                 ->schema([
-                    Infolists\Components\Section::make()
+                    Section::make()
                         ->schema($columnInstances)
                         ->columns(2),
                 ])
