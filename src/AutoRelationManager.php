@@ -45,6 +45,8 @@ class AutoRelationManager extends RelationManager
 
     protected static bool $intrusive = true;
 
+    protected static bool $readyOnly = false;
+
     public function getFilters(): array
     {
         return [];
@@ -66,7 +68,7 @@ class AutoRelationManager extends RelationManager
 
     public function isReadOnly(): bool
     {
-        return false;
+        return static::$readyOnly;
     }
 
     public function infolist(Schema $schema): Schema

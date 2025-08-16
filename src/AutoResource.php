@@ -9,7 +9,6 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ForceDeleteBulkAction;
-use Filament\Tables;
 use Filament\Resources\Resource;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,6 +27,8 @@ class AutoResource extends Resource
     protected static array $searchableColumns = [];
 
     protected static bool $intrusive = true;
+
+    protected static bool $readOnly = false;
 
     public static function getFilters(): array
     {
@@ -78,7 +79,7 @@ class AutoResource extends Resource
     {
         return $schema
             ->components(InfolistGenerator::make(
-                modelClass: static::getModel(), 
+                modelClass: static::getModel(),
                 overwriteColumns: static::getColumnsOverwriteMapped('infolist'),
                 enumDictionary: static::$enumDictionary,
             ))
@@ -89,7 +90,7 @@ class AutoResource extends Resource
     {
         return $schema
             ->components(FormGenerator::make(
-                modelClass: static::getModel(), 
+                modelClass: static::getModel(),
                 overwriteColumns: static::getColumnsOverwriteMapped('form'),
                 enumDictionary: static::$enumDictionary,
             ))
@@ -102,22 +103,27 @@ class AutoResource extends Resource
 
         $defaultFilters = [...static::getFilters()];
         $defaultTableActions = [...static::getTableActions(), ViewAction::make()];
-        $defaultBulkActions = [...static::getBulkActions(), DeleteBulkAction::make()];
+        $defaultBulkActions = [...static::getBulkActions()];
+
+        if (!static::$readOnly) {
+            $defaultBulkActions[] = DeleteBulkAction::make();
+        }
 
         if ($hasSoftDeletes) {
             $defaultFilters[] = TrashedFilter::make();
 
-            $defaultTableActions[] = RestoreAction::make();
-
-            $defaultBulkActions[] = RestoreBulkAction::make();
-            $defaultBulkActions[] = ForceDeleteBulkAction::make();
+            if (!static::$readOnly) {
+                $defaultTableActions[] = RestoreAction::make();
+                $defaultBulkActions[] = RestoreBulkAction::make();
+                $defaultBulkActions[] = ForceDeleteBulkAction::make();
+            }
         }
 
         $tableSchema = TableGenerator::make(
-            modelClass: static::getModel(), 
+            modelClass: static::getModel(),
             overwriteColumns: static::getColumnsOverwriteMapped('table'),
-            enumDictionary: static::$enumDictionary, 
-            searchableColumns: static::$searchableColumns, 
+            enumDictionary: static::$enumDictionary,
+            searchableColumns: static::$searchableColumns,
             visibleColumns: static::$visibleColumns
         );
 
@@ -149,12 +155,17 @@ class AutoResource extends Resource
 
     public static function getPages(): array
     {
-        return [...static::getExtraPages(), ...[
+        $pages = [...static::getExtraPages(), ...[
             'index'  => PageMounter::makeList(static::class),
-            'create' => PageMounter::makeCreate(static::class),
             'view'   => PageMounter::makeView(static::class),
-            'edit'   => PageMounter::makeEdit(static::class),
         ]];
+
+        if (!static::$readOnly) {
+            $pages['create'] = PageMounter::makeCreate(static::class);
+            $pages['edit'] = PageMounter::makeEdit(static::class);
+        }
+
+        return $pages;
     }
 
     public static function getEloquentQuery(): Builder
@@ -173,6 +184,11 @@ class AutoResource extends Resource
     public static function getIntrusive(): bool
     {
         return static::$intrusive;
+    }
+
+    public static function getReadOnly(): bool
+    {
+        return static::$readOnly;
     }
 
     public static function getBulkActions(): array
