@@ -39,21 +39,25 @@ class FilamentAutoResourceView extends ViewRecord
 
     protected function getActions(): array
     {
-        if (method_exists(static::getResource()::getModel(), 'bootSoftDeletes')) {
-            return [
-                ...static::getResource()::getPagesActions(),
+        $actions = [...static::getResource()::getPagesActions()];
+
+        if (!static::getResource()::getReadOnly()) {
+            $actions = [
+                ...$actions,
                 $this->makeEditAction(),
                 DeleteAction::make(),
-                ForceDeleteAction::make(),
-                RestoreAction::make(),
             ];
+
+            if (method_exists(static::getResource()::getModel(), 'bootSoftDeletes')) {
+                $actions = [
+                    ...$actions,
+                    ForceDeleteAction::make(),
+                    RestoreAction::make(),
+                ];
+            }
         }
 
-        return [
-            ...static::getResource()::getPagesActions(),
-            $this->makeEditAction(),
-            DeleteAction::make(),
-        ];
+        return $actions;
     }
 
     protected function makeEditAction()
