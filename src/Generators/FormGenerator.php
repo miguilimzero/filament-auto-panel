@@ -35,7 +35,7 @@ class FormGenerator extends AbstractGenerator
                 ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary)
         );
     }
-    
+
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
         return Select::make($column->getName())
@@ -124,9 +124,10 @@ class FormGenerator extends AbstractGenerator
             Section::make()
                 ->schema($formsSchema)
                 ->columns(2)
+                ->columnSpanFull()
                 ->visibleOn('create'),
 
-            Group::make()
+            Section::make()
                 ->schema($formsSchema)
                 ->columns(2)
                 ->columnSpanFull()
