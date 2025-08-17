@@ -160,11 +160,6 @@ class AutoResource extends Resource
             'view'   => PageMounter::makeView(static::class),
         ]];
 
-        if (!static::$readOnly) {
-            $pages['create'] = PageMounter::makeCreate(static::class);
-            $pages['edit'] = PageMounter::makeEdit(static::class);
-        }
-
         return $pages;
     }
 

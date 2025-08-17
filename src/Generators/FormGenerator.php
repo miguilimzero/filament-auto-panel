@@ -121,13 +121,13 @@ class FormGenerator extends AbstractGenerator
         }
 
         return [
-            Section::make()
+            Group::make()
                 ->schema($formsSchema)
                 ->columns(2)
                 ->columnSpanFull()
                 ->visibleOn('create'),
 
-            Section::make()
+            Group::make()
                 ->schema($formsSchema)
                 ->columns(2)
                 ->columnSpanFull()

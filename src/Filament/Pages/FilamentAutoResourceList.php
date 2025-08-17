@@ -3,8 +3,8 @@
 namespace Miguilim\FilamentAutoPanel\Filament\Pages;
 
 use Filament\Actions\CreateAction;
-use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Database\Eloquent\Model;
 
 class FilamentAutoResourceList extends ListRecords
 {
@@ -31,8 +31,19 @@ class FilamentAutoResourceList extends ListRecords
 
     protected function getActions(): array
     {
-        return [
-            CreateAction::make(),
-        ];
+        $actions = [];
+
+        if (! static::getResource()::getReadOnly()) {
+            $actions[] = CreateAction::make()
+                ->using(function (array $data) {
+                    if (static::getResource()::getIntrusive()) {
+                        $this->getModel()::forceCreate($data);
+                    } else {
+                        $this->getModel()::create($data);
+                    }
+                });
+        }
+
+        return $actions;
     }
 }

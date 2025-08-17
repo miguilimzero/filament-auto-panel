@@ -6,7 +6,6 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\EditAction;
-use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Database\Eloquent\Model;
 
@@ -62,21 +61,19 @@ class FilamentAutoResourceView extends ViewRecord
 
     protected function makeEditAction()
     {
-        return EditAction::make();
-
-        // return Actions\EditAction::make()
-        //     ->fillForm(function (Model $record): array {
-        //         if (static::getResource()::getIntrusive()) {
-        //             return $record->setHidden([])->attributesToArray();
-        //         } else {
-        //             return $record->attributesToArray();
-        //         }
-        //     })->using(function (array $data, Model $record) {
-        //         if (static::getResource()::getIntrusive()) {
-        //             $record->forceFill($data)->save();
-        //         } else {
-        //             $record->update($data);
-        //         }
-        //     });
+        return EditAction::make()
+            ->fillForm(function (Model $record): array {
+                if (static::getResource()::getIntrusive()) {
+                    return $record->setHidden([])->attributesToArray();
+                } else {
+                    return $record->attributesToArray();
+                }
+            })->using(function (array $data, Model $record) {
+                if (static::getResource()::getIntrusive()) {
+                    $record->forceFill($data)->save();
+                } else {
+                    $record->update($data);
+                }
+            });
     }
 }
