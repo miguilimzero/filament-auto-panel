@@ -2,104 +2,66 @@
 
 namespace Miguilim\FilamentAutoPanel;
 
-use Filament\Actions\BulkAction;
-use Closure;
-use Filament\Actions\Action as PageAction;
-use Illuminate\Database\Eloquent\Collection;
+use Filament\Actions\Action;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Collection;
+use Illuminate\Support\LazyCollection;
 
-class AutoAction
+class AutoAction extends Action
 {
-    protected Closure | string | null $action = null;
-
-    protected array $actionMethodsAndArguments = [];
-
     public bool $showOnBulkAction = false;
 
     public bool $showOnTable = false;
 
     public bool $showOnViewPage = false;
 
-    public function __construct(protected ?string $name = null)
+    public function getExtraAttributes(): array
     {
+        if ($this->canAccessSelectedRecords()) {
+            return [
+                'x-cloak' => true,
+                'x-show' => 'getSelectedRecordsCount()',
+                ...parent::getExtraAttributes(),
+            ];
+        }
 
+        return parent::getExtraAttributes();
     }
 
-    public static function make(?string $name = null): static
+    public function getSelectedRecords(): EloquentCollection | Collection | LazyCollection
     {
-        return new static($name);
+        if ($this->getRecord() !== null) { // Adaptation to work on table and on view page (also removed f (! $this->canAccessSelectedRecords()) validation)
+            return collect([$this->getRecord()]);
+        }
+
+        $records = $this->getLivewire()->getSelectedTableRecords($this->shouldFetchSelectedRecords(), $this->getSelectedRecordsChunkSize());
+
+        $this->totalSelectedRecordsCount = ($records instanceof LazyCollection)
+            ? $this->getLivewire()->getSelectedTableRecordsQuery(shouldFetchSelectedRecords: false)->count()
+            : $records->count();
+        $this->successfulSelectedRecordsCount = $this->totalSelectedRecordsCount;
+
+        return $records;
     }
 
-    public function __call(string $method, array $arguments): static
-    {
-        $this->actionMethodsAndArguments[$method] = $arguments;
-
-        return $this;
-    }
-
-    public function showOnBulkAction(bool $condition = true)
+    public function showOnBulkAction(bool $condition = true): static
     {
         $this->showOnBulkAction = $condition;
 
         return $this;
     }
 
-    public function showOnTable(bool $condition = true)
+    public function showOnTable(bool $condition = true): static
     {
         $this->showOnTable = $condition;
 
         return $this;
     }
 
-    public function showOnViewPage(bool $condition = true)
+    public function showOnViewPage(bool $condition = true): static
     {
         $this->showOnViewPage = $condition;
 
         return $this;
-    }
-
-    public function action(Closure | string | null $action): static
-    {
-        $this->action = $action;
-
-        return $this;
-    }
-
-    public function convertToBulkAction(): BulkAction
-    {
-        $actionClosure = $this->action;
-        $action        = BulkAction::make($this->name)
-            ->action($actionClosure);
-
-        foreach ($this->actionMethodsAndArguments as $method => $arguments) {
-            $action->{$method}(...$arguments);
-        }
-
-        return $action;
-    }
-
-    public function convertToTableAction(): PageAction
-    {
-        $actionClosure = $this->action;
-        $action        = PageAction::make($this->name)
-            ->action(fn($record, $data) => $actionClosure(new Collection([$record]), $data));
-
-        foreach ($this->actionMethodsAndArguments as $method => $arguments) {
-            $action->{$method}(...$arguments);
-        }
-
-        return $action;
-    }
-
-    public function convertToViewPageAction(): PageAction
-    {
-        $actionClosure = $this->action;
-        $action        = PageAction::make($this->name)
-            ->action(fn($record, $data) => $actionClosure(new Collection([$record]), $data));
-        
-        foreach ($this->actionMethodsAndArguments as $method => $arguments) {
-            $action->{$method}(...$arguments);
-        }
-
-        return $action;
     }
 }

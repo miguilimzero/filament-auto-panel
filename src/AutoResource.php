@@ -190,7 +190,7 @@ class AutoResource extends Resource
     {
         return collect(static::getActions())
             ->filter(fn (AutoAction $action) => $action->showOnBulkAction)
-            ->map(fn (AutoAction $action) => $action->convertToBulkAction())
+            ->map(fn (AutoAction $action) => $action->bulk()->accessSelectedRecords())
             ->all();
     }
 
@@ -198,7 +198,6 @@ class AutoResource extends Resource
     {
         return collect(static::getActions())
             ->filter(fn (AutoAction $action) => $action->showOnTable)
-            ->map(fn (AutoAction $action) => $action->convertToTableAction())
             ->all();
     }
 
@@ -206,7 +205,6 @@ class AutoResource extends Resource
     {
         return collect(static::getActions())
             ->filter(fn (AutoAction $action) => $action->showOnViewPage)
-            ->map(fn (AutoAction $action) => $action->convertToViewPageAction())
             ->all();
     }
 

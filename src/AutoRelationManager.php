@@ -159,7 +159,6 @@ class AutoRelationManager extends RelationManager
     {
         return collect($this->getActions())
             ->filter(fn (AutoAction $action) => $action->showOnBulkAction)
-            ->map(fn (AutoAction $action) => $action->convertToBulkAction())
             ->all();
     }
 
@@ -167,7 +166,6 @@ class AutoRelationManager extends RelationManager
     {
         return collect($this->getActions())
             ->filter(fn (AutoAction $action) => $action->showOnTable)
-            ->map(fn (AutoAction $action) => $action->convertToTableAction())
             ->all();
     }
 
