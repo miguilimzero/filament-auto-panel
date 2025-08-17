@@ -35,8 +35,6 @@ use Miguilim\FilamentAutoPanel\Generators\TableGenerator;
 
 class AutoRelationManager extends RelationManager
 {
-    protected static ?string $relatedResource;
-
     protected static array $enumDictionary = [];
 
     protected static array $visibleColumns = [];
@@ -45,7 +43,7 @@ class AutoRelationManager extends RelationManager
 
     protected static bool $intrusive = true;
 
-    protected static bool $readyOnly = false;
+    protected static bool $readOnly = false;
 
     public function getFilters(): array
     {
@@ -68,7 +66,7 @@ class AutoRelationManager extends RelationManager
 
     public function isReadOnly(): bool
     {
-        return static::$readyOnly;
+        return static::$readOnly;
     }
 
     public function infolist(Schema $schema): Schema
@@ -198,11 +196,11 @@ class AutoRelationManager extends RelationManager
 
     protected function makeViewAndEditActions(): array
     {
-        if ($relatedResource = TableGenerator::tryToGuessRelatedResource($this->getRelationship()->getModel())) {
-            return [
-                ViewAction::make()->url(fn ($record) => $relatedResource::getUrl('view', ['record' => $record])),
-            ];
-        }
+        // if ($relatedResource = TableGenerator::tryToGuessRelatedResource($this->getRelationship()->getModel())) {
+        //     return [
+        //         ViewAction::make()->url(fn ($record) => $relatedResource::getUrl('view', ['record' => $record])),
+        //     ];
+        // }
 
         return [
             ViewAction::make(),
