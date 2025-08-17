@@ -45,6 +45,8 @@ class AutoRelationManager extends RelationManager
 
     protected static bool $readOnly = false;
 
+    protected static bool $associateAttachActions = true;
+
     public function getFilters(): array
     {
         return [];
@@ -105,7 +107,8 @@ class AutoRelationManager extends RelationManager
 
         // Associate action
         if (
-            method_exists($this->getRelationship()->getModel(), $table->getInverseRelationship())
+            static::$associateAttachActions
+            && method_exists($this->getRelationship()->getModel(), $table->getInverseRelationship())
             && ($this->getRelationship() instanceof HasMany || $this->getRelationship() instanceof MorphMany)
         ) {
             $defaultHeaderActions = [AssociateAction::make(), ...$defaultHeaderActions];
@@ -114,7 +117,10 @@ class AutoRelationManager extends RelationManager
         }
 
         // Attach action
-        if ($this->getRelationship() instanceof BelongsToMany || $this->getRelationship() instanceof MorphToMany) {
+        if (
+            static::$associateAttachActions
+            && ($this->getRelationship() instanceof BelongsToMany || $this->getRelationship() instanceof MorphToMany)
+        ) {
             $defaultHeaderActions = [AttachAction::make(), ...$defaultHeaderActions];
             $defaultActions       = [DetachAction::make(), ...$defaultActions];
             $defaultBulkActions   = [DetachBulkAction::make(), ...$defaultBulkActions];
