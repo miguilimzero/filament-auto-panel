@@ -146,12 +146,12 @@ class AutoRelationManager extends RelationManager
 
     public static function isIntrusive(): bool
     {
-        return static::$intrusive;
+        return static::$relatedResource ? static::$relatedResource::isIntrusive() : static::$intrusive;
     }
 
     public function isReadOnly(): bool
     {
-        return static::$readOnly;
+        return static::$relatedResource ? static::$relatedResource::isReadOnly() : static::$readOnly;
     }
 
     public function getBulkActions(): array
