@@ -201,14 +201,21 @@ class AutoResource extends Resource
             ->all();
     }
 
-    public static function getPagesActions(): array
+    public static function getViewPageActions(): array
     {
         return collect(static::getActions())
             ->filter(fn (AutoAction $action) => $action->showOnViewPage)
             ->all();
     }
 
-    protected static function getColumnsOverwriteMapped(string $type)
+    public static function getListPageActions(): array
+    {
+        return collect(static::getActions())
+            ->filter(fn (AutoAction $action) => $action->showOnListPage)
+            ->all();
+    }
+
+    protected static function getColumnsOverwriteMapped(string $type): array
     {
         return collect(static::getColumnsOverwrite()[$type])
             ->mapWithKeys(fn ($column) => [$column->getName() => $column])

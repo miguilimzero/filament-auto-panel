@@ -31,7 +31,7 @@ class FilamentAutoResourceList extends ListRecords
 
     protected function getActions(): array
     {
-        $actions = [];
+        $actions = [...static::getResource()::getListPageActions()];
 
         if (! static::getResource()::getReadOnly()) {
             $actions[] = CreateAction::make()

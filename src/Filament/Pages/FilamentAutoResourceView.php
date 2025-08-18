@@ -38,7 +38,7 @@ class FilamentAutoResourceView extends ViewRecord
 
     protected function getActions(): array
     {
-        $actions = [...static::getResource()::getPagesActions()];
+        $actions = [...static::getResource()::getViewPageActions()];
 
         if (!static::getResource()::getReadOnly()) {
             $actions = [
