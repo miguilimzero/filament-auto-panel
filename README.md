@@ -133,31 +133,53 @@ You don't need to list anything now, **you can just access the resource page and
 ## Auto Relation Manager
 
 Auto Relation Manager construct a table containing the all relationship model columns, excluding the related id or morph.
-You can generate your Auto Relation Manager using the following command:
+You don't need to generate a relation manager file as you can use the `makeFromResource` method from `RelationManagerMounter` helper class:
+
+```php
+// UserResource.php
+use Miguilim\FilamentAutoPanel\Mounters\RelationManagerMounter;
+
+public static function getRelations(): array
+{
+    return [
+        RelationManagerMounter::makeFromResource(
+            resource: UserBanResource::class, // Auto Resource
+            relation: 'userBans',
+        ),
+    ];
+}
+```
+
+> [!NOTE]
+> Optional parameters: `associateAttachActions`.
+
+Or if you don't have a resource for your relation manager, you can use the `makeStandalone` method:
+
+```php
+// UserResource.php
+use Miguilim\FilamentAutoPanel\Mounters\RelationManagerMounter;
+
+public static function getRelations(): array
+{
+    return [
+        RelationManagerMounter::makeStandalone(
+            relation: 'userBans',
+            visibleColumns: ['reason', 'created_at'],
+        ),
+    ];
+}
+```
+
+> [!NOTE]
+> Optional parameters: `searchableColumns`, `enumDictionary`, `recordTitleAttribute`, `associateAttachActions`, `intrusive`, `readOnly`.
+
+However, if you need a more customized relation manager, you can create a file with the following command:
 
 ```sh
 php artisan make:filament-auto-relation-manager
 ```
 
 This command creates the Auto Relation Manager for you and you must list it in the `getRelations()` method of your resource.
-However, sometimes you may want something more handier. You can create a relation manager inside your resource using the `RelationManagerMounter`.
-See the following example of how it works:
-
-```php
-use Miguilim\FilamentAutoPanel\Mounters\RelationManagerMounter;
-
-public static function getRelations(): array
-{
-    return [
-        RelationManagerMounter::make(
-            resource: static::class,
-            relation: 'userBans',
-            recordTitleAttribute: 'Bans',
-            visibleColumns: ['reason', 'created_at'],
-        ),
-    ];
-}
-```
 
 ## Auto Action
 
