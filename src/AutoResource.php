@@ -216,7 +216,10 @@ class AutoResource extends Resource
             ->all();
     }
 
-    protected static function getColumnsOverwriteMapped(string $type): array
+    /**
+     * Get the columns overwrite mapped (public as being used by AutoRelationManager).
+     */
+    public static function getColumnsOverwriteMapped(string $type): array
     {
         return collect(static::getColumnsOverwrite()[$type])
             ->mapWithKeys(fn ($column) => [$column->getName() => $column])

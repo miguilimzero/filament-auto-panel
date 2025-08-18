@@ -18,7 +18,7 @@ class RelationManagerMounter
         ?bool $intrusive = null,
         ?bool $readOnly = null,
     ): string {
-        $relationManagerClass = AutoRelationManager::class;
+        $relationManagerClass = static::getRelationManagerClass();
         $anonymousClass =  'C' . md5(implode('N', $visibleColumns)) . "{$relation}AutoRelationManager";
 
         $formattedVisibleColumns = static::formatVisibleColumns($visibleColumns);
@@ -50,13 +50,27 @@ class RelationManagerMounter
         return $anonymousClass;
     }
 
-    // public static function makeFromResource(
-    //     string $resource,
-    //     string $relation,
-    //     array $visibleColumns = []
-    // ): string {
+    public static function makeFromResource(
+        string $resource,
+        string $relation
+    ): string {
+        $relationManagerClass = static::getRelationManagerClass();
+        $resourceName = array_reverse(explode('\\', $resource))[0];
+        $anonymousClass = "{$resourceName}{$relation}AutoRelationManager";
 
-    // }
+        if (!in_array($anonymousClass, static::$mountedClasses)) {
+            static::$mountedClasses[] = $anonymousClass;
+
+            $classCode = trim("class {$anonymousClass} extends {$relationManagerClass} {
+                protected static ?string \$relatedResource = {$resource}::class;
+                protected static string \$relationship = '{$relation}';
+            };");
+
+            eval($classCode);
+        }
+
+        return $anonymousClass;
+    }
 
     protected static function formatVisibleColumns(array $visibleColumns): string
     {
@@ -83,10 +97,15 @@ class RelationManagerMounter
                 $value = $value ? 'true' : 'false';
             }
 
-            return "\n\n    protected static {$type} \${$name} = $value;";
+            return "protected static {$type} \${$name} = $value;";
         }
 
         return '';
+    }
+
+    protected static function getRelationManagerClass(): string
+    {
+        return AutoRelationManager::class;
     }
 
     /**

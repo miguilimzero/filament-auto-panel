@@ -66,11 +66,15 @@ class AutoRelationManager extends RelationManager
 
     public function infolist(Schema $schema): Schema
     {
+        $overwriteColumns = static::$relatedResource
+            ? static::$relatedResource::getColumnsOverwriteMapped('infolist')
+            : $this->getColumnsOverwriteMapped('infolist');
+
         return $schema
             ->components(InfolistGenerator::make(
                 modelClass: $this->getRelationship()->getModel()::class,
                 exceptColumns: $this->getExceptRelationshipColumns(),
-                overwriteColumns: $this->getColumnsOverwriteMapped('infolist'),
+                overwriteColumns: $overwriteColumns,
                 enumDictionary: static::$enumDictionary,
             ))
             ->columns(2);
@@ -78,11 +82,15 @@ class AutoRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
+        $overwriteColumns = static::$relatedResource
+            ? static::$relatedResource::getColumnsOverwriteMapped('form')
+            : $this->getColumnsOverwriteMapped('form');
+
         return $schema
             ->components(FormGenerator::make(
                 modelClass: $this->getRelationship()->getModel()::class,
                 exceptColumns: $this->getExceptRelationshipColumns(),
-                overwriteColumns: $this->getColumnsOverwriteMapped('form'),
+                overwriteColumns: $overwriteColumns,
                 enumDictionary: static::$enumDictionary,
                 relationManagerView: true,
             ))
@@ -91,33 +99,20 @@ class AutoRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
+        [$baseHeaderActions, $baseActions, $baseBulkActions] = $this->getBaseTableActions($table);
+
+        if (static::$relatedResource) {
+            return $table
+                ->pushHeaderActions($baseHeaderActions)
+                ->recordActions([...$baseActions, ...$table->getRecordActions()])
+                ->pushToolbarActions($baseBulkActions);
+        }
+
         $hasSoftDeletes = method_exists($this->getRelationship()->getModel(), 'bootSoftDeletes');
 
         $defaultFilters       = [...$this->getFilters()];
-        $defaultHeaderActions = [AutoCreateAction::make()];
         $defaultActions       = [...$this->getTableActions(), AutoEditAction::make(), ViewAction::make()];
         $defaultBulkActions   = [...$this->getBulkActions(), DeleteBulkAction::make()];
-
-        // Associate action
-        if (
-            static::$associateAttachActions
-            && method_exists($this->getRelationship()->getModel(), $table->getInverseRelationship())
-            && ($this->getRelationship() instanceof HasMany || $this->getRelationship() instanceof MorphMany)
-        ) {
-            $defaultHeaderActions = [AssociateAction::make(), ...$defaultHeaderActions];
-            $defaultActions       = [DissociateAction::make(), ...$defaultActions];
-            $defaultBulkActions   = [DissociateBulkAction::make(), ...$defaultBulkActions];
-        }
-
-        // Attach action
-        if (
-            static::$associateAttachActions
-            && ($this->getRelationship() instanceof BelongsToMany || $this->getRelationship() instanceof MorphToMany)
-        ) {
-            $defaultHeaderActions = [AttachAction::make(), ...$defaultHeaderActions];
-            $defaultActions       = [DetachAction::make(), ...$defaultActions];
-            $defaultBulkActions   = [DetachBulkAction::make(), ...$defaultBulkActions];
-        }
 
         // Soft deletes
         if ($hasSoftDeletes) {
@@ -144,9 +139,9 @@ class AutoRelationManager extends RelationManager
                 searchableColumns: static::$searchableColumns,
             ))
             ->filters($defaultFilters)
-            ->headerActions($defaultHeaderActions)
-            ->recordActions($defaultActions)
-            ->toolbarActions([BulkActionGroup::make($defaultBulkActions)]);
+            ->headerActions($baseHeaderActions)
+            ->recordActions([...$baseActions, ...$defaultActions])
+            ->toolbarActions([BulkActionGroup::make($defaultBulkActions), ...$baseBulkActions]);
     }
 
     public static function isIntrusive(): bool
@@ -171,6 +166,36 @@ class AutoRelationManager extends RelationManager
         return collect($this->getActions())
             ->filter(fn (AutoAction $action) => $action->showOnTable)
             ->all();
+    }
+
+    protected function getBaseTableActions(Table $table)
+    {
+        $baseHeaderActions = [AutoCreateAction::make()];
+        $baseActions       = [];
+        $baseBulkActions   = [];
+
+        // Associate action
+        if (
+            static::$associateAttachActions
+            && method_exists($this->getRelationship()->getModel(), $table->getInverseRelationship())
+            && ($this->getRelationship() instanceof HasMany || $this->getRelationship() instanceof MorphMany)
+        ) {
+            $baseHeaderActions = [AssociateAction::make(), ...$baseHeaderActions];
+            $baseActions       = [DissociateAction::make(), ...$baseActions];
+            $baseBulkActions   = [DissociateBulkAction::make(), ...$baseBulkActions];
+        }
+
+        // Attach action
+        if (
+            static::$associateAttachActions
+            && ($this->getRelationship() instanceof BelongsToMany || $this->getRelationship() instanceof MorphToMany)
+        ) {
+            $baseHeaderActions = [AttachAction::make(), ...$baseHeaderActions];
+            $baseActions       = [DetachAction::make(), ...$baseActions];
+            $baseBulkActions   = [DetachBulkAction::make(), ...$baseBulkActions];
+        }
+
+        return [$baseHeaderActions, $baseActions, $baseBulkActions];
     }
 
     protected function getExceptRelationshipColumns()
