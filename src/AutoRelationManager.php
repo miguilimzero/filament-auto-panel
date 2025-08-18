@@ -18,7 +18,6 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\ViewAction;
 use Filament\Actions\EditAction;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -32,6 +31,7 @@ use Illuminate\Support\Arr;
 use Miguilim\FilamentAutoPanel\Generators\FormGenerator;
 use Miguilim\FilamentAutoPanel\Generators\InfolistGenerator;
 use Miguilim\FilamentAutoPanel\Generators\TableGenerator;
+use Filament\Actions\BulkActionGroup;
 
 class AutoRelationManager extends RelationManager
 {
@@ -153,7 +153,7 @@ class AutoRelationManager extends RelationManager
             ->filters($defaultFilters)
             ->headerActions($defaultHeaderActions)
             ->recordActions($defaultActions)
-            ->toolbarActions($defaultBulkActions);
+            ->toolbarActions([BulkActionGroup::make($defaultBulkActions)]);
     }
 
     public static function isIntrusive(): bool

@@ -2,6 +2,7 @@
 
 namespace Miguilim\FilamentAutoPanel;
 
+use Filament\Actions\BulkActionGroup;
 use Filament\Schemas\Schema;
 use Filament\Actions\ViewAction;
 use Filament\Actions\DeleteBulkAction;
@@ -150,7 +151,7 @@ class AutoResource extends Resource
             ->columns($tableSchema)
             ->filters($defaultFilters)
             ->recordActions($defaultTableActions)
-            ->toolbarActions($defaultBulkActions);
+            ->toolbarActions([BulkActionGroup::make($defaultBulkActions)]);
     }
 
     public static function getPages(): array
