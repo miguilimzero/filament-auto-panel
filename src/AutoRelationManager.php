@@ -14,24 +14,22 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ForceDeleteBulkAction;
-use Filament\Actions\CreateAction;
 use Filament\Actions\ViewAction;
-use Filament\Actions\EditAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\Arr;
 use Miguilim\FilamentAutoPanel\Generators\FormGenerator;
 use Miguilim\FilamentAutoPanel\Generators\InfolistGenerator;
 use Miguilim\FilamentAutoPanel\Generators\TableGenerator;
 use Filament\Actions\BulkActionGroup;
+use Miguilim\FilamentAutoPanel\Filament\Actions\AutoCreateAction;
+use Miguilim\FilamentAutoPanel\Filament\Actions\AutoEditAction;
 
 class AutoRelationManager extends RelationManager
 {
@@ -41,11 +39,11 @@ class AutoRelationManager extends RelationManager
 
     protected static array $searchableColumns = [];
 
+    protected static bool $associateAttachActions = true;
+
     protected static bool $intrusive = true;
 
     protected static bool $readOnly = false;
-
-    protected static bool $associateAttachActions = true;
 
     public function getFilters(): array
     {
@@ -64,11 +62,6 @@ class AutoRelationManager extends RelationManager
             'form' => [],
             'infolist' => [],
         ];
-    }
-
-    public function isReadOnly(): bool
-    {
-        return static::$readOnly;
     }
 
     public function infolist(Schema $schema): Schema
@@ -101,7 +94,7 @@ class AutoRelationManager extends RelationManager
         $hasSoftDeletes = method_exists($this->getRelationship()->getModel(), 'bootSoftDeletes');
 
         $defaultFilters       = [...$this->getFilters()];
-        $defaultHeaderActions = [$this->makeCreateAction()];
+        $defaultHeaderActions = [AutoCreateAction::make()];
         $defaultActions       = [...$this->getTableActions(), ...$this->makeViewAndEditActions()];
         $defaultBulkActions   = [...$this->getBulkActions(), DeleteBulkAction::make()];
 
@@ -161,6 +154,11 @@ class AutoRelationManager extends RelationManager
         return static::$intrusive;
     }
 
+    public function isReadOnly(): bool
+    {
+        return static::$readOnly;
+    }
+
     public function getBulkActions(): array
     {
         return collect($this->getActions())
@@ -193,11 +191,6 @@ class AutoRelationManager extends RelationManager
             ->all();
     }
 
-    protected function makeCreateAction()
-    {
-        return CreateAction::make(); // TODO: Add support for intrusive mode
-    }
-
     protected function makeViewAndEditActions(): array
     {
         // if ($relatedResource = TableGenerator::tryToGuessRelatedResource($this->getRelationship()->getModel())) {
@@ -209,37 +202,7 @@ class AutoRelationManager extends RelationManager
         return [
             ViewAction::make(),
 
-            EditAction::make()
-                ->fillForm(function (Model $record): array {
-                    if (static::isIntrusive()) {
-                        return $record->setHidden([])->attributesToArray();
-                    } else {
-                        return $record->attributesToArray();
-                    }
-                })->using(function (array $data, Model $record, Table $table) {
-                    $relationship = $table->getRelationship();
-
-                    if ($relationship instanceof BelongsToMany) {
-                        $pivotColumns = $relationship->getPivotColumns();
-                        $pivotData = Arr::only($data, $pivotColumns);
-
-                        if (count($pivotColumns)) {
-                            if (static::isIntrusive()) {
-                                $record->{$relationship->getPivotAccessor()}->forceFill($pivotData)->save();
-                            } else {
-                                $record->{$relationship->getPivotAccessor()}->update($pivotData);
-                            }
-                        }
-
-                        $data = Arr::except($data, $pivotColumns);
-                    }
-
-                    if (static::isIntrusive()) {
-                        $record->forceFill($data)->save();
-                    } else {
-                        $record->update($data);
-                    }
-                })
+            AutoEditAction::make(),
         ];
     }
 }
