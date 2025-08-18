@@ -77,14 +77,9 @@ linking to the respective resource in table and infolists (if the resource exist
 > This linking currently do not support morphsTo detection. PRs are welcome!
 
 
-
 #### Default Pages
 
 By default, the Auto Resource have a list and view pages. The create and edit record is available as a modal action in the list and view pages respectively.
-
-#### Read-Only Mode
-
-Auto Resources and Auto Relation Managers can be read-only by setting `protected static bool $readOnly = true;` in your resource or relation manager class. With this mode, the create and edit actions will be disabled.
 
 #### Intrusive Mode
 
@@ -104,6 +99,10 @@ and Auto Relation Manager appends the following default actions:
 - Bulk Actions: `DeleteBulkAction or RestoreBulkAction, ForceDeleteBulkAction`
 - Table Actions: `ViewAction, EditAction or RestoreAction`
 - Header Actions: `CreateAction`
+
+#### Read-Only Mode
+
+Auto Resources and Auto Relation Managers can be read-only by setting `protected static bool $readOnly = true;` in your resource or relation manager class. With this mode, all the default actions (with the exception of the `ViewAction`) will be disabled.
 
 #### Default Sorting
 
