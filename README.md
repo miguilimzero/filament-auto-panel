@@ -182,7 +182,7 @@ public static function getActions(): array
 ```
 
 > [!NOTE]
-> By default the auto action are not shown anywhere, so you must set at least one of the following methods: `showOnTable()`, `showOnBulkAction()` or `showOnViewPage()`.
+> By default the auto action are not shown anywhere, so you must set at least one of the following methods: `showOnTable()`, `showOnBulkAction()`, `showOnViewPage()` or `showOnListPage()`.
 
 ## Enum Dictionary
 
