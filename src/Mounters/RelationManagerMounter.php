@@ -12,6 +12,7 @@ class RelationManagerMounter
         string $relation,
         array $visibleColumns,
         array $searchableColumns = [],
+        array $enumDictionary = [],
         ?string $recordTitleAttribute = null,
         ?bool $associateAttachActions = null,
         ?bool $intrusive = null,
@@ -22,6 +23,7 @@ class RelationManagerMounter
 
         $formattedVisibleColumns = static::formatVisibleColumns($visibleColumns);
         $formattedSearchableColumns = static::formatSearchableColumns($searchableColumns);
+        $formattedEnumDictionary = static::formatEnumDictionary($enumDictionary);
 
         $recordTitleAttributeCode = static::generateOptionalParameterCode('?string', 'recordTitleAttribute', $recordTitleAttribute);
         $associateAttachActionsCode = static::generateOptionalParameterCode('bool', 'associateAttachActions', $associateAttachActions);
@@ -33,6 +35,7 @@ class RelationManagerMounter
 
             $classCode = trim("class {$anonymousClass} extends {$relationManagerClass} {
                 protected static string \$relationship = '{$relation}';
+                protected static array \$enumDictionary = [{$formattedEnumDictionary}];
                 public static array \$visibleColumns = [{$formattedVisibleColumns}];
                 public static array \$searchableColumns = [{$formattedSearchableColumns}];
                 {$recordTitleAttributeCode}
@@ -65,6 +68,11 @@ class RelationManagerMounter
         return substr(str_replace(['{', '}', ':'], ['[', ']', '=>'], json_encode($searchableColumns)), 1, -1);
     }
 
+    protected static function formatEnumDictionary(array $enumDictionary): string
+    {
+        return substr(str_replace(['{', '}', ':'], ['[', ']', '=>'], json_encode($enumDictionary)), 1, -1);
+    }
+
     protected static function generateOptionalParameterCode(string $type, string $name, string|bool|null $value): string
     {
         if ($value !== null) {
@@ -91,6 +99,6 @@ class RelationManagerMounter
         array $visibleColumns,
         array $searchableColumns = []
     ): string {
-        return static::makeStandalone($relation, $visibleColumns, $searchableColumns, $recordTitleAttribute);
+        return static::makeStandalone($relation, $visibleColumns, $searchableColumns, [], $recordTitleAttribute);
     }
 }
