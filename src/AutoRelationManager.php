@@ -156,7 +156,7 @@ class AutoRelationManager extends RelationManager
             ->toolbarActions($defaultBulkActions);
     }
 
-    public static function getIntrusive(): bool
+    public static function isIntrusive(): bool
     {
         return static::$intrusive;
     }
@@ -211,7 +211,7 @@ class AutoRelationManager extends RelationManager
 
             EditAction::make()
                 ->fillForm(function (Model $record): array {
-                    if (static::getIntrusive()) {
+                    if (static::isIntrusive()) {
                         return $record->setHidden([])->attributesToArray();
                     } else {
                         return $record->attributesToArray();
@@ -224,7 +224,7 @@ class AutoRelationManager extends RelationManager
                         $pivotData = Arr::only($data, $pivotColumns);
 
                         if (count($pivotColumns)) {
-                            if (static::getIntrusive()) {
+                            if (static::isIntrusive()) {
                                 $record->{$relationship->getPivotAccessor()}->forceFill($pivotData)->save();
                             } else {
                                 $record->{$relationship->getPivotAccessor()}->update($pivotData);
@@ -234,7 +234,7 @@ class AutoRelationManager extends RelationManager
                         $data = Arr::except($data, $pivotColumns);
                     }
 
-                    if (static::getIntrusive()) {
+                    if (static::isIntrusive()) {
                         $record->forceFill($data)->save();
                     } else {
                         $record->update($data);

@@ -32,7 +32,7 @@ class AutoResourceListRecords extends ListRecords
     {
         $actions = [...static::getResource()::getListPageActions()];
 
-        if (! static::getResource()::getReadOnly()) {
+        if (! static::getResource()::isReadOnly()) {
             $actions[] = AutoCreateAction::make();
         }
 

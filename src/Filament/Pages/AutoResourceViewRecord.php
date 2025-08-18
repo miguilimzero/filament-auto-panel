@@ -26,7 +26,7 @@ class AutoResourceViewRecord extends ViewRecord
 
     protected function fillForm(): void
     {
-        $record = static::getResource()::getIntrusive()
+        $record = static::getResource()::isIntrusive()
             ? $this->getRecord()->setHidden([])
             : $this->getRecord();
 
@@ -38,7 +38,7 @@ class AutoResourceViewRecord extends ViewRecord
      */
     public function refreshFormData(array $statePaths): void
     {
-        $record = static::getResource()::getIntrusive()
+        $record = static::getResource()::isIntrusive()
             ? $this->getRecord()->setHidden([])
             : $this->getRecord();
 
@@ -52,7 +52,7 @@ class AutoResourceViewRecord extends ViewRecord
     {
         $actions = [...static::getResource()::getViewPageActions()];
 
-        if (!static::getResource()::getReadOnly()) {
+        if (!static::getResource()::isReadOnly()) {
             $actions = [
                 ...$actions,
                 AutoEditAction::make(),

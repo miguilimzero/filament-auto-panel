@@ -176,12 +176,12 @@ class AutoResource extends Resource
         return $parent;
     }
 
-    public static function getIntrusive(): bool
+    public static function isIntrusive(): bool
     {
         return static::$intrusive;
     }
 
-    public static function getReadOnly(): bool
+    public static function isReadOnly(): bool
     {
         return static::$readOnly;
     }

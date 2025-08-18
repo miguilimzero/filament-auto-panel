@@ -20,13 +20,13 @@ class AutoEditAction extends EditAction
     {
         return parent::make($name)
             ->fillForm(function (Model $record, AutoResource $resource): array {
-                if ($resource::getIntrusive()) {
+                if ($resource::isIntrusive()) {
                     return $record->setHidden([])->attributesToArray();
                 } else {
                     return $record->attributesToArray();
                 }
             })->using(function (array $data, Model $record, AutoResource $resource) {
-                if ($resource::getIntrusive()) {
+                if ($resource::isIntrusive()) {
                     $record->forceFill($data)->save();
                 } else {
                     $record->update($data);

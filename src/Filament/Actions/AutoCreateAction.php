@@ -19,7 +19,7 @@ class AutoCreateAction extends CreateAction
     {
         return parent::make($name)
             ->using(function (array $data, AutoResource $resource) {
-                if ($resource::getIntrusive()) {
+                if ($resource::isIntrusive()) {
                     $this->getModel()::forceCreate($data);
                 } else {
                     $this->getModel()::create($data);
