@@ -8,7 +8,6 @@ use Filament\Support\Components\ViewComponent;
 use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\IconPosition;
-use Filament\Tables;
 use Filament\Tables\Columns\Column as TableColumn;
 use Illuminate\Support\Str;
 use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
@@ -106,7 +105,7 @@ class TableGenerator extends AbstractGenerator
             ->sortable()
             ->placeholder(fn () => $this->placeholderHtml());
 
-        return ($column->getType() === 'datetime') 
+        return ($column->getType() === 'datetime')
             ? $textColumn->dateTime()
             : $textColumn->date();
     }

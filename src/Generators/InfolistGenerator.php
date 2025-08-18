@@ -5,7 +5,6 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Group;
-use Filament\Infolists;
 use Filament\Support\Components\ViewComponent;
 use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\FontWeight;
@@ -26,6 +25,7 @@ class InfolistGenerator extends AbstractGenerator
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
         return TextEntry::make("{$relationshipName}.{$relationshipTitleColumnName}")
+            ->label(ucfirst(strtolower(Str::headline($relationshipName))))
             ->placeholder(fn () => $this->placeholderHtml())
             ->weight(FontWeight::Bold)
             ->color('primary')
