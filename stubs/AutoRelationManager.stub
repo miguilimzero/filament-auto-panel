@@ -2,17 +2,11 @@
 
 namespace {{ namespace }};
 
-use App\Filament\Resources\{{ relatedResource }};
-use Filament\Tables\Table;
 use Miguilim\FilamentAutoPanel\AutoRelationManager;
 
 class {{ managerClass }} extends AutoRelationManager
 {
-    protected static ?string $relatedResource = {{ relatedResource }}::class;
-
-    protected static string $relationship = '{{ relationship }}';
-
-    protected static ?string $recordTitleAttribute = '{{ recordTitleAttribute }}';
+    protected static string $relationship = '{{ relationship }}';{{ recordTitleAttributeCode }}
 
     protected static array $enumDictionary = [];
 

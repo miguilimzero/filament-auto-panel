@@ -2,74 +2,117 @@
 
 namespace Miguilim\FilamentAutoPanel\Commands;
 
-use function Laravel\Prompts\text;
-
-use ReflectionClass;
-use Illuminate\Support\Str;
-
+use Filament\Support\Commands\Concerns\CanManipulateFiles;
 use Filament\Commands\MakeRelationManagerCommand;
+use Filament\Support\Commands\Exceptions\FailureCommandOutput;
 
 class MakeAutoRelationManagerCommand extends MakeRelationManagerCommand
 {
-     /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'make:filament-auto-relation-manager {resource?} {relationship?} {recordTitleAttribute?} {--panel=} {--F|force}';
+    use CanManipulateFiles;
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Create a new Filament auto relation manager class for a resource';
+    protected $description = 'Create a new Filament auto relation manager class';
+
+    protected $name = 'make:filament-auto-relation-manager';
 
     public function handle(): int
     {
-        $resource = (string) str(
-            $this->argument('resource') ?? text(
-                label: 'What is the resource you would like to create this in?',
-                placeholder: 'DepartmentResource',
-                required: true,
-            ),
-        )
-            ->studly()
-            ->trim('/')
-            ->trim('\\')
-            ->trim(' ')
-            ->replace('/', '\\');
+        try {
+            $this->configurePanel(question: 'Which panel would you like to create this relation manager in?');
+            $this->configureResource();
+            $this->configureRelationship();
+            // $this->configureRelatedResource();
 
-        $this->input->setArgument('resource', $resource);
+            // if (blank($this->relatedResourceFqn)) {
+            //     $this->configureFormSchemaFqn();
 
-        return parent::handle();
-    }
+            //     if (blank($this->formSchemaFqn)) {
+            //         $this->configureIsGeneratedIfNotAlready();
 
-    public function option($key = null) { 
-        if ($key === 'soft-deletes' || $key === 'attach' || $key === 'associate' || $key === 'view') {
-            return false;
+            //         $this->isGenerated
+            //             ? $this->configureRelatedModelFqnIfNotAlready()
+            //             : $this->configureRecordTitleAttributeIfNotAlready();
+            //     }
+
+            //     $this->configureHasViewOperation();
+
+            //     if ($this->hasViewOperation) {
+            //         $this->configureInfolistSchemaFqn();
+
+            //         if (blank($this->infolistSchemaFqn)) {
+            //             $this->configureRecordTitleAttributeIfNotAlready();
+            //         }
+            //     }
+
+            //     if ($this->hasFileGenerationFlag(FileGenerationFlag::EMBEDDED_PANEL_RESOURCE_TABLES)) {
+            //         $this->configureIsGeneratedIfNotAlready();
+
+            //         $this->isGenerated
+            //             ? $this->configureRelatedModelFqnIfNotAlready()
+            //             : $this->configureRecordTitleAttributeIfNotAlready();
+            //     } else {
+            //         $this->configureTableFqn();
+            //     }
+
+            //     if (blank($this->tableFqn)) {
+            //         $this->configureRecordTitleAttributeIfNotAlready();
+
+            //         $this->configureIsGeneratedIfNotAlready(
+            //             question: 'Should the table columns be generated from the current database columns?',
+            //         );
+
+            //         if ($this->isGenerated) {
+            //             $this->configureRelatedModelFqnIfNotAlready();
+            //         }
+
+            //         $this->configureIsSoftDeletable();
+
+            //         $this->configureRelationshipType();
+            //     }
+            // }
+
+            $this->configureLocation();
+
+            $this->createRelationManager();
+        } catch (FailureCommandOutput) {
+            return static::FAILURE;
         }
 
-        return parent::option($key);
+        $this->components->info("Filament relation manager created successfully.");
+
+        $this->components->info("Make sure to register the relation in [{$this->resourceFqn}::getRelations()].");
+
+        return static::SUCCESS;
     }
 
-    protected function copyStubToApp(string $stub, string $targetPath, array $replacements = []): void 
-    { 
-        if($stub !== 'RelationManager') {
-            return;
-        }
-
-        $replacements['relatedResource'] = $this->argument('resource');
-
-        parent::copyStubToApp('AutoRelationManager', $targetPath, $replacements);
-    }
-
-    protected function getDefaultStubPath(): string
+    protected function createRelationManager(): void
     {
-        $reflectionClass = new ReflectionClass($this);
+        $explodedFqd = explode('\\', $this->fqn);
+        $realFqnEnd = end($explodedFqd);
 
-        return (string) Str::of($reflectionClass->getFileName())
-            ->beforeLast('Commands')
-            ->append('../stubs');
+        $explodedResourceFqd = explode('\\', $this->resourceFqn);
+        $resourceRealFqnEnd = end($explodedResourceFqd);
+
+        $className = rtrim($resourceRealFqnEnd, 'Resource') . $realFqnEnd;
+        $relationManagerDirectory = str_replace('/Resources', '/RelationManagers', $this->resourcesDirectory);
+
+        $path = (string) str("{$relationManagerDirectory}\\{$className}.php")
+            ->replace('\\', '/')
+            ->replace('//', '/');
+
+        if (! $this->option('force') && $this->checkForCollision($path)) {
+            throw new FailureCommandOutput;
+        }
+
+        $recordTitleAttributeCode = '';
+        if ($this->recordTitleAttribute) {
+            $recordTitleAttributeCode = "\n\n    protected static string \$recordTitleAttribute = '{$this->recordTitleAttribute}';";
+        }
+
+        $this->copyStubToApp('AutoRelationManager', $path, [
+            'namespace' => str_replace('\\Resources', '\\RelationManagers', $this->resourcesNamespace),
+            'managerClass' => $className,
+            'relationship' => $this->relationship,
+            'recordTitleAttributeCode' => $recordTitleAttributeCode,
+        ]);
     }
 }
