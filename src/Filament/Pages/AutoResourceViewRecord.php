@@ -5,9 +5,8 @@ namespace Miguilim\FilamentAutoPanel\Filament\Pages;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
-use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
-use Illuminate\Database\Eloquent\Model;
+use Miguilim\FilamentAutoPanel\Filament\Actions\AutoEditAction;
 
 class AutoResourceViewRecord extends ViewRecord
 {
@@ -27,13 +26,26 @@ class AutoResourceViewRecord extends ViewRecord
 
     protected function fillForm(): void
     {
-        if (static::getResource()::getIntrusive()) {
-            $data = $this->getRecord()->setHidden([])->attributesToArray();
-        } else {
-            $data = $this->getRecord()->attributesToArray();
-        }
+        $record = static::getResource()::getIntrusive()
+            ? $this->getRecord()->setHidden([])
+            : $this->getRecord();
 
-        $this->fillFormWithDataAndCallHooks($data);
+        $this->fillFormWithDataAndCallHooks($record);
+    }
+
+    /**
+     * @param  array<string>  $statePaths
+     */
+    public function refreshFormData(array $statePaths): void
+    {
+        $record = static::getResource()::getIntrusive()
+            ? $this->getRecord()->setHidden([])
+            : $this->getRecord();
+
+        $this->form->fillPartially(
+            $this->mutateFormDataBeforeFill($record->attributesToArray()),
+            $statePaths,
+        );
     }
 
     protected function getActions(): array
@@ -43,7 +55,7 @@ class AutoResourceViewRecord extends ViewRecord
         if (!static::getResource()::getReadOnly()) {
             $actions = [
                 ...$actions,
-                $this->makeEditAction(),
+                AutoEditAction::make(),
                 DeleteAction::make(),
             ];
 
@@ -57,23 +69,5 @@ class AutoResourceViewRecord extends ViewRecord
         }
 
         return $actions;
-    }
-
-    protected function makeEditAction()
-    {
-        return EditAction::make()
-            ->fillForm(function (Model $record): array {
-                if (static::getResource()::getIntrusive()) {
-                    return $record->setHidden([])->attributesToArray();
-                } else {
-                    return $record->attributesToArray();
-                }
-            })->using(function (array $data, Model $record) {
-                if (static::getResource()::getIntrusive()) {
-                    $record->forceFill($data)->save();
-                } else {
-                    $record->update($data);
-                }
-            });
     }
 }

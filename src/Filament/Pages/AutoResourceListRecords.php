@@ -2,8 +2,8 @@
 
 namespace Miguilim\FilamentAutoPanel\Filament\Pages;
 
-use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
+use Miguilim\FilamentAutoPanel\Filament\Actions\AutoCreateAction;
 
 class AutoResourceListRecords extends ListRecords
 {
@@ -33,14 +33,7 @@ class AutoResourceListRecords extends ListRecords
         $actions = [...static::getResource()::getListPageActions()];
 
         if (! static::getResource()::getReadOnly()) {
-            $actions[] = CreateAction::make()
-                ->using(function (array $data) {
-                    if (static::getResource()::getIntrusive()) {
-                        $this->getModel()::forceCreate($data);
-                    } else {
-                        $this->getModel()::create($data);
-                    }
-                });
+            $actions[] = AutoCreateAction::make();
         }
 
         return $actions;
