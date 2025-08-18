@@ -4,9 +4,8 @@ namespace Miguilim\FilamentAutoPanel\Filament\Pages;
 
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
-use Illuminate\Database\Eloquent\Model;
 
-class FilamentAutoResourceList extends ListRecords
+class AutoResourceListRecords extends ListRecords
 {
     public function getTabs(): array
     {

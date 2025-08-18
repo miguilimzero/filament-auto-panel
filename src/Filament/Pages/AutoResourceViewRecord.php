@@ -9,7 +9,7 @@ use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Database\Eloquent\Model;
 
-class FilamentAutoResourceView extends ViewRecord
+class AutoResourceViewRecord extends ViewRecord
 {
     protected function getHeaderWidgets(): array
     {

@@ -3,8 +3,8 @@
 namespace Miguilim\FilamentAutoPanel\Mounters;
 
 use Filament\Resources\Pages\PageRegistration;
-use Miguilim\FilamentAutoPanel\Filament\Pages\FilamentAutoResourceList;
-use Miguilim\FilamentAutoPanel\Filament\Pages\FilamentAutoResourceView;
+use Miguilim\FilamentAutoPanel\Filament\Pages\AutoResourceListRecords;
+use Miguilim\FilamentAutoPanel\Filament\Pages\AutoResourceViewRecord;
 
 class PageMounter
 {
@@ -12,12 +12,12 @@ class PageMounter
 
     public static function makeList(string $resource): PageRegistration
     {
-        return static::generateAnonymousClass(FilamentAutoResourceList::class, $resource)::route('/');
+        return static::generateAnonymousClass(AutoResourceListRecords::class, $resource)::route('/');
     }
 
     public static function makeView(string $resource): PageRegistration
     {
-        return static::generateAnonymousClass(FilamentAutoResourceView::class, $resource)::route('/{record}');
+        return static::generateAnonymousClass(AutoResourceViewRecord::class, $resource)::route('/{record}');
     }
 
     public static function makeCustom(string $resource, string $pageClass, string $pageRoute): PageRegistration
