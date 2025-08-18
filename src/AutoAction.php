@@ -33,7 +33,7 @@ class AutoAction extends Action
     public function getSelectedRecords(): EloquentCollection | Collection | LazyCollection
     {
         if ($this->getRecord() !== null) { // Adaptation to work on table and on view page (also removed f (! $this->canAccessSelectedRecords()) validation)
-            return collect([$this->getRecord()]);
+            return new EloquentCollection([$this->getRecord()]);
         }
 
         $records = $this->getLivewire()->getSelectedTableRecords($this->shouldFetchSelectedRecords(), $this->getSelectedRecordsChunkSize());
