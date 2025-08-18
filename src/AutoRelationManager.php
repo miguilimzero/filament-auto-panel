@@ -95,7 +95,7 @@ class AutoRelationManager extends RelationManager
 
         $defaultFilters       = [...$this->getFilters()];
         $defaultHeaderActions = [AutoCreateAction::make()];
-        $defaultActions       = [...$this->getTableActions(), ...$this->makeViewAndEditActions()];
+        $defaultActions       = [...$this->getTableActions(), AutoEditAction::make(), ViewAction::make()];
         $defaultBulkActions   = [...$this->getBulkActions(), DeleteBulkAction::make()];
 
         // Associate action
@@ -189,20 +189,5 @@ class AutoRelationManager extends RelationManager
         return collect($this->getColumnsOverwrite()[$type])
             ->mapWithKeys(fn ($column) => [$column->getName() => $column])
             ->all();
-    }
-
-    protected function makeViewAndEditActions(): array
-    {
-        // if ($relatedResource = TableGenerator::tryToGuessRelatedResource($this->getRelationship()->getModel())) {
-        //     return [
-        //         ViewAction::make()->url(fn ($record) => $relatedResource::getUrl('view', ['record' => $record])),
-        //     ];
-        // }
-
-        return [
-            ViewAction::make(),
-
-            AutoEditAction::make(),
-        ];
     }
 }

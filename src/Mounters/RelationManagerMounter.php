@@ -12,7 +12,10 @@ class RelationManagerMounter
         string $relation,
         array $visibleColumns,
         array $searchableColumns = [],
-        ?string $recordTitleAttribute = null
+        ?string $recordTitleAttribute = null,
+        ?bool $associateAttachActions = null,
+        ?bool $intrusive = null,
+        ?bool $readOnly = null,
     ): string {
         $relationManagerClass = AutoRelationManager::class;
         $anonymousClass =  'C' . md5(implode('N', $visibleColumns)) . "{$relation}AutoRelationManager";
@@ -20,15 +23,23 @@ class RelationManagerMounter
         $formattedVisibleColumns = static::formatVisibleColumns($visibleColumns);
         $formattedSearchableColumns = static::formatSearchableColumns($searchableColumns);
 
+        $recordTitleAttributeCode = static::generateOptionalParameterCode('?string', 'recordTitleAttribute', $recordTitleAttribute);
+        $associateAttachActionsCode = static::generateOptionalParameterCode('bool', 'associateAttachActions', $associateAttachActions);
+        $intrusiveCode = static::generateOptionalParameterCode('bool', 'intrusive', $intrusive);
+        $readOnlyCode = static::generateOptionalParameterCode('bool', 'readOnly', $readOnly);
+
         if (!in_array($anonymousClass, static::$mountedClasses)) {
             static::$mountedClasses[] = $anonymousClass;
 
-            $classCode = "class {$anonymousClass} extends {$relationManagerClass} {
+            $classCode = trim("class {$anonymousClass} extends {$relationManagerClass} {
                 protected static string \$relationship = '{$relation}';
-                protected static ?string \$recordTitleAttribute = '{$recordTitleAttribute}';
                 public static array \$visibleColumns = [{$formattedVisibleColumns}];
                 public static array \$searchableColumns = [{$formattedSearchableColumns}];
-            };";
+                {$recordTitleAttributeCode}
+                {$associateAttachActionsCode}
+                {$intrusiveCode}
+                {$readOnlyCode}
+            };");
 
             eval($classCode);
         }
@@ -52,6 +63,22 @@ class RelationManagerMounter
     protected static function formatSearchableColumns(array $searchableColumns): string
     {
         return substr(str_replace(['{', '}', ':'], ['[', ']', '=>'], json_encode($searchableColumns)), 1, -1);
+    }
+
+    protected static function generateOptionalParameterCode(string $type, string $name, string|bool|null $value): string
+    {
+        if ($value !== null) {
+            if ($type === 'string' || $type === '?string') {
+                $value = "'{$value}'";
+            }
+            if ($type === 'bool') {
+                $value = $value ? 'true' : 'false';
+            }
+
+            return "\n\n    protected static {$type} \${$name} = $value;";
+        }
+
+        return '';
     }
 
     /**
