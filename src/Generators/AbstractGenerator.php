@@ -47,7 +47,7 @@ abstract class AbstractGenerator
         }
 
         return null;
-    } 
+    }
 
     protected function getResourceColumns(array $exceptColumn, array $overwriteColumns, array $enumDictionary): array
     {
@@ -96,17 +96,10 @@ abstract class AbstractGenerator
 
     protected function tryToGuessRelationshipName(Column $column): ?array
     {
-        if (Str::of($column->getName())->endsWith('_id')) {
-            $guessedRelationshipName = $this->guessBelongsToRelationshipName($column->getName(), $this->modelInstance::class);
-        
-            if (filled($guessedRelationshipName)) {
-                $guessedRelationshipTitleColumnName = $this->guessBelongsToRelationshipTitleColumnName(
-                    column: $column->getName(), 
-                    model: $this->modelInstance->{$guessedRelationshipName}()->getModel()::class
-                );
+        $columnName = $column->getName();
 
-                return [$guessedRelationshipName, $guessedRelationshipTitleColumnName];
-            }
+        if (Str::of($columnName)->endsWith('_id')) {
+            return RelationshipGuesser::try($columnName, $this->modelInstance);
         }
 
         // TODO: Add support for morphTo relationships

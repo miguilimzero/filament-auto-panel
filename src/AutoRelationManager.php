@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Miguilim\FilamentAutoPanel\Generators\FormGenerator;
 use Miguilim\FilamentAutoPanel\Generators\InfolistGenerator;
+use Miguilim\FilamentAutoPanel\Generators\RelationshipGuesser;
 use Miguilim\FilamentAutoPanel\Generators\TableGenerator;
 use Filament\Actions\BulkActionGroup;
 use Miguilim\FilamentAutoPanel\Filament\Actions\AutoCreateAction;
@@ -102,7 +103,13 @@ class AutoRelationManager extends RelationManager
         [$baseHeaderActions, $baseActions, $baseBulkActions] = $this->getBaseTableActions($table);
 
         if (static::$relatedResource) {
+            $exceptionColumn = implode(
+                separator: '.',
+                array: RelationshipGuesser::try($this->getExceptRelationshipColumns()[0], $this->getRelationship()->getModel())
+            );
+
             return $table
+                ->columns(collect($table->getColumns())->filter(fn($column, $key) => $key !== $exceptionColumn)->all())
                 ->pushHeaderActions($baseHeaderActions)
                 ->recordActions([...$baseActions, ...$table->getRecordActions()])
                 ->pushToolbarActions($baseBulkActions);
