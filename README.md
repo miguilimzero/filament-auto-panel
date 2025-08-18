@@ -77,19 +77,18 @@ linking to the respective resource in table and infolists (if the resource exist
 > This linking currently do not support morphsTo detection. PRs are welcome!
 
 
+
+#### Default Pages
+
+By default, the Auto Resource have a list and view pages. The create and edit record is available as a modal action in the list and view pages respectively.
+
 #### Read-Only Mode
 
 Auto Resources and Auto Relation Managers can be read-only by setting `protected static bool $readOnly = true;` in your resource or relation manager class. With this mode, the create and edit actions will be disabled.
 
 #### Intrusive Mode
 
-Auto Resources and Auto Relation Managers have the intrusive mode by default. When this mode is activated, the create and edit actions will not respect
-the `$fillable` and `$hidden` model attributes. If you would like to disable this behavior, you can set `protected static bool $intrusive = false;` in your
-resource or relation manager class.
-
-#### Default Pages
-
-By default, the Auto Resource have a list and view pages. The create and edit record is available as a modal action in the list and view pages respectively.
+Auto Resources and Auto Relation Managers have the intrusive mode by default. When this mode is activated, the create and edit actions will not respect the `$fillable` and `$hidden` model attributes. If you would like to disable this behavior, you can set `protected static bool $intrusive = false;` in your resource or relation manager class.
 
 #### Default Actions
 
