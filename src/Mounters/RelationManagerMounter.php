@@ -52,11 +52,20 @@ class RelationManagerMounter
 
     public static function makeFromResource(
         string $resource,
-        string $relation
+        string $relation,
+        ?string $recordTitleAttribute = null,
+        ?bool $associateAttachActions = null,
+        ?bool $intrusive = null,
+        ?bool $readOnly = null,
     ): string {
         $relationManagerClass = static::getRelationManagerClass();
         $resourceName = array_reverse(explode('\\', $resource))[0];
         $anonymousClass = "{$resourceName}{$relation}AutoRelationManager";
+
+        $recordTitleAttributeCode = static::generateOptionalParameterCode('?string', 'recordTitleAttribute', $recordTitleAttribute);
+        $associateAttachActionsCode = static::generateOptionalParameterCode('bool', 'associateAttachActions', $associateAttachActions);
+        $intrusiveCode = static::generateOptionalParameterCode('bool', 'intrusive', $intrusive);
+        $readOnlyCode = static::generateOptionalParameterCode('bool', 'readOnly', $readOnly);
 
         if (!in_array($anonymousClass, static::$mountedClasses)) {
             static::$mountedClasses[] = $anonymousClass;
@@ -64,6 +73,10 @@ class RelationManagerMounter
             $classCode = trim("class {$anonymousClass} extends {$relationManagerClass} {
                 protected static ?string \$relatedResource = {$resource}::class;
                 protected static string \$relationship = '{$relation}';
+                {$recordTitleAttributeCode}
+                {$associateAttachActionsCode}
+                {$intrusiveCode}
+                {$readOnlyCode}
             };");
 
             eval($classCode);
