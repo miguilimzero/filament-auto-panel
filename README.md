@@ -104,6 +104,13 @@ and Auto Relation Manager appends the following default actions:
 
 Auto Resources and Auto Relation Managers can be read-only by setting `protected static bool $readOnly = true;` in your resource or relation manager class. With this mode, all the default actions (with the exception of the `ViewAction`) will be disabled.
 
+If you want to re-add the create or edit actions with ease, you use the following auto action classes:
+
+- `\Miguilim\FilamentAutoPanel\Filament\Actions\AutoCreateAction::make()`
+- `\Miguilim\FilamentAutoPanel\Filament\Actions\AutoEditAction::make()`
+
+For the other actions, such as `DeleteAction`, `RestoreAction`, `ForceDeleteAction`, and bulk equivalents, you will need to create your own auto actions and re-implement them.
+
 #### Default Sorting
 
 By default, the Auto Resource and Auto Relation Manager tries to set the table default sort for the following columns,
