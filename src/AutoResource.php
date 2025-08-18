@@ -18,6 +18,8 @@ use Miguilim\FilamentAutoPanel\Generators\FormGenerator;
 use Miguilim\FilamentAutoPanel\Generators\InfolistGenerator;
 use Miguilim\FilamentAutoPanel\Generators\TableGenerator;
 use Miguilim\FilamentAutoPanel\Mounters\PageMounter;
+use Miguilim\FilamentAutoPanel\Filament\Actions\AutoCreateAction;
+use Miguilim\FilamentAutoPanel\Filament\Actions\AutoEditAction;
 
 class AutoResource extends Resource
 {
@@ -190,29 +192,29 @@ class AutoResource extends Resource
     public static function getBulkActions(): array
     {
         return collect(static::getActions())
-            ->filter(fn (AutoAction $action) => $action->showOnBulkAction)
-            ->map(fn (AutoAction $action) => $action->bulk()->accessSelectedRecords())
+            ->filter(fn (AutoAction|AutoCreateAction|AutoEditAction $action) => $action->showOnBulkAction)
+            ->map(fn (AutoAction|AutoCreateAction|AutoEditAction $action) => $action->bulk()->accessSelectedRecords())
             ->all();
     }
 
     public static function getTableActions(): array
     {
         return collect(static::getActions())
-            ->filter(fn (AutoAction $action) => $action->showOnTable)
+            ->filter(fn (AutoAction|AutoCreateAction|AutoEditAction $action) => $action->showOnTable)
             ->all();
     }
 
     public static function getViewPageActions(): array
     {
         return collect(static::getActions())
-            ->filter(fn (AutoAction $action) => $action->showOnViewPage)
+            ->filter(fn (AutoAction|AutoCreateAction|AutoEditAction $action) => $action->showOnViewPage)
             ->all();
     }
 
     public static function getListPageActions(): array
     {
         return collect(static::getActions())
-            ->filter(fn (AutoAction $action) => $action->showOnListPage)
+            ->filter(fn (AutoAction|AutoCreateAction|AutoEditAction $action) => $action->showOnListPage)
             ->all();
     }
 
