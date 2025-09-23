@@ -42,6 +42,10 @@ abstract class AbstractGenerator
     {
         foreach (Filament::getResources() as $resource) {
             if ($relatedRecord instanceof ($resource::getModel())) {
+                if (! $resource::canAccess()) {
+                    continue;
+                }
+
                 return $resource;
             }
         }
