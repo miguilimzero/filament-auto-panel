@@ -84,7 +84,7 @@ class AutoResource extends Resource
             ->components(InfolistGenerator::make(
                 modelClass: static::getModel(),
                 overwriteColumns: static::getColumnsOverwriteMapped('infolist'),
-                enumDictionary: static::$enumDictionary,
+                enumDictionary: static::getEnumDictionary(),
             ))
             ->columns(3);
     }
@@ -95,7 +95,7 @@ class AutoResource extends Resource
             ->components(FormGenerator::make(
                 modelClass: static::getModel(),
                 overwriteColumns: static::getColumnsOverwriteMapped('form'),
-                enumDictionary: static::$enumDictionary,
+                enumDictionary: static::getEnumDictionary(),
             ))
             ->columns(2);
     }
@@ -125,7 +125,7 @@ class AutoResource extends Resource
         $tableSchema = TableGenerator::make(
             modelClass: static::getModel(),
             overwriteColumns: static::getColumnsOverwriteMapped('table'),
-            enumDictionary: static::$enumDictionary,
+            enumDictionary: static::getEnumDictionary(),
             searchableColumns: static::$searchableColumns,
             visibleColumns: static::$visibleColumns
         );
@@ -226,5 +226,10 @@ class AutoResource extends Resource
         return collect(static::getColumnsOverwrite()[$type])
             ->mapWithKeys(fn ($column) => [$column->getName() => $column])
             ->all();
+    }
+
+    protected static function getEnumDictionary(): array
+    {
+        return static::$enumDictionary;
     }
 }

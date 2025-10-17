@@ -239,6 +239,17 @@ protected static array $enumDictionary = [
 ];
 ```
 
+If you nede to generate the enum dictionary dynamically, you can override the `enumDictionary` method:
+
+```php
+protected static function getEnumDictionary(): array
+{
+    return [
+        // ...
+    ];
+}
+```
+
 ## Visible Columns
 
 By default all columns are shown in the Auto Resource or Auto Relation Manager table. You can customize the columns visibility using:
