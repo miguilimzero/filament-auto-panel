@@ -239,7 +239,7 @@ protected static array $enumDictionary = [
 ];
 ```
 
-If you nede to generate the enum dictionary dynamically, you can override the `enumDictionary` method:
+If you need to generate the enum dictionary dynamically, you can override the `enumDictionary` method:
 
 ```php
 protected static function getEnumDictionary(): array
