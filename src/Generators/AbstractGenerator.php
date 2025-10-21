@@ -57,7 +57,8 @@ abstract class AbstractGenerator
     {
         $columns = [];
 
-        foreach ($this->introspectTable()->getColumns($this->modelInstance->getTable()) as $rawColumn) {
+        $rawColumns = $this->introspectTable()->getColumns($this->modelInstance->getTable());
+        foreach ($rawColumns as $i => $rawColumn) {
             $column     = $this->constructColumnInstance($rawColumn);
             $columnName = $column->getName();
 
@@ -79,9 +80,38 @@ abstract class AbstractGenerator
             }
 
             // Try to guess, match and handle relationship
-            if ($guessedRelationship = $this->tryToGuessRelationshipName($column)) {
-                $columns[$columnName] = $this->handleRelationshipColumn($column, $guessedRelationship[0], $guessedRelationship[1]);
+            if (
+                Str::of($columnName)->endsWith('_type')
+                && (isset($rawColumns[$i + 1]) && Str::of($this->constructColumnInstance($rawColumns[$i + 1])->getName())->endsWith('_id'))
+                && (! $this instanceof FormGenerator)
+            ) {
+                $formattedColumnName = str_replace('_type' , '', $columnName);
+
+                $columns[$formattedColumnName] = $this->handleRelationshipColumn(
+                    $column,
+                    $formattedColumnName,
+                    RelationshipGuesser::guessTitleColumnName($columnName, $this->modelInstance, $formattedColumnName)
+                );
+
+                unset($rawColumns[$i + 1]);
                 continue;
+            }
+
+            if (Str::of($columnName)->endsWith('_id')) {
+                if (
+                    isset($rawColumns[$i - 1])
+                    && Str::of($this->constructColumnInstance($rawColumns[$i - 1])->getName())->endsWith('_type')
+                    && (! $this instanceof FormGenerator)
+                ) {
+                    continue; // Just skip this column as its morphsTo
+                }
+
+                $guessedRelationship = RelationshipGuesser::guessBelongsTo($columnName, $this->modelInstance);
+
+                if ($guessedRelationship) {
+                    $columns[$columnName] = $this->handleRelationshipColumn($column, $guessedRelationship[0], $guessedRelationship[1]);
+                    continue;
+                }
             }
 
             // Handle column matching type
@@ -96,19 +126,6 @@ abstract class AbstractGenerator
         }
 
         return $columns;
-    }
-
-    protected function tryToGuessRelationshipName(Column $column): ?array
-    {
-        $columnName = $column->getName();
-
-        if (Str::of($columnName)->endsWith('_id')) {
-            return RelationshipGuesser::try($columnName, $this->modelInstance);
-        }
-
-        // TODO: Add support for morphTo relationships
-
-        return null;
     }
 
     protected function constructColumnInstance(array $column): Column

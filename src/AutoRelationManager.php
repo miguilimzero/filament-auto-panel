@@ -105,7 +105,7 @@ class AutoRelationManager extends RelationManager
         if (static::$relatedResource) {
             $exceptionColumn = implode(
                 separator: '.',
-                array: RelationshipGuesser::try($this->getExceptRelationshipColumns()[0], $this->getRelationship()->getModel())
+                array: RelationshipGuesser::guessBelongsTo($this->getExceptRelationshipColumns()[0], $this->getRelationship()->getModel())
             );
 
             return $table

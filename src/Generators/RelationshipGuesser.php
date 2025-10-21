@@ -9,21 +9,35 @@ class RelationshipGuesser
 {
     use CanReadModelSchemas;
 
-    public static function try(string $column, Model $model): array
-    {
-        $instance = new static();
+    protected static $instance;
 
-        $guessedRelationshipName = $instance->guessBelongsToRelationshipName($column, $model::class);
+    /**
+     * @return string[]
+     */
+    public static function guessBelongsTo(string $column, Model $model): array
+    {
+        $guessedRelationshipName = static::getInstance()->guessBelongsToRelationshipName($column, $model::class);
 
         if (filled($guessedRelationshipName)) {
-            $guessedRelationshipTitleColumnName = $instance->guessBelongsToRelationshipTitleColumnName(
-                column: $column,
-                model: $model->{$guessedRelationshipName}()->getModel()::class
-            );
-
-            return [$guessedRelationshipName, $guessedRelationshipTitleColumnName];
+            return [
+                $guessedRelationshipName,
+                static::guessTitleColumnName($column, $model, $guessedRelationshipName)
+            ];
         }
 
         return [];
+    }
+
+    public static function guessTitleColumnName(string $column, Model $model, string $relationshipName): string
+    {
+        return static::getInstance()->guessBelongsToRelationshipTitleColumnName(
+            column: $column,
+            model: $model->{$relationshipName}()->getModel()::class
+        );
+    }
+
+    protected static function getInstance(): static
+    {
+        return static::$instance = new static();
     }
 }

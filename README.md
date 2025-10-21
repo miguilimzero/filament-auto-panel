@@ -76,10 +76,6 @@ is searchable by default and it will also be copyable in table and infolist view
 The package tries to link any columns that ends with `_id` with a belongsTo relationship. It sets a searchable `Select` for create/edit actions, and an URL
 linking to the respective resource in table and infolists (if the resource exists).
 
-> [!NOTE]
-> This linking currently do not support morphsTo detection. PRs are welcome!
-
-
 #### Default Pages
 
 By default, the Auto Resource have a list and view pages. The create and edit record is available as a modal action in the list and view pages respectively.
