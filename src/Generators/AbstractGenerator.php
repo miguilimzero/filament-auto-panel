@@ -85,7 +85,7 @@ abstract class AbstractGenerator
                 && (isset($rawColumns[$i + 1]) && Str::of($this->constructColumnInstance($rawColumns[$i + 1])->getName())->endsWith('_id'))
                 && (! $this instanceof FormGenerator)
             ) {
-                $formattedColumnName = str_replace('_type' , '', $columnName);
+                $formattedColumnName = Str::camel(str_replace('_type' , '', $columnName));
 
                 $columns[$formattedColumnName] = $this->handleRelationshipColumn(
                     $column,
