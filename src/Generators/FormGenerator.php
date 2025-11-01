@@ -40,6 +40,7 @@ class FormGenerator extends AbstractGenerator
             ->required($column->getNotNull())
             ->relationship($relationshipName, $relationshipTitleColumnName)
             // ->preload()
+            ->forceSearchCaseInsensitive() // Compatibility with specific db collations
             ->searchable();
     }
 
