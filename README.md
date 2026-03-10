@@ -35,6 +35,7 @@ the freedom to create actions, widgets and various customizations to your panel.
 - [Visible Columns](#visible-columns)
 - [Searchable Columns](#searchable-columns)
 - [Overwrite Columns](#overwrite-columns)
+- [Appending Columns](#appending-columns)
 - [Widgets](#widgets)
 - [Extra Pages](#extra-pages)
 - [License](#license)
@@ -300,6 +301,67 @@ public static function getColumnsOverwrite(): array
 
 > [!NOTE]
 > You cannot append new columns using this method, only overwrite detected columns. The `make()` parameter name must be the same as the column name in the database.
+
+## Appending Columns
+
+Even though the package does not support appending columns natively, you can easily do that by extending the parent method, keeping the generated content, and merging with your custom columns.
+
+### Table
+
+```php
+use Filament\Tables\Table;
+
+public static function table(Table $table): Table
+{
+    $generatedTable = parent::table($table);
+
+    return $generatedTable
+        ->columns([
+            // Columns...
+            ...$generatedTable->getColumns(),
+            // Columns...
+        ]);
+}
+```
+
+### Form
+
+```php
+use Filament\Schemas\Schema;
+
+public static function form(Schema $schema): Schema
+{
+    $generatedSchema = parent::form($schema);
+
+    return $generatedSchema
+        ->schema([
+            // Columns...
+            ...$generatedSchema->getComponents(),
+            // Columns...
+        ]);
+}
+```
+
+### Infolist
+
+```php
+use Filament\Schemas\Schema;
+
+public static function infolist(Schema $schema): Schema
+{
+    $generatedSchema = parent::infolist($schema);
+
+    return $generatedSchema
+        ->schema([
+            // Columns here...
+            ...$generatedSchema->getComponents(),
+            // Columns here...
+        ]);
+}
+```
+
+> [!NOTE]
+> If you want to add columns to the middle of the generated columns, you can slice the generated columns array. Example: `array_slice($generatedColumns, 0, 2), /* Columns */, array_slice($generatedColumns, 2)`.
 
 ## Widgets
 
