@@ -361,7 +361,7 @@ public static function infolist(Schema $schema): Schema
 ```
 
 > [!NOTE]
-> If you want to add columns to the middle of the generated columns, you can slice the generated columns array. Example: `array_slice($generatedColumns, 0, 2), /* Columns */, array_slice($generatedColumns, 2)`.
+> If you want to add columns to the middle of the generated columns, you can slice the generated columns array. Example: `...array_slice($generatedColumns, 0, 2), /* Columns */, ...array_slice($generatedColumns, 2)`.
 
 ## Widgets
 
