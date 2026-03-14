@@ -361,6 +361,9 @@ public static function infolist(Schema $schema): Schema
 ```
 
 > [!NOTE]
+> If you want to add columns to the end of the table in a simpler way, you can just use `parent::table($table)->pushColumns([/* Columns */])` without the need to merge the generated columns.
+
+> [!NOTE]
 > If you want to add columns to the middle of the generated columns, you can slice the generated columns array. Example: `...array_slice($generatedColumns, 0, 2), /* Columns */, ...array_slice($generatedColumns, 2)`.
 
 ## Widgets
