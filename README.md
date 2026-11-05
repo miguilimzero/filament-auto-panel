@@ -24,6 +24,7 @@ the freedom to create actions, widgets and various customizations to your panel.
   - [Automatic Guessing](#automatic-guessing)
   - [Polymorphic Relationships](#polymorphic-relationships)
   - [User Fields](#user-fields)
+  - [User Sessions](#user-sessions)
   - [Default Pages](#default-pages)
   - [Intrusive Mode](#intrusive-mode)
   - [Default Actions](#default-actions)
@@ -88,7 +89,7 @@ columns, without duplicates. Extra search columns exclude hidden, non-visible, e
 attributes. Use a form column overwrite to change which columns are searched.
 
 Dropdown options show **#ID** - name/title, omitting the name when unavailable. User options also show
-the configured avatar and email, when available. Only the label changes; the saved foreign-key value is unchanged.
+the configured avatar and a muted email on the second line, when available. The saved foreign-key value is unchanged.
 
 #### Automatic Guessing
 
@@ -127,8 +128,8 @@ use `MorphToSelect::make('subject')->types([...])` in your form column overwrite
 
 #### User Fields
 
-Belongs-to relationships to models implementing `Authenticatable` show an avatar in tables and form
-dropdowns. Forms use `Select`, and infolists use `TextEntry`.
+Belongs-to relationships to models implementing `Authenticatable` show an avatar in tables,
+infolists and form dropdowns. Forms use `Select`, and infolists use `TextEntry`.
 
 Avatars use the related model's `profile_photo_url` attribute or accessor. It must return a URL;
 missing avatars show the label only. To use another attribute, configure the column in your
@@ -144,6 +145,15 @@ public function boot(): void
     );
 }
 ```
+
+#### User Sessions
+
+With `SESSION_DRIVER=database`, Auto Resources for the panel's user model automatically get a Sessions
+relation manager. It lists all stored sessions, including expired ones, with IP address, user agent
+and last activity. No `sessions()` relationship is needed.
+
+Revoking sessions requires permission to update the user and is unavailable in read-only mode.
+Remember-me cookies can authenticate the device again after revocation.
 
 #### Default Pages
 
