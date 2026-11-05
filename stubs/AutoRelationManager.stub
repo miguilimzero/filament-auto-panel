@@ -6,7 +6,7 @@ use Miguilim\FilamentAutoPanel\AutoRelationManager;
 
 class {{ managerClass }} extends AutoRelationManager
 {
-    protected static string $relationship = '{{ relationship }}';{{ recordTitleAttributeCode }}
+    protected static string $relationship = {{ relationshipCode }};{{ recordTitleAttributeCode }}
 
     protected static array $enumDictionary = [];
 

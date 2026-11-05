@@ -2,17 +2,16 @@
 
 namespace Miguilim\FilamentAutoPanel\Commands;
 
-use Filament\Support\Commands\Concerns\CanManipulateFiles;
 use Filament\Commands\MakeRelationManagerCommand;
 use Filament\Support\Commands\Exceptions\FailureCommandOutput;
 
 class MakeAutoRelationManagerCommand extends MakeRelationManagerCommand
 {
-    use CanManipulateFiles;
-
     protected $description = 'Create a new Filament auto relation manager class';
 
     protected $name = 'make:filament-auto-relation-manager';
+
+    protected $aliases = [];
 
     public function handle(): int
     {
@@ -20,99 +19,60 @@ class MakeAutoRelationManagerCommand extends MakeRelationManagerCommand
             $this->configurePanel(question: 'Which panel would you like to create this relation manager in?');
             $this->configureResource();
             $this->configureRelationship();
-            // $this->configureRelatedResource();
-
-            // if (blank($this->relatedResourceFqn)) {
-            //     $this->configureFormSchemaFqn();
-
-            //     if (blank($this->formSchemaFqn)) {
-            //         $this->configureIsGeneratedIfNotAlready();
-
-            //         $this->isGenerated
-            //             ? $this->configureRelatedModelFqnIfNotAlready()
-            //             : $this->configureRecordTitleAttributeIfNotAlready();
-            //     }
-
-            //     $this->configureHasViewOperation();
-
-            //     if ($this->hasViewOperation) {
-            //         $this->configureInfolistSchemaFqn();
-
-            //         if (blank($this->infolistSchemaFqn)) {
-            //             $this->configureRecordTitleAttributeIfNotAlready();
-            //         }
-            //     }
-
-            //     if ($this->hasFileGenerationFlag(FileGenerationFlag::EMBEDDED_PANEL_RESOURCE_TABLES)) {
-            //         $this->configureIsGeneratedIfNotAlready();
-
-            //         $this->isGenerated
-            //             ? $this->configureRelatedModelFqnIfNotAlready()
-            //             : $this->configureRecordTitleAttributeIfNotAlready();
-            //     } else {
-            //         $this->configureTableFqn();
-            //     }
-
-            //     if (blank($this->tableFqn)) {
-            //         $this->configureRecordTitleAttributeIfNotAlready();
-
-            //         $this->configureIsGeneratedIfNotAlready(
-            //             question: 'Should the table columns be generated from the current database columns?',
-            //         );
-
-            //         if ($this->isGenerated) {
-            //             $this->configureRelatedModelFqnIfNotAlready();
-            //         }
-
-            //         $this->configureIsSoftDeletable();
-
-            //         $this->configureRelationshipType();
-            //     }
-            // }
-
+            $this->recordTitleAttribute = $this->option('record-title-attribute') ?? $this->argument('recordTitleAttribute');
             $this->configureLocation();
-
             $this->createRelationManager();
         } catch (FailureCommandOutput) {
             return static::FAILURE;
         }
 
-        $this->components->info("Filament relation manager created successfully.");
-
+        $this->components->info('Filament relation manager created successfully.');
         $this->components->info("Make sure to register the relation in [{$this->resourceFqn}::getRelations()].");
 
         return static::SUCCESS;
     }
 
+    protected function configureLocation(): void
+    {
+        $resourceClass = class_basename($this->resourceFqn);
+        $resourceName = str_ends_with($resourceClass, 'Resource') ? substr($resourceClass, 0, -8) : $resourceClass;
+        $className = $resourceName . str($this->relationship)->studly() . 'RelationManager';
+
+        $namespace = (string) preg_replace('/(^|\\\\)Resources(?=\\\\|$)/', '${1}RelationManagers', $this->resourcesNamespace);
+        $directory = (string) preg_replace('~(^|/)Resources(?=/|$)~', '${1}RelationManagers', str_replace('\\', '/', $this->resourcesDirectory));
+
+        if ($namespace === $this->resourcesNamespace) {
+            $namespace .= '\\RelationManagers';
+            $directory = rtrim($directory, '/') . '/RelationManagers';
+        }
+
+        $this->fqn = "{$namespace}\\{$className}";
+        $this->path = rtrim($directory, '/') . "/{$className}.php";
+    }
+
     protected function createRelationManager(): void
     {
-        $explodedFqd = explode('\\', $this->fqn);
-        $realFqnEnd = end($explodedFqd);
-
-        $explodedResourceFqd = explode('\\', $this->resourceFqn);
-        $resourceRealFqnEnd = end($explodedResourceFqd);
-
-        $className = rtrim($resourceRealFqnEnd, 'Resource') . $realFqnEnd;
-        $relationManagerDirectory = str_replace('/Resources', '/RelationManagers', $this->resourcesDirectory);
-
-        $path = (string) str("{$relationManagerDirectory}\\{$className}.php")
-            ->replace('\\', '/')
-            ->replace('//', '/');
-
-        if (! $this->option('force') && $this->checkForCollision($path)) {
+        if (! $this->option('force') && $this->checkForCollision($this->path)) {
             throw new FailureCommandOutput;
         }
 
         $recordTitleAttributeCode = '';
-        if ($this->recordTitleAttribute) {
-            $recordTitleAttributeCode = "\n\n    protected static string \$recordTitleAttribute = '{$this->recordTitleAttribute}';";
+
+        if (filled($this->recordTitleAttribute)) {
+            $recordTitleAttributeCode = "\n\n    protected static ?string \$recordTitleAttribute = " . var_export($this->recordTitleAttribute, true) . ';';
         }
 
-        $this->copyStubToApp('AutoRelationManager', $path, [
-            'namespace' => str_replace('\\Resources', '\\RelationManagers', $this->resourcesNamespace),
-            'managerClass' => $className,
+        $this->copyStubToApp('AutoRelationManager', $this->path, [
+            'namespace' => (string) str($this->fqn)->beforeLast('\\'),
+            'managerClass' => class_basename($this->fqn),
             'relationship' => $this->relationship,
+            'relationshipCode' => var_export($this->relationship, true),
             'recordTitleAttributeCode' => $recordTitleAttributeCode,
         ]);
+    }
+
+    protected function getDefaultStubPath(): string
+    {
+        return dirname(__DIR__, 2) . '/stubs';
     }
 }

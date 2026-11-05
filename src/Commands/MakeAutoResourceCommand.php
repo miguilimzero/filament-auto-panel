@@ -2,18 +2,16 @@
 
 namespace Miguilim\FilamentAutoPanel\Commands;
 
-use Filament\Support\Commands\Concerns\CanManipulateFiles;
-use Filament\Support\Commands\Exceptions\FailureCommandOutput;
-
 use Filament\Commands\MakeResourceCommand;
+use Filament\Support\Commands\Exceptions\FailureCommandOutput;
 
 class MakeAutoResourceCommand extends MakeResourceCommand
 {
-    use CanManipulateFiles;
-
     protected $description = 'Create a new Filament auto resource class';
 
     protected $name = 'make:filament-auto-resource';
+
+    protected $aliases = [];
 
     public function handle(): int
     {
@@ -21,35 +19,15 @@ class MakeAutoResourceCommand extends MakeResourceCommand
             $this->configureModel();
             $this->configureRecordTitleAttribute();
             $this->configurePanel(question: 'Which panel would you like to create this resource in?');
-            // $this->configureIsSimple();
-            // $this->configureIsNested();
-            // $this->configureCluster();
             $this->configureResourcesLocation(question: 'Which namespace would you like to create this resource in?');
-            // $this->configureParentResource();
-            // $this->configureHasViewOperation();
-            // $this->configureIsGenerated();
-            // $this->configureIsSoftDeletable();
             $this->configureHasResourceClassesOutsideDirectories();
-
             $this->configureLocation();
-            // $this->configurePageRoutes();
-
-            // $this->createFormSchema();
-            // $this->createInfolistSchema();
-            // $this->createTable();
-
             $this->createResourceClass();
-
-            // $this->createManagePage();
-            // $this->createListPage();
-            // $this->createCreatePage();
-            // $this->createEditPage();
-            // $this->createViewPage();
         } catch (FailureCommandOutput) {
             return static::FAILURE;
         }
 
-        $this->components->info("Filament resource created successfully.");
+        $this->components->info('Filament resource created successfully.');
 
         if (empty($this->panel->getResourceNamespaces())) {
             $this->components->info('Make sure to register the resource with [resources()] or discover it with [discoverResources()] in the panel service provider.');
@@ -58,29 +36,40 @@ class MakeAutoResourceCommand extends MakeResourceCommand
         return static::SUCCESS;
     }
 
+    protected function configureLocation(): void
+    {
+        // Auto resources need a single class, not Filament's generated page/schema directories.
+        $this->fqnEnd = "{$this->modelFqnEnd}Resource";
+        $this->fqn = "{$this->resourcesNamespace}\\{$this->fqnEnd}";
+        $this->namespace = (string) str($this->fqn)->beforeLast('\\');
+        $this->directory = dirname(str_replace('\\', '/', rtrim($this->resourcesDirectory, '/\\') . "/{$this->fqnEnd}.php"));
+    }
+
     protected function createResourceClass(): void
     {
-        $realFqnEnd = substr($this->fqnEnd, strpos($this->fqnEnd, '\\') + 1);
-
-        $path = (string) str("{$this->resourcesDirectory}\\{$realFqnEnd}.php")
-            ->replace('\\', '/')
-            ->replace('//', '/');
+        $path = str_replace('\\', '/', rtrim($this->resourcesDirectory, '/\\') . "/{$this->fqnEnd}.php");
 
         if (! $this->option('force') && $this->checkForCollision($path)) {
             throw new FailureCommandOutput;
         }
 
         $recordTitleAttributeCode = '';
-        if ($this->recordTitleAttribute) {
-            $recordTitleAttributeCode = "\n\n    protected static string \$recordTitleAttribute = '{$this->recordTitleAttribute}';";
+
+        if (filled($this->recordTitleAttribute)) {
+            $recordTitleAttributeCode = "\n\n    protected static ?string \$recordTitleAttribute = " . var_export($this->recordTitleAttribute, true) . ';';
         }
 
         $this->copyStubToApp('AutoResource', $path, [
-            'namespace' => substr($this->namespace, 0, strrpos($this->namespace, '\\')),
-            'resourceClass' => $realFqnEnd,
+            'namespace' => $this->namespace,
+            'resourceClass' => class_basename($this->fqn),
             'model' => $this->modelFqn,
-            'modelClass' => $this->modelFqnEnd,
+            'modelClass' => class_basename($this->modelFqn),
             'recordTitleAttributeCode' => $recordTitleAttributeCode,
         ]);
+    }
+
+    protected function getDefaultStubPath(): string
+    {
+        return dirname(__DIR__, 2) . '/stubs';
     }
 }
