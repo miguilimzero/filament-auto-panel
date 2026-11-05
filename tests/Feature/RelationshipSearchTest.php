@@ -129,7 +129,8 @@ it('searches native user selects by email title partial id and mixed-case name w
     foreach (['mAiLnEeDlE', 'aVaTaR tItLe', '310', 'aLiCe'] as $search) {
         $results = $field->getSearchResults($search);
         expect(array_keys($results))->toBe([$identity->id])
-            ->and($results[$identity->id])->toBe(relationshipSearchLabel($identity) . ' (' . e((string) $identity->email) . ')');
+            ->and($results[$identity->id])->toBe('<span style="display:block">' . relationshipSearchLabel($identity)
+                . '</span> <span class="fi-sc-text" style="display:block">' . e((string) $identity->email) . '</span>');
     }
 
     $field->state($identity->id);

@@ -71,6 +71,8 @@ function relationshipLabelVariants(Select $field, string $key, ?string $search =
     $options = $field->preload()->getOptions();
     expect($results)->toHaveKey($key)
         ->and($options)->toHaveKey($key)
+        ->and($results[$key])->toBe($selected)
+        ->and($options[$key])->toBe($selected)
         ->and($field->getState())->toBe($key);
 
     return [$selected, $results[$key], $options[$key]];
@@ -87,18 +89,64 @@ function relationshipLabelDom(string $html): DOMXPath
     return new DOMXPath($document);
 }
 
-function assertRelationshipLabelHtml(string $html, string $key, string $text, ?string $avatar = null): void
+function expectedRelationshipEmailLabel(string $label, string $email): string
+{
+    return '<span style="display:block">' . $label . '</span>'
+        . ' <span class="fi-sc-text" style="display:block">' . htmlspecialchars($email, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</span>';
+}
+
+function assertRelationshipLabelHtml(string $html, string $key, string $text, ?string $avatar = null, ?string $email = null): void
 {
     $dom = relationshipLabelDom($html);
-    expect(trim($dom->query('//body')->item(0)->textContent))->toBe($text)
+    expect(trim($dom->query('//body')->item(0)->textContent))->toBe($text . ($email === null ? '' : ' ' . $email))
         ->and($dom->query('//b')->length)->toBe(1)
         ->and($dom->query('//b')->item(0)->textContent)->toBe('#' . $key)
         ->and($dom->query('//b/*')->length)->toBe(0)
-        ->and($dom->query('//body//*[not(self::b or self::img)]')->length)->toBe(0)
+        ->and($dom->query('//body//*[not(self::b or self::img or self::span)]')->length)->toBe(0)
         ->and($dom->query('//*[@onerror or @onload or @onclick or @onfocus or @autofocus]')->length)->toBe(0)
         ->and($dom->query('//img')->length)->toBe($avatar === null ? 0 : 1)
+        ->and($dom->query('//span')->length)->toBe(($avatar === null ? 0 : 2) + ($email === null ? 0 : 2))
+        ->and($dom->query('//b/@*')->length)->toBe(0)
+        ->and($dom->query('//span[@class]')->length)->toBe($email === null ? 0 : 1)
         ->and($html)->not->toContain('ui-avatars.com', '/has-avatar-fallback/')
         ->and(RelationshipLabelUser::$avatarCalls)->toBe(0);
+
+    foreach ($dom->query('//span') as $span) {
+        foreach ($span->attributes as $attribute) {
+            expect($attribute->name)->toBeIn(['class', 'style']);
+        }
+    }
+
+    $contentPath = '//body';
+
+    if ($avatar !== null) {
+        expect($dom->query('//body/*')->length)->toBe(1)
+            ->and($dom->query('//body/span')->item(0)->getAttribute('style'))->toBe('display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center')
+            ->and($dom->query('//body/span/*')->length)->toBe(2)
+            ->and($dom->query('//body/span/*[1][self::img]')->length)->toBe(1)
+            ->and($dom->query('//body/span/*[2][self::span]')->length)->toBe(1)
+            ->and($dom->query('//body/span/span')->item(0)->getAttribute('style'))->toBe('min-width:0');
+        $contentPath = '//body/span/span';
+    }
+
+    if ($email === null) {
+        expect($dom->query($contentPath . '/span')->length)->toBe(0)
+            ->and($dom->query('//*[@class and not(self::img)]')->length)->toBe(0);
+    } else {
+        $firstLine = $dom->query($contentPath . '/*[1][self::span]')->item(0);
+        $secondLine = $dom->query($contentPath . '/*[2][self::span]')->item(0);
+        expect($dom->query($contentPath . '/*')->length)->toBe(2)
+            ->and($firstLine)->toBeInstanceOf(DOMElement::class)
+            ->and($secondLine)->toBeInstanceOf(DOMElement::class)
+            ->and($firstLine->textContent)->toBe($text)
+            ->and($firstLine->getAttribute('style'))->toBe('display:block')
+            ->and($firstLine->getAttribute('class'))->toBe('')
+            ->and($dom->query($contentPath . '/span[1]/b')->length)->toBe(1)
+            ->and($secondLine->textContent)->toBe($email)
+            ->and($secondLine->getAttribute('style'))->toBe('display:block')
+            ->and($secondLine->getAttribute('class'))->toBe('fi-sc-text')
+            ->and($secondLine->childElementCount)->toBe(0);
+    }
 
     if ($avatar === null) {
         return;
@@ -142,6 +190,17 @@ it('never appends email or an avatar to a non-authenticatable choice even when b
     }
 });
 
+it('uses a native muted text class with compiled light and dark colors without a custom theme', function (): void {
+    $native = relationshipLabelDom(\Filament\Schemas\Components\Text::make('native@example.test')->color('gray')->toEmbeddedHtml());
+    expect(trim($native->query('//body/span')->item(0)->getAttribute('class')))->toBe('fi-sc-text');
+
+    $themePath = dirname((new ReflectionClass(\Filament\Panel::class))->getFileName(), 2) . '/dist/theme.css';
+    $css = file_get_contents($themePath);
+    expect($css)
+        ->toMatch('/\.fi-sc-text:not\(\.fi-badge\)\s*\{[^}]*\bcolor:\s*var\(--gray-600\)/')
+        ->toMatch('/\.fi-sc-text:not\(\.fi-badge\):where\(\.dark,\s*\.dark \*\)\s*\{[^}]*\bcolor:\s*var\(--gray-400\)/');
+});
+
 it('adds an optional email and a sanitized default avatar for genuine authenticated model choices', function (string $related): void {
     $user = $related::create([
         'id' => 'user-73104', 'name' => 'Alice & Co',
@@ -154,8 +213,8 @@ it('adds an optional email and a sanitized default avatar for genuine authentica
 
     expect(array_unique($labels))->toHaveCount(1);
     foreach ($labels as $label) {
-        expect($label)->toContain('<b>#user-73104</b> - Alice &amp; Co (alice@example.test)');
-        assertRelationshipLabelHtml($label, $user->id, '#user-73104 - Alice & Co (alice@example.test)', $user->profile_photo_url);
+        expect($label)->toContain(expectedRelationshipEmailLabel('<b>#user-73104</b> - Alice &amp; Co', 'alice@example.test'));
+        assertRelationshipLabelHtml($label, $user->id, '#user-73104 - Alice & Co', $user->profile_photo_url, 'alice@example.test');
     }
     expect($field->getOptionsForJs())->toContainEqual([
         'label' => $labels[0], 'value' => $user->id, 'isDisabled' => false,
@@ -167,13 +226,15 @@ it('escapes malicious primary keys names and email as strings without trusting H
     $name = 'Alice </b><script>alert("name")</script> &quot; & Co';
     $email = '"><img src=x onerror="alert(2)">@example.test';
     $user = $related::create(['id' => $key, 'name' => $name, 'email' => $email]);
-    $expected = '<b>#' . htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</b> - '
-        . htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . ' ('
-        . htmlspecialchars($email, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . ')';
+    $expected = expectedRelationshipEmailLabel(
+        '<b>#' . htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</b> - '
+            . htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        $email,
+    );
 
     foreach (relationshipLabelVariants(relationshipLabelSelect($related), $user->getKey(), 'ALICE') as $label) {
         expect($label)->toBe($expected);
-        assertRelationshipLabelHtml($label, $key, '#' . $key . ' - ' . $name . ' (' . $email . ')');
+        assertRelationshipLabelHtml($label, $key, '#' . $key . ' - ' . $name, email: $email);
     }
 })->with(['database strings' => RelationshipLabelUser::class, 'Htmlable accessors' => RelationshipLabelHtmlableUser::class]);
 
@@ -187,7 +248,8 @@ it('renders only a bold actual key for missing or blank guessed titles without a
 it('preserves zero titles and zero email rather than treating safe scalar strings as missing', function (): void {
     RelationshipLabelUser::create(['id' => 'zero-user', 'name' => '0', 'email' => '0']);
     foreach (relationshipLabelVariants(relationshipLabelSelect(RelationshipLabelUser::class), 'zero-user') as $label) {
-        expect($label)->toBe('<b>#zero-user</b> - 0 (0)');
+        expect($label)->toBe(expectedRelationshipEmailLabel('<b>#zero-user</b> - 0', '0'));
+        assertRelationshipLabelHtml($label, 'zero-user', '#zero-user - 0', email: '0');
     }
 });
 
@@ -212,10 +274,22 @@ it('uses the guessed database title without automatically applying HasName or a 
     }
 })->with(['generic' => [RelationshipLabelTitleContact::class], 'authenticatable' => [RelationshipLabelNamedUser::class]]);
 
-it('omits absent or blank user email without empty parentheses', function (?string $email): void {
-    RelationshipLabelUser::create(['id' => 'blank-email', 'name' => 'No email', 'email' => $email]);
+it('omits absent or blank user email without an empty second line', function (?string $email, ?string $avatar): void {
+    RelationshipLabelUser::create(['id' => 'blank-email', 'name' => 'No email', 'email' => $email, 'profile_photo_url' => $avatar]);
     foreach (relationshipLabelVariants(relationshipLabelSelect(RelationshipLabelUser::class), 'blank-email') as $label) {
-        expect($label)->toBe('<b>#blank-email</b> - No email');
+        if ($avatar === null) {
+            expect($label)->toBe('<b>#blank-email</b> - No email');
+        }
+        assertRelationshipLabelHtml($label, 'blank-email', '#blank-email - No email', $avatar);
+    }
+})->with(['null' => [null], 'empty' => [''], 'whitespace' => [" \t\n"]])
+    ->with(['without avatar' => [null], 'with avatar' => ['/avatars/no-email.svg']]);
+
+it('keeps a key-only first line above safe email when the guessed user title is blank', function (?string $name): void {
+    RelationshipLabelUser::create(['id' => 'blank-name', 'name' => $name, 'email' => 'key-only@example.test']);
+    foreach (relationshipLabelVariants(relationshipLabelSelect(RelationshipLabelUser::class), 'blank-name') as $label) {
+        expect($label)->toBe(expectedRelationshipEmailLabel('<b>#blank-name</b>', 'key-only@example.test'));
+        assertRelationshipLabelHtml($label, 'blank-name', '#blank-name', email: 'key-only@example.test');
     }
 })->with(['null' => [null], 'empty' => [''], 'whitespace' => [" \t\n"]]);
 
@@ -227,6 +301,7 @@ it('does not read or disclose hidden nonvisible hashed or encrypted user email',
     expect($field->getSearchColumns())->not->toContain('email');
     foreach (relationshipLabelVariants($field, 'private-email', 'VISIBLE') as $label) {
         expect($label)->toBe('<b>#private-email</b> - Visible user');
+        assertRelationshipLabelHtml($label, 'private-email', '#private-email - Visible user');
     }
     expect($field->getSearchResults('not-ciphertext-private'))->toBe([]);
 })->with([
@@ -244,11 +319,12 @@ it('does not read or disclose hidden nonvisible hashed or encrypted user email',
 it('includes email when it is explicitly visible and otherwise safe', function (): void {
     RelationshipLabelVisibleEmailUser::create(['id' => 'visible-email', 'name' => 'Visible user', 'email' => 'visible@example.test']);
     foreach (relationshipLabelVariants(relationshipLabelSelect(RelationshipLabelVisibleEmailUser::class), 'visible-email') as $label) {
-        expect($label)->toBe('<b>#visible-email</b> - Visible user (visible@example.test)');
+        expect($label)->toBe(expectedRelationshipEmailLabel('<b>#visible-email</b> - Visible user', 'visible@example.test'));
+        assertRelationshipLabelHtml($label, 'visible-email', '#visible-email - Visible user', email: 'visible@example.test');
     }
 });
 
-it('supports safe scalar and stringable email accessors without adding accessor-only SQL searches', function (mixed $email, string $suffix): void {
+it('supports safe scalar and stringable email accessors without adding accessor-only SQL searches', function (mixed $email, ?string $expectedEmail): void {
     Schema::table('relationship_label_contacts', fn ($table) => $table->dropColumn('email'));
     RelationshipLabelAccessorUser::$emailValue = $email;
     RelationshipLabelAccessorUser::create(['id' => 'accessor-user', 'name' => 'Accessor user']);
@@ -256,26 +332,26 @@ it('supports safe scalar and stringable email accessors without adding accessor-
 
     expect($field->getSearchColumns())->not->toContain('email');
     foreach (relationshipLabelVariants($field, 'accessor-user', 'ACCESSOR USER') as $label) {
-        expect($label)->toContain('<b>#accessor-user</b> - Accessor user' . $suffix);
-        assertRelationshipLabelHtml($label, 'accessor-user', '#accessor-user - Accessor user' . html_entity_decode($suffix, ENT_QUOTES, 'UTF-8'), '/accessor-avatars/accessor-user.svg');
+        assertRelationshipLabelHtml($label, 'accessor-user', '#accessor-user - Accessor user', '/accessor-avatars/accessor-user.svg', $expectedEmail);
     }
 })->with([
-    'string' => ['accessor@example.test', ' (accessor@example.test)'],
-    'integer' => [42, ' (42)'],
-    'float' => [4.5, ' (4.5)'],
-    'zero' => [0, ' (0)'],
-    'false' => [false, ''],
-    'stringable HTML' => [new HtmlString('<script>email</script>@example.test'), ' (&lt;script&gt;email&lt;/script&gt;@example.test)'],
-    'array' => [['not-safe@example.test'], ''],
-    'non-stringable object' => [new stdClass(), ''],
-    'null' => [null, ''],
+    'string' => ['accessor@example.test', 'accessor@example.test'],
+    'integer' => [42, '42'],
+    'float' => [4.5, '4.5'],
+    'zero' => [0, '0'],
+    'false' => [false, null],
+    'stringable HTML' => [new HtmlString('<script>email</script>@example.test'), '<script>email</script>@example.test'],
+    'array' => [['not-safe@example.test'], null],
+    'non-stringable object' => [new stdClass(), null],
+    'null' => [null, null],
 ]);
 
 it('supports legacy email accessors even when the email column does not exist', function (): void {
     Schema::table('relationship_label_contacts', fn ($table) => $table->dropColumn('email'));
     RelationshipLabelLegacyEmailUser::create(['id' => 'legacy-user', 'name' => 'Legacy user']);
     foreach (relationshipLabelVariants(relationshipLabelSelect(RelationshipLabelLegacyEmailUser::class), 'legacy-user') as $label) {
-        expect($label)->toBe('<b>#legacy-user</b> - Legacy user (legacy@example.test)');
+        expect($label)->toBe(expectedRelationshipEmailLabel('<b>#legacy-user</b> - Legacy user', 'legacy@example.test'));
+        assertRelationshipLabelHtml($label, 'legacy-user', '#legacy-user - Legacy user', email: 'legacy@example.test');
     }
 });
 
@@ -327,7 +403,7 @@ it('uses default or configured avatar accessors under strict missing-attribute m
             fn (UserColumn $column) => $column->avatarAttribute($attribute),
             during: function () use ($prefix): void {
                 foreach (relationshipLabelVariants(relationshipLabelSelect(RelationshipLabelAccessorUser::class), 'accessor-avatar') as $label) {
-                    assertRelationshipLabelHtml($label, 'accessor-avatar', '#accessor-avatar - Accessor avatar (accessor@example.test)', $prefix . 'accessor-avatar.svg');
+                    assertRelationshipLabelHtml($label, 'accessor-avatar', '#accessor-avatar - Accessor avatar', $prefix . 'accessor-avatar.svg', 'accessor@example.test');
                 }
             },
         );
@@ -413,7 +489,8 @@ it('preserves custom owner-key values selected state and persistence while displ
     $schema->fill(['owner_id' => $user->handle]);
 
     foreach (relationshipLabelVariants($field, $user->handle, '73104') as $label) {
-        expect($label)->toBe('<b>#actual-pk-73104</b> - Custom owner (owner@example.test)');
+        expect($label)->toBe(expectedRelationshipEmailLabel('<b>#actual-pk-73104</b> - Custom owner', 'owner@example.test'));
+        assertRelationshipLabelHtml($label, 'actual-pk-73104', '#actual-pk-73104 - Custom owner', email: 'owner@example.test');
     }
     expect($field->getSelectedRecord()->getKey())->toBe($user->getKey())
         ->and($field->getSearchResults('external-owner-key'))->toBe([]);
@@ -440,7 +517,7 @@ it('keeps source keys titles emails and avatars when a joined model scope does n
     $field = relationshipLabelSelect(RelationshipLabelJoinedUser::class, $record);
 
     foreach (relationshipLabelVariants($field, 'source-73104', 'SOURCE') as $label) {
-        assertRelationshipLabelHtml($label, 'source-73104', '#source-73104 - Source user (source@example.test)', '/avatars/source.svg');
+        assertRelationshipLabelHtml($label, 'source-73104', '#source-73104 - Source user', '/avatars/source.svg', 'source@example.test');
     }
     expect(array_keys($field->getSearchResults('source')))->toBe(['source-73104'])
         ->and(array_keys($field->getOptions()))->toBe(['source-73104'])

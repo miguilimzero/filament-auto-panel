@@ -34,12 +34,17 @@ class RelationshipOptionLabel
             && ! is_a($emailCast, AsEncryptedArrayObject::class, true)
             && ! is_a($emailCast, AsEncryptedCollection::class, true)
             && filled($email = static::text(data_get($record, 'email')))) {
-            $label .= ' (' . e($email) . ')';
+            // Filament's gray Schema Text styling includes both light and dark colors.
+            $label = '<span style="display:block">' . $label . '</span>'
+                . ' <span class="fi-sc-text" style="display:block">' . e($email) . '</span>';
         }
 
         $avatar = $userColumn->getAvatarHtmlForUser($record);
 
-        return $avatar === null ? $label : $avatar->toHtml() . ' ' . $label;
+        return $avatar === null
+            ? $label
+            : '<span style="display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center">'
+                . $avatar->toHtml() . ' <span style="min-width:0">' . $label . '</span></span>';
     }
 
     protected static function text(mixed $value): ?string

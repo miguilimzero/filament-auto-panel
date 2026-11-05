@@ -275,23 +275,47 @@ it('formats authenticatable morph choices with shared default or configured avat
             ->and($preloaded[73104])->toBe($selected);
 
         foreach ([$selected, $search[73104], $preloaded[73104]] as $label) {
-            expect($label)->toContain(' <b>#73104</b> - Morph &lt;b&gt;user&lt;/b&gt; &amp; Co (morph-user@example.test)');
+            expect($label)->toContain('<span style="display:block"><b>#73104</b> - Morph &lt;b&gt;user&lt;/b&gt; &amp; Co</span>'
+                . ' <span class="fi-sc-text" style="display:block">morph-user@example.test</span>');
             $document = new DOMDocument();
             expect($document->loadHTML(
                 '<!DOCTYPE html><html><body>' . $label . '</body></html>',
                 LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING,
             ))->toBeTrue();
             $dom = new DOMXPath($document);
-            expect(trim($dom->query('//body')->item(0)->textContent))->toBe('#73104 - Morph <b>user</b> & Co (morph-user@example.test)')
-                ->and($dom->query('//body/*')->length)->toBe(2)
-                ->and($dom->query('//body/*[1][self::img]')->length)->toBe(1)
-                ->and($dom->query('//body/*[2][self::b]')->length)->toBe(1)
+            expect(trim($dom->query('//body')->item(0)->textContent))->toBe('#73104 - Morph <b>user</b> & Co morph-user@example.test')
+                ->and($dom->query('//body//*[not(self::span or self::b or self::img)]')->length)->toBe(0)
+                ->and($dom->query('//*[@onerror or @onload or @onclick or @onfocus or @autofocus]')->length)->toBe(0)
+                ->and($dom->query('//span')->length)->toBe(4)
+                ->and($dom->query('//body/*')->length)->toBe(1)
+                ->and($dom->query('//body/span')->item(0)->getAttribute('style'))->toBe('display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center')
+                ->and($dom->query('//body/span/*')->length)->toBe(2)
+                ->and($dom->query('//body/span/*[1][self::img]')->length)->toBe(1)
+                ->and($dom->query('//body/span/*[2][self::span]')->length)->toBe(1)
+                ->and($dom->query('//body/span/span')->item(0)->getAttribute('style'))->toBe('min-width:0')
+                ->and($dom->query('//body/span/span/*')->length)->toBe(2)
+                ->and($dom->query('//body/span/span/span[1]')->item(0)->textContent)->toBe('#73104 - Morph <b>user</b> & Co')
+                ->and($dom->query('//body/span/span/span[1]')->item(0)->getAttribute('style'))->toBe('display:block')
+                ->and($dom->query('//body/span/span/span[1]/b')->length)->toBe(1)
+                ->and($dom->query('//body/span/span/span[2]')->item(0)->textContent)->toBe('morph-user@example.test')
+                ->and($dom->query('//body/span/span/span[2]')->item(0)->getAttribute('class'))->toBe('fi-sc-text')
+                ->and($dom->query('//body/span/span/span[2]')->item(0)->getAttribute('style'))->toBe('display:block')
+                ->and($dom->query('//body/span/span/span[2]/*')->length)->toBe(0)
+                ->and($dom->query('//span[@class]')->length)->toBe(1)
+                ->and($dom->query('//b/@*')->length)->toBe(0)
                 ->and($dom->query('//b')->length)->toBe(1)
                 ->and($dom->query('//b')->item(0)->textContent)->toBe('#73104')
                 ->and($dom->query('//img')->length)->toBe(1)
                 ->and($dom->query('//img')->item(0)->getAttribute('src'))->toBe($expectedAvatar)
                 ->and($dom->query('//img')->item(0)->getAttribute('loading'))->toBe('lazy')
                 ->and($dom->query('//img')->item(0)->getAttribute('class'))->toBe('fi-avatar fi-circular fi-size-sm');
+            foreach ($dom->query('//span | //img') as $element) {
+                foreach ($element->attributes as $attribute) {
+                    expect($attribute->name)->toBeIn($element->tagName === 'img'
+                        ? ['src', 'alt', 'loading', 'class', 'style']
+                        : ['class', 'style']);
+                }
+            }
         }
 
         $state = $schema->getState();
@@ -326,6 +350,64 @@ it('formats authenticatable morph choices with shared default or configured avat
     expect($document->loadHTML($key->getOptionLabel(), LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING))->toBeTrue();
     expect($document->getElementsByTagName('img')->item(0)->getAttribute('src'))->toBe('/avatars/morph-user.svg?a=1&b=2');
 })->with(['default avatar' => false, 'boot-configured avatar' => true]);
+
+it('keeps authenticatable morph choices on one text line when email is absent or blank', function (?string $email, ?string $avatar): void {
+    Schema::table('morph_form_names', fn (Blueprint $table) => $table->string('profile_photo_url')->nullable());
+    MorphFormFixtures::panel([MorphFormUserResource::class]);
+    MorphFormUserTarget::create(['id' => 73104, 'name' => 'Single line', 'email' => $email, 'profile_photo_url' => $avatar]);
+    [, , $field] = morphFormSchema(state: ['subject_type' => MorphFormUserTarget::class, 'subject_id' => 73104]);
+    [, $key] = morphFormSelects($field);
+    $selected = $key->getOptionLabel();
+    $search = $key->getSearchResults('SiNgLe');
+    $preloaded = $key->preload()->getOptions();
+
+    expect($search)->toBe([73104 => $selected])
+        ->and($preloaded)->toBe([73104 => $selected]);
+    foreach ([$selected, $search[73104], $preloaded[73104]] as $label) {
+        $document = new DOMDocument();
+        expect($document->loadHTML($label, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING))->toBeTrue();
+        $dom = new DOMXPath($document);
+        expect(trim($dom->query('//body')->item(0)->textContent))->toBe('#73104 - Single line')
+            ->and($dom->query('//span')->length)->toBe($avatar === null ? 0 : 2)
+            ->and($dom->query('//span[@class]')->length)->toBe(0)
+            ->and($dom->query('//span[@style="display:block"]')->length)->toBe(0)
+            ->and($dom->query('//img')->length)->toBe($avatar === null ? 0 : 1)
+            ->and($dom->query('//b')->length)->toBe(1);
+        if ($avatar === null) {
+            expect($label)->toBe(expectedMorphOption(73104, 'Single line'));
+        } else {
+            expect($dom->query('//body/span/*[1][self::img]')->item(0)->getAttribute('src'))->toBe($avatar)
+                ->and($dom->query('//body/span/*[2][self::span]/b')->length)->toBe(1)
+                ->and($dom->query('//body/span')->item(0)->getAttribute('style'))->toBe('display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center');
+        }
+    }
+})->with(['null' => [null], 'empty' => [''], 'whitespace' => [" \t\n"]])
+    ->with(['without avatar' => [null], 'with avatar' => ['/avatars/single-line.svg']]);
+
+it('escapes morph user text and omits unsafe avatars identically for search selected and preloaded choices', function (): void {
+    Schema::table('morph_form_names', fn (Blueprint $table) => $table->string('profile_photo_url')->nullable());
+    MorphFormFixtures::panel([MorphFormUserResource::class]);
+    $name = 'Morph </b><script>alert("name")</script> & Co';
+    $email = '"><img src=x onerror="alert(1)">@example.test';
+    MorphFormUserTarget::create(['id' => 73104, 'name' => $name, 'email' => $email, 'profile_photo_url' => 'javascript:alert(1)']);
+    [, , $field] = morphFormSchema(state: ['subject_type' => MorphFormUserTarget::class, 'subject_id' => 73104]);
+    [, $key] = morphFormSelects($field);
+    $expected = '<span style="display:block">' . expectedMorphOption(73104, $name)
+        . '</span> <span class="fi-sc-text" style="display:block">'
+        . htmlspecialchars($email, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</span>';
+
+    expect($key->getOptionLabel())->toBe($expected)
+        ->and($key->getSearchResults('MoRpH'))->toBe([73104 => $expected])
+        ->and($key->preload()->getOptions())->toBe([73104 => $expected]);
+    $document = new DOMDocument();
+    expect($document->loadHTML($expected, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING))->toBeTrue();
+    $dom = new DOMXPath($document);
+    expect($dom->query('//body//*[not(self::span or self::b)]')->length)->toBe(0)
+        ->and($dom->query('//*[@onerror or @onload or @onclick or @src]')->length)->toBe(0)
+        ->and($dom->query('//body/span')->length)->toBe(2)
+        ->and($dom->query('//body/span[1]')->item(0)->textContent)->toBe('#73104 - ' . $name)
+        ->and($dom->query('//body/span[2]')->item(0)->textContent)->toBe($email);
+});
 
 it('keeps invalid authenticatable morph selections blank despite HTML labels and still validates their keys and types', function (): void {
     MorphFormFixtures::panel([MorphFormUserResource::class]);
