@@ -2,32 +2,24 @@
 
 namespace Miguilim\FilamentAutoPanel\Filament\Pages;
 
-use Filament\Actions\DeleteAction;
-use Filament\Actions\ForceDeleteAction;
-use Filament\Actions\RestoreAction;
 use Filament\Resources\Pages\ViewRecord;
-use Miguilim\FilamentAutoPanel\Filament\Actions\AutoEditAction;
 
 class AutoResourceViewRecord extends ViewRecord
 {
     protected function getHeaderWidgets(): array
     {
-        return [
-            ...static::getResource()::getHeaderWidgets()['view'],
-        ];
+        return static::getResource()::getHeaderWidgets()['view'] ?? [];
     }
 
     protected function getFooterWidgets(): array
     {
-        return [
-            ...static::getResource()::getFooterWidgets()['view'],
-        ];
+        return static::getResource()::getFooterWidgets()['view'] ?? [];
     }
 
     protected function fillForm(): void
     {
         $record = static::getResource()::isIntrusive()
-            ? $this->getRecord()->setHidden([])
+            ? (clone $this->getRecord())->setHidden([])
             : $this->getRecord();
 
         $this->fillFormWithDataAndCallHooks($record);
@@ -39,7 +31,7 @@ class AutoResourceViewRecord extends ViewRecord
     public function refreshFormData(array $statePaths): void
     {
         $record = static::getResource()::isIntrusive()
-            ? $this->getRecord()->setHidden([])
+            ? (clone $this->getRecord())->setHidden([])
             : $this->getRecord();
 
         $this->form->fillPartially(
@@ -48,26 +40,8 @@ class AutoResourceViewRecord extends ViewRecord
         );
     }
 
-    protected function getActions(): array
+    protected function getHeaderActions(): array
     {
-        $actions = [...static::getResource()::getViewPageActions()];
-
-        if (!static::getResource()::isReadOnly()) {
-            $actions = [
-                ...$actions,
-                AutoEditAction::make(),
-                DeleteAction::make(),
-            ];
-
-            if (method_exists(static::getResource()::getModel(), 'bootSoftDeletes')) {
-                $actions = [
-                    ...$actions,
-                    ForceDeleteAction::make(),
-                    RestoreAction::make(),
-                ];
-            }
-        }
-
-        return $actions;
+        return static::getResource()::getViewPageActions();
     }
 }

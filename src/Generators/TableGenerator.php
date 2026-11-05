@@ -9,6 +9,7 @@ use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\IconPosition;
 use Filament\Tables\Columns\Column as TableColumn;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
 
@@ -40,56 +41,45 @@ class TableGenerator extends AbstractGenerator
         array $visibleColumns = [],
         array $searchableColumns = []
     ): array {
-        return static::getCachedSchema(
-            parameters: func_get_args(),
-            function: fn () => (new static($modelClass))->visibleColumns($visibleColumns)
-                ->searchableColumns($searchableColumns)
-                ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary)
-        );
+        return (new static($modelClass))->visibleColumns($visibleColumns)
+            ->searchableColumns($searchableColumns)
+            ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary);
+    }
+
+    public static function makeForModel(
+        Model $model,
+        array $exceptColumns = [],
+        array $overwriteColumns = [],
+        array $enumDictionary = [],
+        array $visibleColumns = [],
+        array $searchableColumns = []
+    ): array {
+        return (new static($model))->visibleColumns($visibleColumns)
+            ->searchableColumns($searchableColumns)
+            ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary);
     }
 
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
-        return TextColumn::make("{$relationshipName}.{$relationshipTitleColumnName}")
+        $textColumn = TextColumn::make("{$relationshipName}.{$relationshipTitleColumnName}")
             ->placeholder(fn () => $this->placeholderHtml())
             ->weight(FontWeight::Bold)
             ->color('primary')
-            ->url(function ($record) use ($relationshipName) {
-                if ($record === null) {
-                    return null;
-                }
+            ->url(fn (?Model $record) => $this->relationshipUrl($record, $relationshipName));
 
-                $relatedRecord = $record->{$relationshipName};
+        if (str_ends_with($column->getName(), '_type')) {
+            $textColumn->state(fn (?Model $record) => RelationshipGuesser::getRecordTitle($record?->{$relationshipName}));
+        }
 
-                if ($relatedRecord === null) {
-                    return null;
-                }
-
-                $selectedResource = static::tryToGuessRelatedResource($relatedRecord);
-
-                if ($selectedResource === null) {
-                    return null;
-                }
-
-                return $selectedResource::getUrl('view', [$record->{$relationshipName}->getKey()]);
-            });
+        return $textColumn;
     }
 
     protected function handleEnumDictionaryColumn(Column $column, array $dictionary): ViewComponent
     {
         return TextColumn::make($column->getName())
             ->badge()
-            ->formatStateUsing(function ($state) use ($dictionary) {
-                $finalFormat = $dictionary[$state] ?? $state;
-
-                return (is_array($finalFormat)) ? $finalFormat[0] : $finalFormat;
-            })->color(function ($state) use ($dictionary) {
-                if (! is_array($dictionary[$state]) || ! array_key_exists(1, $dictionary[$state])) {
-                    return 'primary';
-                }
-
-                return $dictionary[$state][1];
-            });
+            ->formatStateUsing(fn ($state) => $this->dictionaryLabel($state, $dictionary))
+            ->color(fn ($state) => $this->dictionaryColor($state, $dictionary));
     }
 
     protected function handleArrayColumn(Column $column): ViewComponent

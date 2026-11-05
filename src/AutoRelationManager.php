@@ -2,49 +2,37 @@
 
 namespace Miguilim\FilamentAutoPanel;
 
-use Filament\Schemas\Schema;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\AssociateAction;
-use Filament\Actions\DissociateAction;
-use Filament\Actions\DissociateBulkAction;
 use Filament\Actions\AttachAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DetachAction;
 use Filament\Actions\DetachBulkAction;
-use Filament\Tables\Filters\TrashedFilter;
-use Filament\Actions\RestoreAction;
-use Filament\Actions\RestoreBulkAction;
-use Filament\Actions\ForceDeleteBulkAction;
-use Filament\Actions\ViewAction;
+use Filament\Actions\DissociateAction;
+use Filament\Actions\DissociateBulkAction;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Schema;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Database\Eloquent\Relations\MorphOneOrMany;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Miguilim\FilamentAutoPanel\Concerns\HasAutoPanelConfiguration;
 use Miguilim\FilamentAutoPanel\Generators\FormGenerator;
 use Miguilim\FilamentAutoPanel\Generators\InfolistGenerator;
 use Miguilim\FilamentAutoPanel\Generators\RelationshipGuesser;
 use Miguilim\FilamentAutoPanel\Generators\TableGenerator;
-use Filament\Actions\BulkActionGroup;
-use Miguilim\FilamentAutoPanel\Filament\Actions\AutoCreateAction;
-use Miguilim\FilamentAutoPanel\Filament\Actions\AutoEditAction;
+use Miguilim\FilamentAutoPanel\Support\Actions;
+use Miguilim\FilamentAutoPanel\Support\TableDefaults;
 
 class AutoRelationManager extends RelationManager
 {
-    protected static array $enumDictionary = [];
-
-    protected static array $visibleColumns = [];
-
-    protected static array $searchableColumns = [];
+    use HasAutoPanelConfiguration;
 
     protected static bool $associateAttachActions = true;
-
-    protected static bool $intrusive = true;
-
-    protected static bool $readOnly = false;
 
     public function getFilters(): array
     {
@@ -58,41 +46,27 @@ class AutoRelationManager extends RelationManager
 
     public function getColumnsOverwrite(): array
     {
-        return [
-            'table' => [],
-            'form' => [],
-            'infolist' => [],
-        ];
+        return ['table' => [], 'form' => [], 'infolist' => []];
     }
 
     public function infolist(Schema $schema): Schema
     {
-        $overwriteColumns = static::$relatedResource
-            ? static::$relatedResource::getColumnsOverwriteMapped('infolist')
-            : $this->getColumnsOverwriteMapped('infolist');
-
         return $schema
-            ->components(InfolistGenerator::make(
-                modelClass: $this->getRelationship()->getModel()::class,
+            ->components(InfolistGenerator::makeForModel(
+                ...$this->getSchemaOptions('infolist'),
+                model: $this->getRelationship()->getModel(),
                 exceptColumns: $this->getExceptRelationshipColumns(),
-                overwriteColumns: $overwriteColumns,
-                enumDictionary: static::$enumDictionary,
             ))
             ->columns(2);
     }
 
     public function form(Schema $schema): Schema
     {
-        $overwriteColumns = static::$relatedResource
-            ? static::$relatedResource::getColumnsOverwriteMapped('form')
-            : $this->getColumnsOverwriteMapped('form');
-
         return $schema
-            ->components(FormGenerator::make(
-                modelClass: $this->getRelationship()->getModel()::class,
+            ->components(FormGenerator::makeForModel(
+                ...$this->getSchemaOptions('form'),
+                model: $this->getRelationship()->getModel(),
                 exceptColumns: $this->getExceptRelationshipColumns(),
-                overwriteColumns: $overwriteColumns,
-                enumDictionary: static::$enumDictionary,
                 relationManagerView: true,
             ))
             ->columns(2);
@@ -100,126 +74,167 @@ class AutoRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
-        [$baseHeaderActions, $baseActions, $baseBulkActions] = $this->getBaseTableActions($table);
+        [$headerActions, $recordActions, $bulkActions] = $this->getBaseTableActions($table);
+        $headerActions = Actions::merge(Actions::select($this->getActions(), 'showOnListPage'), $headerActions);
 
-        if (static::$relatedResource) {
-            $exceptionColumn = implode(
-                separator: '.',
-                array: RelationshipGuesser::guessBelongsTo($this->getExceptRelationshipColumns()[0], $this->getRelationship()->getModel())
-            );
+        if (static::getRelatedResource()) {
+            $bulkActions = Actions::merge(Actions::select($this->getActions(), 'showOnBulkAction'), $bulkActions);
 
             return $table
-                ->columns(collect($table->getColumns())->filter(fn($column, $key) => $key !== $exceptionColumn)->all())
-                ->pushHeaderActions($baseHeaderActions)
-                ->recordActions([...$baseActions, ...$table->getRecordActions()])
-                ->pushToolbarActions($baseBulkActions);
+                ->columns($this->withoutRelationshipColumns($table->getColumns()))
+                ->pushHeaderActions($headerActions)
+                ->recordActions(Actions::merge(Actions::select($this->getActions(), 'showOnTable'), $recordActions, $table->getRecordActions()))
+                ->pushToolbarActions($bulkActions ? [BulkActionGroup::make($bulkActions)] : []);
         }
 
-        $hasSoftDeletes = method_exists($this->getRelationship()->getModel(), 'bootSoftDeletes');
+        $softDeletes = $this->hasSoftDeletes();
+        $filters = $this->getFilters();
 
-        $defaultFilters       = [...$this->getFilters()];
-        $defaultActions       = [...$this->getTableActions(), AutoEditAction::make(), ViewAction::make()];
-        $defaultBulkActions   = [...$this->getBulkActions(), DeleteBulkAction::make()];
-
-        // Soft deletes
-        if ($hasSoftDeletes) {
-            $defaultFilters[] = TrashedFilter::make();
-
-            $defaultActions[] = RestoreAction::make();
-
-            $defaultBulkActions[] = RestoreBulkAction::make();
-            $defaultBulkActions[] = ForceDeleteBulkAction::make();
+        if ($softDeletes) {
+            $filters[] = TrashedFilter::make();
         }
 
-        return $table
-            ->modifyQueryUsing(fn(Builder $query): Builder => $query
-                ->withoutGlobalScopes(array_filter([
-                    $hasSoftDeletes ? SoftDeletingScope::class : null,
-                ]))
-            )
-            ->columns(TableGenerator::make(
-                modelClass: $this->getRelationship()->getModel()::class,
+        $bulkActions = Actions::merge($this->getBulkActions(), $bulkActions);
+
+        $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $softDeletes ? $query->withoutGlobalScope(SoftDeletingScope::class) : $query)
+            ->columns(TableGenerator::makeForModel(
+                ...$this->getSchemaOptions('table'),
+                model: $this->getRelationship()->getModel(),
                 exceptColumns: $this->getExceptRelationshipColumns(),
-                overwriteColumns: $this->getColumnsOverwriteMapped('table'),
-                enumDictionary: static::$enumDictionary,
-                visibleColumns: static::$visibleColumns,
-                searchableColumns: static::$searchableColumns,
             ))
-            ->filters($defaultFilters)
-            ->headerActions($baseHeaderActions)
-            ->recordActions([...$baseActions, ...$defaultActions])
-            ->toolbarActions([BulkActionGroup::make($defaultBulkActions), ...$baseBulkActions]);
+            ->filters($filters)
+            ->headerActions($headerActions)
+            ->recordActions(Actions::merge($this->getTableActions(), $recordActions))
+            ->toolbarActions($bulkActions ? [BulkActionGroup::make($bulkActions)] : []);
+
+        return TableDefaults::sort($table, $this->getRelationship()->getModel());
     }
 
     public static function isIntrusive(): bool
     {
-        return static::$relatedResource ? static::$relatedResource::isIntrusive() : static::$intrusive;
+        $resource = static::getRelatedResource();
+
+        return $resource && is_a($resource, AutoResource::class, true) ? $resource::isIntrusive() : static::$intrusive;
     }
 
     public function isReadOnly(): bool
     {
-        return static::$relatedResource ? static::$relatedResource::isReadOnly() : static::$readOnly;
+        $resource = static::getRelatedResource();
+
+        return $resource && is_a($resource, AutoResource::class, true) ? $resource::isReadOnly() : static::$readOnly;
     }
 
     public function getBulkActions(): array
     {
-        return collect($this->getActions())
-            ->filter(fn (AutoAction $action) => $action->showOnBulkAction)
-            ->all();
+        return Actions::merge(
+            Actions::select($this->getActions(), 'showOnBulkAction'),
+            Actions::bulk($this->isReadOnly(), $this->hasSoftDeletes()),
+        );
     }
 
     public function getTableActions(): array
     {
-        return collect($this->getActions())
-            ->filter(fn (AutoAction $action) => $action->showOnTable)
-            ->all();
+        return Actions::merge(
+            Actions::select($this->getActions(), 'showOnTable'),
+            Actions::table($this->isReadOnly(), $this->hasSoftDeletes(), editable: true),
+        );
     }
 
+    /** @return array{array, array, array} */
     protected function getBaseTableActions(Table $table)
     {
-        $baseHeaderActions = [AutoCreateAction::make()];
-        $baseActions       = [];
-        $baseBulkActions   = [];
-
-        // Associate action
-        if (
-            static::$associateAttachActions
-            && method_exists($this->getRelationship()->getModel(), $table->getInverseRelationship())
-            && ($this->getRelationship() instanceof HasMany || $this->getRelationship() instanceof MorphMany)
-        ) {
-            $baseHeaderActions = [AssociateAction::make(), ...$baseHeaderActions];
-            $baseActions       = [DissociateAction::make(), ...$baseActions];
-            $baseBulkActions   = [DissociateBulkAction::make(), ...$baseBulkActions];
+        if ($this->isReadOnly()) {
+            return [[], [], []];
         }
 
-        // Attach action
-        if (
-            static::$associateAttachActions
-            && ($this->getRelationship() instanceof BelongsToMany || $this->getRelationship() instanceof MorphToMany)
-        ) {
-            $baseHeaderActions = [AttachAction::make(), ...$baseHeaderActions];
-            $baseActions       = [DetachAction::make(), ...$baseActions];
-            $baseBulkActions   = [DetachBulkAction::make(), ...$baseBulkActions];
+        $header = Actions::listing(false);
+        $relationship = $this->getRelationship();
+
+        if (! static::$associateAttachActions) {
+            return [$header, [], []];
         }
 
-        return [$baseHeaderActions, $baseActions, $baseBulkActions];
+        if ($relationship instanceof BelongsToMany) {
+            return [[AttachAction::make(), ...$header], [DetachAction::make()], [DetachBulkAction::make()]];
+        }
+
+        $inverse = $table->getInverseRelationship();
+
+        if (($relationship instanceof HasMany || $relationship instanceof MorphMany)
+            && $inverse !== null
+            && method_exists($relationship->getModel(), $inverse)
+        ) {
+            return [[AssociateAction::make(), ...$header], [DissociateAction::make()], [DissociateBulkAction::make()]];
+        }
+
+        return [$header, [], []];
     }
 
+    /** @return array<string> */
     protected function getExceptRelationshipColumns()
     {
         $relationship = $this->getRelationship();
 
-        if ($relationship instanceof HasOne || $relationship instanceof HasMany) {
-            return [$relationship->getForeignKeyName()];
+        if ($relationship instanceof MorphOneOrMany) {
+            return [$relationship->getForeignKeyName(), $relationship->getMorphType()];
         }
 
-        return [];
+        return $relationship instanceof HasOneOrMany ? [$relationship->getForeignKeyName()] : [];
     }
 
     protected function getColumnsOverwriteMapped(string $type): array
     {
-        return collect($this->getColumnsOverwrite()[$type])
-            ->mapWithKeys(fn ($column) => [$column->getName() => $column])
-            ->all();
+        return static::mapColumnOverrides($this->getColumnsOverwrite()[$type] ?? []);
+    }
+
+    protected function getSchemaOptions(string $type): array
+    {
+        $resource = static::getRelatedResource();
+
+        if ($resource && is_a($resource, AutoResource::class, true)) {
+            return $resource::getSchemaOptions($type);
+        }
+
+        $options = [
+            'overwriteColumns' => $this->getColumnsOverwriteMapped($type),
+            'enumDictionary' => static::$enumDictionary,
+        ];
+
+        if ($type === 'table') {
+            $options['visibleColumns'] = static::$visibleColumns;
+            $options['searchableColumns'] = static::$searchableColumns;
+        }
+
+        return $options;
+    }
+
+    protected function withoutRelationshipColumns(array $columns): array
+    {
+        $excluded = $this->getExceptRelationshipColumns();
+        $relationships = [];
+        $model = $this->getRelationship()->getModel();
+
+        foreach ($excluded as $name) {
+            $relationship = str_ends_with($name, '_type')
+                ? RelationshipGuesser::guessMorphTo($name, $model)
+                : RelationshipGuesser::guessBelongsTo($name, $model);
+
+            if ($relationship) {
+                $relationships[] = $relationship[0];
+            }
+        }
+
+        return array_filter($columns, function ($column) use ($excluded, $relationships): bool {
+            $name = $column->getName();
+
+            return ! in_array($name, $excluded, true)
+                && ! in_array(explode('.', $name, 2)[0], $relationships, true);
+        });
+    }
+
+    protected function hasSoftDeletes(): bool
+    {
+        return method_exists($this->getRelationship()->getModel(), 'bootSoftDeletes');
     }
 }

@@ -6,16 +6,11 @@ use Filament\Actions\Action;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\LazyCollection;
+use Miguilim\FilamentAutoPanel\Concerns\HasActionPlacement;
 
 class AutoAction extends Action
 {
-    public bool $showOnBulkAction = false;
-
-    public bool $showOnTable = false;
-
-    public bool $showOnViewPage = false;
-
-    public bool $showOnListPage = false;
+    use HasActionPlacement;
 
     public function getExtraAttributes(): array
     {
@@ -32,8 +27,8 @@ class AutoAction extends Action
 
     public function getSelectedRecords(): EloquentCollection | Collection | LazyCollection
     {
-        if ($this->getRecord() !== null) { // Adaptation to work on table and on view page (also removed f (! $this->canAccessSelectedRecords()) validation)
-            return new EloquentCollection([$this->getRecord()]);
+        if (($record = $this->getRecord()) !== null) {
+            return new EloquentCollection([$record]);
         }
 
         $records = $this->getLivewire()->getSelectedTableRecords($this->shouldFetchSelectedRecords(), $this->getSelectedRecordsChunkSize());
@@ -44,33 +39,5 @@ class AutoAction extends Action
         $this->successfulSelectedRecordsCount = $this->totalSelectedRecordsCount;
 
         return $records;
-    }
-
-    public function showOnBulkAction(bool $condition = true): static
-    {
-        $this->showOnBulkAction = $condition;
-
-        return $this;
-    }
-
-    public function showOnTable(bool $condition = true): static
-    {
-        $this->showOnTable = $condition;
-
-        return $this;
-    }
-
-    public function showOnViewPage(bool $condition = true): static
-    {
-        $this->showOnViewPage = $condition;
-
-        return $this;
-    }
-
-    public function showOnListPage(bool $condition = true): static
-    {
-        $this->showOnListPage = $condition;
-
-        return $this;
     }
 }

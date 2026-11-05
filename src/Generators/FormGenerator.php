@@ -9,10 +9,12 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Group;
-use Filament\Forms\Components\TagsInput;
+use Filament\Forms\Components\KeyValue;
 use Filament\Support\Components\ViewComponent;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
+use Miguilim\FilamentAutoPanel\Filament\StateCasts\JsonStateCast;
 
 class FormGenerator extends AbstractGenerator
 {
@@ -27,11 +29,14 @@ class FormGenerator extends AbstractGenerator
 
     public static function make(string $modelClass, array $exceptColumns = [], array $overwriteColumns = [], array $enumDictionary = [], bool $relationManagerView = false): array
     {
-        return static::getCachedSchema(
-            parameters: func_get_args(),
-            function: fn() => (new static($modelClass))->relationManagerView($relationManagerView)
-                ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary)
-        );
+        return (new static($modelClass))->relationManagerView($relationManagerView)
+            ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary);
+    }
+
+    public static function makeForModel(Model $model, array $exceptColumns = [], array $overwriteColumns = [], array $enumDictionary = [], bool $relationManagerView = false): array
+    {
+        return (new static($model))->relationManagerView($relationManagerView)
+            ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary);
     }
 
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
@@ -39,7 +44,6 @@ class FormGenerator extends AbstractGenerator
         return Select::make($column->getName())
             ->required($column->getNotNull())
             ->relationship($relationshipName, $relationshipTitleColumnName)
-            // ->preload()
             ->forceSearchCaseInsensitive() // Compatibility with specific db collations
             ->searchable();
     }
@@ -49,14 +53,26 @@ class FormGenerator extends AbstractGenerator
         return Select::make($column->getName())
             ->required($column->getNotNull())
             ->options(
-                collect($dictionary)->mapWithKeys(fn ($value, $key) => [$key => (is_array($value)) ? $value[0] : $value])->all()
+                collect($dictionary)->mapWithKeys(fn ($value, $key) => [$key => is_array($value) ? ($value[0] ?? $key) : $value])->all()
             );
     }
 
     protected function handleArrayColumn(Column $column): ViewComponent
     {
-        return TagsInput::make($column->getName())
-            ->required($column->getNotNull());
+        if ($column->isObjectCast()) {
+            return Textarea::make($column->getName())
+                ->required($column->getNotNull())
+                ->columnSpan('full')
+                ->rules(['json'])
+                ->stateCast(new JsonStateCast())
+                ->dehydrateStateUsing(static fn (?string $state): mixed => filled($state)
+                    ? json_decode($state, associative: false, flags: JSON_THROW_ON_ERROR)
+                    : null);
+        }
+
+        return KeyValue::make($column->getName())
+            ->required($column->getNotNull())
+            ->columnSpanFull();
     }
 
     protected function handleDateColumn(Column $column): ViewComponent
@@ -67,7 +83,7 @@ class FormGenerator extends AbstractGenerator
 
         return $dateColumn
             ->required($column->getNotNull())
-            ->disabled(in_array($column->getName(), ['created_at', 'updated_at', 'deleted_at']));
+            ->disabled(in_array($column->getName(), $this->getTimestampColumnNames()));
     }
 
     protected function handleBooleanColumn(Column $column): ViewComponent
@@ -124,13 +140,7 @@ class FormGenerator extends AbstractGenerator
                 ->schema($formsSchema)
                 ->columns(2)
                 ->columnSpanFull()
-                ->visibleOn('create'),
-
-            Group::make()
-                ->schema($formsSchema)
-                ->columns(2)
-                ->columnSpanFull()
-                ->visibleOn('edit'),
+                ->visibleOn(['create', 'edit']),
         ];
     }
 }

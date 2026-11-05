@@ -7,10 +7,8 @@ use Filament\Panel;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Miguilim\FilamentAutoPanel\FilamentAutoPanelProvider;
-use Miguilim\FilamentAutoPanel\Generators\AbstractGenerator;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\ProductResource;
 use Orchestra\Testbench\TestCase as Orchestra;
-use ReflectionProperty;
 
 class TestCase extends Orchestra
 {
@@ -65,8 +63,6 @@ class TestCase extends Orchestra
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new ReflectionProperty(AbstractGenerator::class, 'generatedSchemas'))->setValue(null, []);
 
         Filament::setCurrentPanel(Panel::make()->id('test')->path('admin')->resources([
             ProductResource::class,

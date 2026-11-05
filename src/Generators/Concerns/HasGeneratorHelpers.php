@@ -2,14 +2,13 @@
 
 namespace Miguilim\FilamentAutoPanel\Generators\Concerns;
 
-use Closure;
-use Illuminate\Support\HtmlString;
+use BackedEnum;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Builder;
+use Illuminate\Support\HtmlString;
 
 trait HasGeneratorHelpers
 {
-    protected static array $generatedSchemas = [];
-
     protected function introspectTable(): Builder
     {
         return $this->modelInstance
@@ -22,10 +21,43 @@ trait HasGeneratorHelpers
         return new HtmlString("<span class=\"text-gray-500 dark:text-gray-400\">{$placeholder}</span>");
     }
 
-    protected static function getCachedSchema(array $parameters, Closure $function): array
+    protected function relationshipUrl(?Model $record, string $relationship): ?string
     {
-        $cacheKey = md5(json_encode($parameters) . static::class);
+        $related = $record?->{$relationship};
 
-        return static::$generatedSchemas[$cacheKey] ??= $function();
+        if ($related === null) {
+            return null;
+        }
+
+        $resource = static::tryToGuessRelatedResource($related);
+
+        return $resource && $resource::hasPage('view')
+            ? $resource::getUrl('view', ['record' => $related])
+            : null;
+    }
+
+    protected function dictionaryLabel(mixed $state, array $dictionary): mixed
+    {
+        $state = $state instanceof BackedEnum ? $state->value : $state;
+        $entry = $dictionary[$state] ?? $state;
+
+        return is_array($entry) ? ($entry[0] ?? $state) : $entry;
+    }
+
+    protected function dictionaryColor(mixed $state, array $dictionary): string|array
+    {
+        $state = $state instanceof BackedEnum ? $state->value : $state;
+        $entry = $dictionary[$state] ?? null;
+
+        return is_array($entry) ? ($entry[1] ?? 'primary') : 'primary';
+    }
+
+    protected function getTimestampColumnNames(): array
+    {
+        return array_values(array_unique(array_filter([
+            $this->modelInstance->usesTimestamps() ? $this->modelInstance->getCreatedAtColumn() : null,
+            $this->modelInstance->usesTimestamps() ? $this->modelInstance->getUpdatedAtColumn() : null,
+            method_exists($this->modelInstance, 'getDeletedAtColumn') ? $this->modelInstance->getDeletedAtColumn() : null,
+        ])));
     }
 }

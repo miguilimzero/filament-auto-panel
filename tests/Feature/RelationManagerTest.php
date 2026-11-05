@@ -22,7 +22,7 @@ it('generates standalone relation manager schemas without the owner foreign key'
     $manager->pageClass = ListProducts::class;
 
     $form = $manager->form(Schema::make($manager)->model(Product::class));
-    $fields = collect($form->getComponents())->keyBy(fn ($field) => $field->getName());
+    $fields = collect($form->getComponents())->keyBy(fn ($field): string => (string) $field->getName());
     $table = $manager->table(Table::make($manager)->relationship(fn () => $manager->getRelationship()));
     $infolist = $manager->infolist(Schema::make($manager)->model(Product::class));
     $entries = collect($infolist->getFlatComponents(withHidden: true))
@@ -47,7 +47,7 @@ it('generates resource-backed relation manager schemas without DBAL', function (
     $manager->pageClass = ListProducts::class;
 
     $form = $manager->form(Schema::make($manager)->model(Product::class));
-    $fields = collect($form->getComponents())->keyBy(fn ($field) => $field->getName());
+    $fields = collect($form->getComponents())->keyBy(fn ($field): string => (string) $field->getName());
     $table = $manager->table(ProductResource::table(Table::make($manager)->relationship(fn () => $manager->getRelationship())));
     $infolist = $manager->infolist(Schema::make($manager)->model(Product::class));
 

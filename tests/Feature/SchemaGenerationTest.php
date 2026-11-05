@@ -4,7 +4,7 @@ use Composer\InstalledVersions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TagsInput;
+use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -35,7 +35,7 @@ it('reads real native column metadata with DBAL absent', function (): void {
 
     expect($reader->normalize($columns['is_active'])->getType())->toBe('boolean')
         ->and($reader->normalize($columns['quantity'])->getType())->toBe('integer')
-        ->and($reader->normalize($columns['name'])->getLength())->toBe(DB::getDriverName() === 'sqlite' ? 0 : 80)
+        ->and($reader->normalize($columns['name'])->getLength())->toBe(DB::getDriverName() === 'sqlite' ? null : 80)
         ->and($reader->normalize($columns['description'])->getNotNull())->toBeFalse();
 
     if (DB::getDriverName() !== 'sqlite') {
@@ -49,7 +49,7 @@ it('generates form fields from the current database schema', function (): void {
     expect($fields['id'])->toBeInstanceOf(TextInput::class)
         ->and($fields['id']->isDisabled())->toBeTrue()
         ->and($fields['name'])->toBeInstanceOf(TextInput::class)
-        ->and($fields['name']->getMaxLength())->toBe(DB::getDriverName() === 'sqlite' ? 0 : 80)
+        ->and($fields['name']->getMaxLength())->toBe(DB::getDriverName() === 'sqlite' ? null : 80)
         ->and($fields['name']->isRequired())->toBeTrue()
         ->and($fields['description'])->toBeInstanceOf(Textarea::class)
         ->and($fields['description']->isRequired())->toBeFalse()
@@ -61,10 +61,8 @@ it('generates form fields from the current database schema', function (): void {
         ->and($fields['published_at'])->toBeInstanceOf(DateTimePicker::class)
         ->and($fields['created_at']->isDisabled())->toBeTrue();
 
-    // MariaDB exposes JSON aliases as longtext in native column metadata.
-    $metadataType = collect(Schema::getColumns('products'))->firstWhere('name', 'metadata')['type_name'];
-
-    expect($fields['metadata'])->toBeInstanceOf($metadataType === 'json' ? TagsInput::class : Textarea::class);
+    expect($fields['metadata'])->toBeInstanceOf(KeyValue::class)
+        ->and($fields['metadata']->getColumnSpan('default'))->toBe('full');
 });
 
 it('generates table columns with existing display and search settings', function (): void {
@@ -87,8 +85,8 @@ it('generates table columns with existing display and search settings', function
 it('generates infolist entries and a separate timestamps section', function (): void {
     $schema = FilamentSchema::make(new ListProducts())->model(Product::class)->components(InfolistGenerator::make(Product::class));
     $entries = collect($schema->getFlatComponents(withHidden: true))
-            ->filter(fn ($component) => $component instanceof TextEntry || $component instanceof IconEntry)
-            ->keyBy(fn ($entry) => $entry->getName());
+        ->filter(fn ($component) => $component instanceof TextEntry || $component instanceof IconEntry)
+        ->keyBy(fn ($entry): string => (string) $entry->getName());
 
     expect($entries['is_active'])->toBeInstanceOf(IconEntry::class)
         ->and($entries['name'])->toBeInstanceOf(TextEntry::class)
@@ -155,13 +153,13 @@ it('uses the model connection and table prefix rather than the default connectio
     $fields = FormGenerator::make(SecondaryProduct::class, relationManagerView: true);
 
     expect(array_keys($fields))->toBe(['id', 'connection_label'])
-        ->and($fields['connection_label']->getMaxLength())->toBe(DB::getDriverName() === 'sqlite' ? 0 : 25);
+        ->and($fields['connection_label']->getMaxLength())->toBe(DB::getDriverName() === 'sqlite' ? null : 25);
 });
 
 it('mounts resource forms for both create and edit operations', function (string $operation): void {
     $schema = ProductResource::form(FilamentSchema::make(new ListProducts())->model(Product::class)->operation($operation));
     $groups = $schema->getComponents();
-    $fields = collect($groups[0]->getChildSchema()->getComponents())->keyBy(fn ($field) => $field->getName());
+    $fields = collect($groups[0]->getChildSchema()->getComponents())->keyBy(fn ($field): string => (string) $field->getName());
 
     expect($groups)->toHaveCount(1)
         ->and($fields['name'])->toBeInstanceOf(TextInput::class)
