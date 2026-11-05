@@ -3,7 +3,6 @@
 namespace Miguilim\FilamentAutoPanel\Generators\Concerns;
 
 use Closure;
-use Doctrine\DBAL\Schema\Column;
 use Illuminate\Support\HtmlString;
 use Illuminate\Database\Schema\Builder;
 
