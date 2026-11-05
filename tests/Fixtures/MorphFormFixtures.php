@@ -7,6 +7,8 @@ use Filament\Panel;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Resources\Resource;
 use Filament\Tables\Table;
+use Illuminate\Auth\Authenticatable;
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
@@ -187,6 +189,11 @@ class MorphFormNameTarget extends Model
     protected $guarded = [];
 }
 
+class MorphFormUserTarget extends MorphFormNameTarget implements AuthenticatableContract
+{
+    use Authenticatable;
+}
+
 class MorphFormStringIdTarget extends MorphFormNameTarget
 {
     protected $keyType = 'string';
@@ -280,6 +287,11 @@ class MorphFormNameResource extends Resource
     {
         throw new LogicException('Morph options must query the concrete model, not the resource.');
     }
+}
+
+class MorphFormUserResource extends MorphFormNameResource
+{
+    protected static ?string $model = MorphFormUserTarget::class;
 }
 
 class MorphFormDuplicateNameResource extends MorphFormNameResource {}

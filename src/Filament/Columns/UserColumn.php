@@ -40,6 +40,12 @@ class UserColumn extends TextColumn
         }
 
         $user = data_get($record, $relationship);
+
+        return $this->getAvatarHtmlForUser($user instanceof Model ? $user : null);
+    }
+
+    public function getAvatarHtmlForUser(?Model $user): ?HtmlString
+    {
         $url = data_get($user, $this->getAvatarAttribute());
 
         if (! is_string($url) || blank($url)) {

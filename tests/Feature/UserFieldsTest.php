@@ -108,6 +108,19 @@ function assertUserFieldAvatar(string $html, string $url, string $name): DOMElem
     return $image;
 }
 
+function assertUserFieldOptionLabel(string $html, Model $identity, string $title = 'name'): void
+{
+    $expected = '<b>#' . e((string) $identity->getKey()) . '</b>';
+    if ($title !== $identity->getKeyName()) {
+        $expected .= ' - ' . e((string) $identity->getAttribute($title));
+    }
+
+    expect($html)->toContain($expected);
+    $dom = userFieldDom($html);
+    expect($dom->query('//b')->length)->toBe(1)
+        ->and($dom->query('//b')->item(0)->textContent)->toBe('#' . $identity->getKey());
+}
+
 it('does not require the removed user-fields dependency', function (): void {
     expect(\Composer\InstalledVersions::isInstalled('zvizvi/user-fields'))->toBeFalse();
 });
@@ -146,19 +159,23 @@ it('preserves nullability searchable and case-insensitive relationship select co
     }
 });
 
-it('searches native user options case-insensitively without HTML or avatars', function (): void {
+it('searches native user options case-insensitively with escaped rich labels and avatars', function (): void {
     $identity = UserFieldIdentity::create(['name' => 'Alice <script>alert("user-field")</script> & Co', 'profile_photo_url' => '/avatars/alice.svg']);
     UserFieldIdentity::create(['name' => 'Unrelated person']);
     $field = FormGenerator::make(UserFieldRecord::class, relationManagerView: true)['author_id'];
     FilamentSchema::make(new UserFieldListRecords())->model(UserFieldRecord::class)->components([$field])->getFlatComponents(withHidden: true);
 
     expect($field::class)->toBe(Select::class)
-        ->and($field->getSearchResults('aLiCe'))->toBe([$identity->getKey() => $identity->name])
-        ->and($field->isHtmlAllowed())->toBeFalse()
+        ->and(array_keys($field->getSearchResults('aLiCe')))->toBe([$identity->getKey()])
+        ->and($field->isHtmlAllowed())->toBeTrue()
+        ->and($field->isNative())->toBeFalse()
         ->and(UserFieldIdentity::$avatarCalls)->toBe(0);
+    $label = $field->getSearchResults('aLiCe')[$identity->getKey()];
+    assertUserFieldOptionLabel($label, $identity);
+    assertUserFieldAvatar($label, $identity->profile_photo_url, $identity->name);
 });
 
-it('hydrates a selected user option with its plain native relationship title', function (): void {
+it('hydrates a selected user option with its escaped rich relationship label', function (): void {
     $identity = UserFieldIdentity::create(['name' => 'Selected <b>user</b> & Co', 'profile_photo_url' => '/avatars/selected.svg']);
     $record = UserFieldRecord::create(['user_id' => $identity->id, 'author_id' => $identity->id]);
     $field = FormGenerator::make(UserFieldRecord::class, relationManagerView: true)['author_id'];
@@ -168,9 +185,11 @@ it('hydrates a selected user option with its plain native relationship title', f
 
     expect($field::class)->toBe(Select::class)
         ->and((int) $host->userFieldData['author_id'])->toBe($identity->id)
-        ->and($field->getOptionLabel())->toBe($identity->name)
-        ->and($field->isHtmlAllowed())->toBeFalse()
+        ->and($field->isHtmlAllowed())->toBeTrue()
+        ->and($field->isNative())->toBeFalse()
         ->and(UserFieldIdentity::$avatarCalls)->toBe(0);
+    assertUserFieldOptionLabel($field->getOptionLabel(), $identity);
+    assertUserFieldAvatar($field->getOptionLabel(), $identity->profile_photo_url, $identity->name);
 });
 
 it('saves generated resource user selects using foreign keys rather than relationship display paths', function (string $operation): void {
@@ -522,12 +541,13 @@ it('detects authenticatable title and key relationships without requiring name o
     $column = mountUserFieldColumn(TableGenerator::make(UserFieldRecord::class)[$foreignKey], $record);
     $entry = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record)["{$relationship}.{$title}"];
     $label = (string) $identity->getAttribute($title);
+    $optionLabel = '<b>#' . e((string) $identity->getKey()) . '</b>' . ($title === $identity->getKeyName() ? '' : ' - ' . e($label));
 
     expect(RelationshipGuesser::guessBelongsTo($foreignKey, $record))->toBe([$relationship, $title])
         ->and($field::class)->toBe(Select::class)
         ->and($field->getRelationshipTitleAttribute())->toBe($title)
-        ->and((string) $field->getOptionLabel())->toBe($label)
-        ->and((string) $field->getSearchResults($label)[$identity->id])->toBe($label)
+        ->and((string) $field->getOptionLabel())->toBe($optionLabel)
+        ->and((string) $field->getSearchResults($label)[$identity->id])->toBe($optionLabel)
         ->and($column::class)->toBe(UserColumn::class)
         ->and($column->getName())->toBe("{$relationship}.{$title}")
         ->and((string) $column->getState())->toBe($label)
@@ -552,13 +572,15 @@ it('uses the relationship title rather than automatically applying HasName or a 
 
     expect($field::class)->toBe(Select::class)
         ->and($field->getRelationshipTitleAttribute())->toBe('title')
-        ->and($field->getSearchResults('Title'))->toBe([$identity->id => $identity->title])
-        ->and($field->getOptionLabel())->toBe($identity->title)
+        ->and(array_keys($field->getSearchResults('Title')))->toBe([$identity->id])
+        ->and($field->getOptionLabel())->toBe($field->getSearchResults('Title')[$identity->id])
         ->and($column::class)->toBe(UserColumn::class)
         ->and($column->getName())->toBe("{$relationship}.title")
         ->and($column->getState())->toBe($identity->title)
         ->and($entry::class)->toBe(TextEntry::class)
         ->and($entry->getState())->toBe($identity->title);
+    assertUserFieldOptionLabel($field->getOptionLabel(), $identity, 'title');
+    expect(userFieldDom($field->getOptionLabel())->document->textContent)->not->toContain('Display: ', 'Accessor: ');
     assertUserFieldText($entry->toHtml(), $identity->title);
     expect(userFieldDom($column->toHtml())->document->textContent)->toContain($identity->title)->not->toContain('Display: ', 'Accessor: ');
 })->with([
@@ -713,7 +735,10 @@ it('detects and queries user fields on the current model connection with a table
             ->and($columns['user_id']->getName())->toBe('user.name')
             ->and($entries['user.name']::class)->toBe(TextEntry::class)
             ->and(FormGenerator::make(UserFieldRecord::class, relationManagerView: true)['user_id']->getRelationshipTitleAttribute())->toBe('title')
-            ->and($fields['user_id']->getSearchResults('SECONDARY'))->toBe([$identity->id => $identity->name]);
+            ->and(array_keys($fields['user_id']->getSearchResults('SECONDARY')))->toBe([$identity->id]);
+                    $label = $fields['user_id']->getSearchResults('SECONDARY')[$identity->id];
+                    assertUserFieldOptionLabel($label, $identity);
+                    assertUserFieldAvatar($label, $identity->profile_photo_url, $identity->name);
         assertUserFieldAvatar(mountUserFieldColumn($columns['user_id'], $model)->toHtml(), $identity->profile_photo_url, $identity->name);
         assertUserFieldText($entries['user.name']->toHtml(), $identity->name);
     } finally {

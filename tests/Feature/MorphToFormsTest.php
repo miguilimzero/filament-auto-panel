@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Miguilim\FilamentAutoPanel\Filament\Actions\AutoCreateAction;
 use Miguilim\FilamentAutoPanel\Filament\Actions\AutoEditAction;
+use Miguilim\FilamentAutoPanel\Filament\Columns\UserColumn;
 use Miguilim\FilamentAutoPanel\Generators\FormGenerator;
 use Miguilim\FilamentAutoPanel\Generators\InfolistGenerator;
 use Miguilim\FilamentAutoPanel\Generators\TableGenerator;
@@ -55,6 +56,8 @@ use Miguilim\FilamentAutoPanel\Tests\Fixtures\MorphFormStringIdTarget;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\MorphFormTitleResource;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\MorphFormTitleTarget;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\MorphFormUnverifiedRecord;
+use Miguilim\FilamentAutoPanel\Tests\Fixtures\MorphFormUserResource;
+use Miguilim\FilamentAutoPanel\Tests\Fixtures\MorphFormUserTarget;
 
 require_once __DIR__ . '/../Fixtures/MorphFormFixtures.php';
 
@@ -101,6 +104,15 @@ function morphFormSelects(MorphToSelect $field): array
     return $children;
 }
 
+function expectedMorphOption(int|string $id, ?string $title = null): string
+{
+    $label = '<b>#' . htmlspecialchars((string) $id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</b>';
+
+    return $title === null || trim($title) === ''
+        ? $label
+        : $label . ' - ' . htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 function assertInvalidMorphFormState(FilamentSchema $schema, string $column): void
 {
     try {
@@ -123,9 +135,14 @@ it('groups a verified pair into a native relationship wrapper with raw child att
         ->and($type->getName())->toBe('subject_type')
         ->and($type->getStatePath())->toBe('morphFormData.subject_type')
         ->and($type->isLive())->toBeTrue()
+        ->and($type->isHtmlAllowed())->toBeFalse()
+        ->and($type->getOptions())->toBe([MorphFormNameTarget::class => 'morph form name target'])
         ->and($key->getName())->toBe('subject_id')
         ->and($key->getStatePath())->toBe('morphFormData.subject_id')
         ->and($key->isSearchable())->toBeTrue()
+        ->and($key->isHtmlAllowed())->toBeTrue()
+        ->and($key->isNative())->toBeFalse()
+        ->and($key->getOptionLabel())->toBe('')
         ->and($field->isPreloaded())->toBeFalse()
         ->and($key->isPreloaded())->toBeFalse();
 
@@ -173,7 +190,7 @@ it('hydrates dehydrates and persists the raw morph alias or FQCN without nesting
 
     expect(array_keys($type->getOptions()))->toBe([$alias])
         ->and($type->getState())->toBe($alias)
-        ->and($key->getOptionLabel())->toBe('Selected name')
+        ->and($key->getOptionLabel())->toBe(expectedMorphOption($target->id, 'Selected name'))
         ->and($state)->toHaveCount(2)->toHaveKeys(['subject_type', 'subject_id'])
         ->not->toHaveKeys(['subject', 'subject.name'])
         ->and($state['subject_type'])->toBe($alias)
@@ -185,9 +202,156 @@ it('hydrates dehydrates and persists the raw morph alias or FQCN without nesting
     expect($record->subject->is($target))->toBeTrue()
         ->and($editHost->morphFormData['subject_type'])->toBe($alias)
         ->and((int) $editHost->morphFormData['subject_id'])->toBe($target->id)
-        ->and($editKey->getOptionLabel())->toBe('Selected name')
+        ->and($editKey->getOptionLabel())->toBe(expectedMorphOption($target->id, 'Selected name'))
         ->and($editSchema->getState())->toEqual($state);
 })->with(['FQCN' => false, 'morph-map alias' => true]);
+
+it('resolves numeric morph aliases through native type state casts for labels options and persistence', function (): void {
+    Relation::morphMap(['7' => MorphFormNameTarget::class]);
+    $target = MorphFormNameTarget::create(['id' => 73104, 'name' => 'Numeric alias target']);
+    [, $schema, $field] = morphFormSchema(state: ['subject_type' => '7', 'subject_id' => $target->id]);
+    [$type, $key] = morphFormSelects($field);
+    $label = expectedMorphOption(73104, 'Numeric alias target');
+
+    expect($type->getOptions())->toBe([7 => 'morph form name target'])
+        ->and((string) $type->getState())->toBe('7')
+        ->and($key->getOptionLabel())->toBe($label)
+        ->and($key->getSearchResults('NuMeRiC'))->toBe([73104 => $label])
+        ->and($key->preload()->getOptions())->toBe([73104 => $label]);
+    $state = $schema->getState();
+    expect(array_keys($state))->toEqualCanonicalizing(['subject_type', 'subject_id'])
+        ->and($state['subject_type'])->toBe($type->getState())
+        ->and((string) $state['subject_type'])->toBe('7')
+        ->and((int) $state['subject_id'])->toBe(73104);
+
+    $record = MorphFormRecord::create($state)->fresh();
+    expect($record->subject_type)->toBe('7')
+        ->and((int) $record->subject_id)->toBe(73104)
+        ->and($record->subject->is($target))->toBeTrue();
+    [$editHost, $editSchema, $editField] = morphFormSchema($record);
+    [$editType, $editKey] = morphFormSelects($editField);
+    expect((string) $editHost->morphFormData['subject_type'])->toBe('7')
+        ->and((string) $editType->getState())->toBe('7')
+        ->and($editKey->getOptionLabel())->toBe($label)
+        ->and($editKey->getSearchResults('3104'))->toBe([73104 => $label])
+        ->and($editKey->preload()->getOptions())->toBe([73104 => $label])
+        ->and($editSchema->getState())->toEqual($state);
+    $record->fill($editSchema->getState())->save();
+    expect($record->fresh()->subject_type)->toBe('7')
+        ->and((int) $record->fresh()->subject_id)->toBe(73104)
+        ->and($record->fresh()->subject->is($target))->toBeTrue();
+});
+
+it('formats authenticatable morph choices with shared default or configured avatars and persists their raw alias and id', function (bool $configuredAvatar): void {
+    Schema::table('morph_form_names', function (Blueprint $table): void {
+        $table->string('profile_photo_url')->nullable();
+        $table->string('portrait_url')->nullable();
+    });
+    MorphFormFixtures::panel([MorphFormUserResource::class]);
+    Relation::morphMap(['morph-user' => MorphFormUserTarget::class]);
+    $user = MorphFormUserTarget::create([
+        'id' => 73104,
+        'name' => 'Morph <b>user</b> & Co',
+        'email' => 'morph-user@example.test',
+        'profile_photo_url' => '/avatars/morph-user.svg?a=1&b=2',
+        'portrait_url' => '/portraits/morph-user.svg?a=1&b=2',
+    ]);
+
+    $assertChoices = function () use ($user, $configuredAvatar): void {
+        [$host, $schema, $field] = morphFormSchema(state: ['subject_type' => 'morph-user', 'subject_id' => 73104]);
+        [$type, $key] = morphFormSelects($field);
+        $selected = $key->getOptionLabel();
+        $search = $key->getSearchResults('MoRpH-UsEr@ExAmPlE');
+        $preloaded = $key->preload()->getOptions();
+        $expectedAvatar = $configuredAvatar ? '/portraits/morph-user.svg?a=1&b=2' : '/avatars/morph-user.svg?a=1&b=2';
+
+        expect($type->isHtmlAllowed())->toBeFalse()
+            ->and($type->getOptions())->toBe(['morph-user' => 'morph form user target'])
+            ->and($key->isHtmlAllowed())->toBeTrue()
+            ->and($key->isNative())->toBeFalse()
+            ->and(array_keys($search))->toBe([73104])
+            ->and(array_keys($preloaded))->toBe([73104])
+            ->and($search[73104])->toBe($selected)
+            ->and($preloaded[73104])->toBe($selected);
+
+        foreach ([$selected, $search[73104], $preloaded[73104]] as $label) {
+            expect($label)->toContain(' <b>#73104</b> - Morph &lt;b&gt;user&lt;/b&gt; &amp; Co (morph-user@example.test)');
+            $document = new DOMDocument();
+            expect($document->loadHTML(
+                '<!DOCTYPE html><html><body>' . $label . '</body></html>',
+                LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING,
+            ))->toBeTrue();
+            $dom = new DOMXPath($document);
+            expect(trim($dom->query('//body')->item(0)->textContent))->toBe('#73104 - Morph <b>user</b> & Co (morph-user@example.test)')
+                ->and($dom->query('//body/*')->length)->toBe(2)
+                ->and($dom->query('//body/*[1][self::img]')->length)->toBe(1)
+                ->and($dom->query('//body/*[2][self::b]')->length)->toBe(1)
+                ->and($dom->query('//b')->length)->toBe(1)
+                ->and($dom->query('//b')->item(0)->textContent)->toBe('#73104')
+                ->and($dom->query('//img')->length)->toBe(1)
+                ->and($dom->query('//img')->item(0)->getAttribute('src'))->toBe($expectedAvatar)
+                ->and($dom->query('//img')->item(0)->getAttribute('loading'))->toBe('lazy')
+                ->and($dom->query('//img')->item(0)->getAttribute('class'))->toBe('fi-avatar fi-circular fi-size-sm');
+        }
+
+        $state = $schema->getState();
+        expect(array_keys($state))->toEqualCanonicalizing(['subject_type', 'subject_id'])
+            ->and($state['subject_type'])->toBe('morph-user')
+            ->and((int) $state['subject_id'])->toBe(73104)
+            ->and($host->morphFormData['subject_type'])->toBe('morph-user');
+        $record = MorphFormRecord::create($state)->fresh();
+        expect($record->subject_type)->toBe('morph-user')
+            ->and((int) $record->subject_id)->toBe(73104)
+            ->and($record->subject)->toBeInstanceOf(MorphFormUserTarget::class)
+            ->and($record->subject->is($user))->toBeTrue();
+        [, $editSchema, $editField] = morphFormSchema($record);
+        [, $editKey] = morphFormSelects($editField);
+        expect($editKey->getOptionLabel())->toBe($selected)
+            ->and($editSchema->getState())->toEqual($state);
+    };
+
+    if (! $configuredAvatar) {
+        $assertChoices();
+
+        return;
+    }
+
+    UserColumn::configureUsing(
+        static fn (UserColumn $column) => $column->avatarAttribute('portrait_url'),
+        during: $assertChoices,
+    );
+    [, , $field] = morphFormSchema(state: ['subject_type' => 'morph-user', 'subject_id' => 73104]);
+    [, $key] = morphFormSelects($field);
+    $document = new DOMDocument();
+    expect($document->loadHTML($key->getOptionLabel(), LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING))->toBeTrue();
+    expect($document->getElementsByTagName('img')->item(0)->getAttribute('src'))->toBe('/avatars/morph-user.svg?a=1&b=2');
+})->with(['default avatar' => false, 'boot-configured avatar' => true]);
+
+it('keeps invalid authenticatable morph selections blank despite HTML labels and still validates their keys and types', function (): void {
+    MorphFormFixtures::panel([MorphFormUserResource::class]);
+    Relation::morphMap(['morph-user' => MorphFormUserTarget::class]);
+    $user = MorphFormUserTarget::create(['id' => 73104, 'name' => 'Known morph user', 'email' => 'known@example.test']);
+    $record = MorphFormRecord::create(['subject_type' => 'morph-user', 'subject_id' => $user->id]);
+
+    foreach ([
+        ['morph-user', null, 'subject_id'],
+        ['morph-user', 999999, 'subject_id'],
+        ['morph-user', '<img src=x onerror="alert(1)">', 'subject_id'],
+        ['<script>alert(1)</script>', $user->id, 'subject_type'],
+    ] as [$typeState, $keyState, $invalidColumn]) {
+        [$host, $schema, $field] = morphFormSchema($record);
+        [, $key] = morphFormSelects($field);
+        $host->morphFormData['subject_type'] = $typeState;
+        $key->state($keyState);
+
+        expect($key->isHtmlAllowed())->toBeTrue()
+            ->and($key->getOptionLabel())->toBe('')
+            ->and($key->getOptionLabel(withDefault: false))->toBe('');
+        assertInvalidMorphFormState($schema, $invalidColumn);
+        expect($record->fresh()->subject_type)->toBe('morph-user')
+            ->and((int) $record->fresh()->subject_id)->toBe(73104);
+    }
+});
 
 it('skips unmapped resource models under an enforced morph map and falls back when none remain', function (): void {
     MorphFormFixtures::panel([MorphFormNameResource::class, MorphFormTitleResource::class]);
@@ -207,8 +371,8 @@ it('only accepts int-key targets for a numeric foreign key including nonstandard
     [, $key] = morphFormSelects($field);
 
     expect(array_keys($field->getTypes()))->toEqualCanonicalizing([MorphFormNameTarget::class, MorphFormIntegerKeyTarget::class])
-        ->and($key->getSearchResults('310'))->toBe([73104 => '73104'])
-        ->and($key->getOptionLabel())->toBe('73104');
+        ->and($key->getSearchResults('310'))->toBe([73104 => expectedMorphOption(73104)])
+        ->and($key->getOptionLabel())->toBe(expectedMorphOption(73104));
     $record = MorphFormRecord::create($schema->getState());
     expect($record->fresh()->subject->is($target))->toBeTrue();
 });
@@ -223,8 +387,8 @@ it('permits string and UUID custom primary keys with a string foreign key even o
 
     expect(array_keys($field->getTypes()))->toEqualCanonicalizing([MorphFormNameTarget::class, MorphFormKeyTarget::class, MorphFormStringIdTarget::class])
         ->and($host->morphFormData['subject_id'])->toBe($value)
-        ->and($key->getOptionLabel())->toBe('Custom key label')
-        ->and($key->getSearchResults(substr($value, 3, 8)))->toBe([$value => 'Custom key label'])
+        ->and($key->getOptionLabel())->toBe(expectedMorphOption($value, 'Custom key label'))
+        ->and($key->getSearchResults(substr($value, 3, 8)))->toBe([$value => expectedMorphOption($value, 'Custom key label')])
         ->and($schema->getState()['subject_id'])->toBe($value);
     $record->fill($schema->getState())->save();
     expect($record->fresh()->subject->is($target))->toBeTrue();
@@ -250,9 +414,9 @@ it('uses the target explicit connection or inherits the source runtime connectio
     expect($target->getConnection()->getTablePrefix())->toBe('secondary_')
         ->and($type->getTitleAttribute())->toBe('title')
         ->and($type->getSearchColumns())->toEqualCanonicalizing(['title', 'id'])
-        ->and($key->getSearchResults('oNdArY'))->toBe([73104 => 'Secondary label'])
-        ->and($key->getSearchResults('310'))->toBe([73104 => 'Secondary label'])
-        ->and($key->getOptionLabel())->toBe('Secondary label');
+        ->and($key->getSearchResults('oNdArY'))->toBe([73104 => expectedMorphOption(73104, 'Secondary label')])
+        ->and($key->getSearchResults('310'))->toBe([73104 => expectedMorphOption(73104, 'Secondary label')])
+        ->and($key->getOptionLabel())->toBe(expectedMorphOption(73104, 'Secondary label'));
     $record->fill($schema->getState())->save();
     expect($record->fresh()->subject->is($target))->toBeTrue();
 })->with(['inherited runtime connection' => false, 'explicit target connection' => true]);
@@ -275,18 +439,19 @@ it('uses the bound secondary source throughout the actual resource morph form', 
     expect($field)->toBeInstanceOf(MorphToSelect::class);
     [, $key] = morphFormSelects($field);
 
-    expect($key->getOptionLabel())->toBe('Bound-secondary shared')
-        ->and($key->getSearchResults('bOuNd-SeCoNdArY'))->toBe([$secondaryOnly->id => 'Bound-secondary only', $shared->id => 'Bound-secondary shared'])
-        ->and($key->getSearchResults('5206'))->toBe([$secondaryOnly->id => 'Bound-secondary only'])
+    expect($key->getOptionLabel())->toBe(expectedMorphOption($shared->id, 'Bound-secondary shared'))
+        ->and($key->getSearchResults('bOuNd-SeCoNdArY'))->toBe([$secondaryOnly->id => expectedMorphOption($secondaryOnly->id, 'Bound-secondary only'), $shared->id => expectedMorphOption($shared->id, 'Bound-secondary shared')])
+        ->and($key->getSearchResults('5206'))->toBe([$secondaryOnly->id => expectedMorphOption($secondaryOnly->id, 'Bound-secondary only')])
         ->and($key->getSearchResults('DeFaUlT'))->toBe([]);
     $key->state($defaultOnly->id);
-    expect($key->getOptionLabel(withDefault: false))->toBeNull();
+    expect($key->getOptionLabel())->toBe('')
+        ->and($key->getOptionLabel(withDefault: false))->toBe('');
     assertInvalidMorphFormState($schema, 'subject_id');
     expect((int) $record->fresh()->subject_id)->toBe($shared->id);
 
     $key->state($secondaryOnly->id);
     $host->morphFormData['name'] = 'Saved on secondary';
-    expect($key->getOptionLabel())->toBe('Bound-secondary only');
+    expect($key->getOptionLabel())->toBe(expectedMorphOption($secondaryOnly->id, 'Bound-secondary only'));
     $state = $schema->getState(afterValidate: fn (array $state) => $edit->data($state));
     expect((int) $state['subject_id'])->toBe($secondaryOnly->id);
     $edit->call(['schema' => $schema]);
@@ -323,17 +488,18 @@ it('keeps native morph search and selected ids isolated from joined global scope
 
     expect($field->getTypes()['joined']::class)->toBe(Type::class)
         ->and($record->getConnection()->getTablePrefix())->toBe($connection === 'secondary' ? 'secondary_' : '')
-        ->and($key->getSearchResults('TaRgEt'))->toBe([$first->id => 'Alpha target', $second->id => 'Zulu target'])
-        ->and($key->getSearchResults('310'))->toBe([$first->id => 'Alpha target'])
-        ->and($key->getSearchResults('FiRsT-TaRgEt-TiTlE'))->toBe([$first->id => 'Alpha target'])
-        ->and($key->getSearchResults('FiRsT-TaRgEt-EmAiL'))->toBe([$first->id => 'Alpha target'])
+        ->and($key->getSearchResults('TaRgEt'))->toBe([$first->id => expectedMorphOption($first->id, 'Alpha target'), $second->id => expectedMorphOption($second->id, 'Zulu target')])
+        ->and($key->getSearchResults('310'))->toBe([$first->id => expectedMorphOption($first->id, 'Alpha target')])
+        ->and($key->getSearchResults('FiRsT-TaRgEt-TiTlE'))->toBe([$first->id => expectedMorphOption($first->id, 'Alpha target')])
+        ->and($key->getSearchResults('FiRsT-TaRgEt-EmAiL'))->toBe([$first->id => expectedMorphOption($first->id, 'Alpha target')])
         ->and($key->getSearchResults('JoInEd-DeCoY'))->toBe([])
-        ->and($key->getOptionLabel())->toBe('Alpha target');
+        ->and($key->getOptionLabel())->toBe(expectedMorphOption($first->id, 'Alpha target'));
     $key->state($second->id);
-    expect($key->getOptionLabel())->toBe('Zulu target');
+    expect($key->getOptionLabel())->toBe(expectedMorphOption($second->id, 'Zulu target'));
     foreach ([90001, $unlinked->id] as $invalidId) {
         $key->state($invalidId);
-        expect($key->getOptionLabel(withDefault: false))->toBeNull();
+        expect($key->getOptionLabel())->toBe('')
+            ->and($key->getOptionLabel(withDefault: false))->toBe('');
         assertInvalidMorphFormState($schema, 'subject_id');
     }
 
@@ -346,7 +512,7 @@ it('keeps native morph search and selected ids isolated from joined global scope
         ->and($record->fresh()->getConnectionName())->toBe($connection);
     [, $editSchema, $editField] = morphFormSchema($record->fresh());
     [, $editKey] = morphFormSelects($editField);
-    expect($editKey->getOptionLabel())->toBe('Alpha target')
+    expect($editKey->getOptionLabel())->toBe(expectedMorphOption($first->id, 'Alpha target'))
         ->and((int) $editSchema->getState()['subject_id'])->toBe($first->id);
 })->with(['unprefixed tables' => 'testing', 'prefixed tables' => 'secondary']);
 
@@ -372,7 +538,8 @@ it('requires the wrapper when either column is non-nullable and always requires 
 
     expect($field->isRequired())->toBe($required)
         ->and($type->isRequired())->toBe($required)
-        ->and($key->isRequired())->toBeFalse();
+        ->and($key->isRequired())->toBeFalse()
+        ->and($key->getOptionLabel())->toBe('');
     if ($required) {
         assertInvalidMorphFormState($schema, 'subject_type');
     } else {
@@ -397,6 +564,7 @@ it('dehydrates hidden nullable key state and persists clearing an existing morph
     $host->morphFormData['subject_id'] = null;
 
     expect($key->isHidden())->toBeTrue()
+        ->and($key->getOptionLabel())->toBe('')
         ->and($schema->getState())->toBe(['subject_type' => null, 'subject_id' => null]);
     $record->fill($schema->getState())->save();
     expect($record->fresh()->subject_type)->toBeNull()
@@ -416,7 +584,7 @@ it('clears the id through the native type update hook even when the new type has
     expect($host->morphFormData['subject_id'])->toBeNull();
     assertInvalidMorphFormState($schema, 'subject_id');
     $key->state($second->id);
-    expect($key->getOptionLabel())->toBe('Second');
+    expect($key->getOptionLabel())->toBe(expectedMorphOption($second->id, 'Second'));
     $record->fill($schema->getState())->save();
     expect($record->fresh()->subject->is($second))->toBeTrue();
 
@@ -430,13 +598,16 @@ it('rejects tampered types nonexistent ids and globally scoped-out ids with nati
     $visible = MorphFormScopedTarget::create(['name' => 'Visible', 'active' => true]);
     $hidden = MorphFormScopedTarget::create(['name' => 'Hidden', 'active' => false]);
     $record = MorphFormRecord::create(['subject_type' => MorphFormScopedTarget::class, 'subject_id' => $visible->id]);
-    [$host, $schema] = morphFormSchema($record);
+    [$host, $schema, $field] = morphFormSchema($record);
+    [, $key] = morphFormSelects($field);
     if ($tampering === 'type') {
         $host->morphFormData['subject_type'] = MorphFormDeniedTarget::class;
     } else {
         $host->morphFormData['subject_id'] = $tampering === 'missing' ? 999999 : $hidden->id;
     }
 
+    expect($key->getOptionLabel())->toBe('')
+        ->and($key->getOptionLabel(withDefault: false))->toBe('');
     assertInvalidMorphFormState($schema, $tampering === 'type' ? 'subject_type' : 'subject_id');
     expect($record->fresh()->subject_type)->toBe(MorphFormScopedTarget::class)
         ->and((int) $record->fresh()->subject_id)->toBe($visible->id);
@@ -449,10 +620,11 @@ it('queries concrete target models with global scopes rather than resource getEl
     [$host, $schema, $field] = morphFormSchema(state: ['subject_type' => MorphFormScopedTarget::class, 'subject_id' => $visible->id]);
     [, $key] = morphFormSelects($field);
 
-    expect($key->getSearchResults('ScOpE-NeEdLe'))->toBe([$visible->id => 'Search visible'])
-        ->and($key->getOptionLabel())->toBe('Search visible');
+    expect($key->getSearchResults('ScOpE-NeEdLe'))->toBe([$visible->id => expectedMorphOption($visible->id, 'Search visible')])
+        ->and($key->getOptionLabel())->toBe(expectedMorphOption($visible->id, 'Search visible'));
     $key->state($hidden->id);
-    expect($key->getOptionLabel(withDefault: false))->toBeNull();
+    expect($key->getOptionLabel())->toBe('')
+        ->and($key->getOptionLabel(withDefault: false))->toBe('');
     assertInvalidMorphFormState($schema, 'subject_id');
 });
 
@@ -464,7 +636,8 @@ it('guesses labels per target from native name title or primary key and uses the
     $nullName = MorphFormNameTarget::create(['name' => null, 'title' => 'Do not switch title columns']);
     $emptyName = MorphFormNameTarget::create(['name' => '', 'title' => 'Do not switch title columns']);
 
-    foreach ([[$named, 'name', 'Preferred name'], [$titled, 'title', 'Title only'], [$keyOnly, 'target_number', '73104'], [$nullName, 'name', (string) $nullName->id], [$emptyName, 'name', (string) $emptyName->id]] as [$target, $attribute, $label]) {
+    foreach ([[$named, 'name', 'Preferred name'], [$titled, 'title', 'Title only'], [$keyOnly, 'target_number', null], [$nullName, 'name', null], [$emptyName, 'name', '']] as [$target, $attribute, $title]) {
+        $label = expectedMorphOption($target->getKey(), $title);
         [, $schema, $field] = morphFormSchema(state: ['subject_type' => $target::class, 'subject_id' => $target->getKey()]);
         [, $key] = morphFormSelects($field);
         expect($field->getTypes()[$target::class]->getTitleAttribute())->toBe($attribute)
@@ -472,6 +645,8 @@ it('guesses labels per target from native name title or primary key and uses the
             ->and($key->getSearchResults((string) $target->getKey()))->toHaveKey($target->getKey())
             ->and($schema->getState()['subject_id'])->toEqual($target->getKey());
         expect($key->getSearchResults((string) $target->getKey())[$target->getKey()])->toBe($label);
+        $key->preload();
+        expect($key->getOptions()[$target->getKey()])->toBe($label);
     }
 });
 
@@ -488,7 +663,7 @@ it('searches real records by id name title email and the deduplicated actual pri
         expect($actualColumns)->toEqualCanonicalizing($columns)
             ->and($actualColumns)->toHaveCount(count(array_unique($actualColumns)));
         foreach ($terms as $term) {
-            expect($key->getSearchResults($term))->toBe([$target->getKey() => $target->name]);
+            expect($key->getSearchResults($term))->toBe([$target->getKey() => expectedMorphOption($target->getKey(), $target->name)]);
         }
         expect($key->getSearchResults('notes-only-needle'))->toBe([]);
     }
@@ -507,9 +682,9 @@ it('retains the label search but filters hidden visible encrypted and hashed add
         [, , $field] = morphFormSchema(state: ['subject_type' => MorphFormSafeTarget::class]);
         [, $key] = morphFormSelects($field);
         expect($field->getTypes()[MorphFormSafeTarget::class]->getSearchColumns())->toEqualCanonicalizing($columns)
-            ->and($key->getSearchResults('SaFe'))->toBe([73104 => 'Safe label'])
+            ->and($key->getSearchResults('SaFe'))->toBe([73104 => expectedMorphOption(73104, 'Safe label')])
             ->and($key->getSearchResults('private-needle'))->toBe([])
-            ->and($key->getSearchResults('310'))->toBe(in_array('id', $columns, true) ? [73104 => 'Safe label'] : []);
+            ->and($key->getSearchResults('310'))->toBe(in_array('id', $columns, true) ? [73104 => expectedMorphOption(73104, 'Safe label')] : []);
     }
 });
 
@@ -521,7 +696,7 @@ it('does not issue SQL against missing email columns or accessor-only candidates
     [, $key] = morphFormSelects($field);
 
     expect($field->getTypes()[MorphFormAccessorTarget::class]->getSearchColumns())->toEqualCanonicalizing(['name', 'id', 'title'])
-        ->and($key->getSearchResults('310'))->toBe([$target->id => 'Accessor safe label'])
+        ->and($key->getSearchResults('310'))->toBe([$target->id => expectedMorphOption($target->id, 'Accessor safe label')])
         ->and($key->getSearchResults('accessor-only-needle'))->toBe([]);
 });
 
@@ -542,7 +717,7 @@ it('groups and persists multiple snake-case pairs under their relationship names
     expect($fields['reviewTarget']->getName())->toBe('reviewTarget')
         ->and($reviewType->getName())->toBe('review_target_type')
         ->and($reviewKey->getName())->toBe('review_target_id')
-        ->and($reviewKey->getOptionLabel())->toBe('Review target')
+        ->and($reviewKey->getOptionLabel())->toBe(expectedMorphOption($titled->id, 'Review target'))
         ->and($state)->toHaveKeys(['subject_type', 'subject_id', 'review_target_type', 'review_target_id'])
         ->not->toHaveKey('subject')->not->toHaveKey('reviewTarget');
     $record = MorphFormRecord::create($state)->fresh();
@@ -576,11 +751,23 @@ it('honors raw overwrites and dictionaries on either pair column instead of auto
 ]);
 
 it('honors a wrapper overwrite keyed by the relationship rather than either physical column', function (): void {
-    $override = MorphToSelect::make('subject')->label('Manual subject')->types([Type::make(MorphFormNameTarget::class)->titleAttribute('name')]);
+    $override = MorphToSelect::make('subject')->label('Manual subject')->types([
+        Type::make(MorphFormNameTarget::class)->titleAttribute('name')
+            ->getOptionLabelFromRecordUsing(static fn (Model $record): string => 'Manual: ' . $record->name),
+    ]);
     $fields = morphFormFields(overwrites: ['subject' => $override]);
     expect(array_keys($fields))->toEqualCanonicalizing(['id', 'name', 'subject'])
         ->and($fields['subject'])->toBe($override)
         ->and($fields['subject']->getLabel())->toBe('Manual subject');
+
+    $target = MorphFormNameTarget::create(['name' => 'Manual target']);
+    $schema = FilamentSchema::make(new MorphFormHost())->model(MorphFormRecord::class)->statePath('morphFormData')->components([$fields['subject']]);
+    $schema->fill(['subject_type' => MorphFormNameTarget::class, 'subject_id' => $target->id]);
+    [, $key] = morphFormSelects($fields['subject']);
+    expect($key->isHtmlAllowed())->toBeFalse()
+        ->and($key->isNative())->toBeTrue()
+        ->and($key->getOptionLabel())->toBe('Manual: Manual target')
+        ->and($key->getSearchResults('Manual'))->toBe([$target->id => 'Manual: Manual target']);
 });
 
 it('preserves both raw inputs when no accessible compatible target resources remain', function (): void {
@@ -660,7 +847,7 @@ it('generates a native morph form and creates the selected subject through a mou
         ->and($key->getName())->toBe('subject_id')
         ->and($key->getStatePath())->toBe('mountedActions.0.data.subject_id');
     $type->state('named')->callAfterStateUpdated();
-    expect($key->getSearchResults('MaNaGeR-SeArCh'))->toBe([$target->id => 'Related subject']);
+    expect($key->getSearchResults('MaNaGeR-SeArCh'))->toBe([$target->id => expectedMorphOption($target->id, 'Related subject')]);
     $key->state($target->id);
     $state = $form->getState();
     expect($state)->toHaveKeys(['subject_type', 'subject_id'])->not->toHaveKey('owner_id')->not->toHaveKey('subject')
@@ -706,7 +893,7 @@ it('runs generated create and edit forms through native action mount validation 
     expect($field)->toBeInstanceOf(MorphToSelect::class);
     [$type, $key] = morphFormSelects($field);
     expect($editHost->morphFormData['subject_type'])->toBe(MorphFormNameTarget::class)
-        ->and($key->getOptionLabel())->toBe('Created target');
+        ->and($key->getOptionLabel())->toBe(expectedMorphOption($named->id, 'Created target'));
     $type->state(MorphFormTitleTarget::class)->callAfterStateUpdated();
     expect($editHost->morphFormData['subject_id'])->toBeNull();
     $key->state($titled->id);

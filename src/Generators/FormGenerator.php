@@ -13,14 +13,18 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Forms\Components\KeyValue;
 use Filament\Support\Components\ViewComponent;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Str;
 use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
 use Miguilim\FilamentAutoPanel\Filament\StateCasts\JsonStateCast;
+use Miguilim\FilamentAutoPanel\Filament\Columns\UserColumn;
+use Miguilim\FilamentAutoPanel\Support\RelationshipOptionLabel;
 
 class FormGenerator extends AbstractGenerator
 {
@@ -85,8 +89,28 @@ class FormGenerator extends AbstractGenerator
                     ->types($types)
                     ->required($field->isRequired() || $columns[$keyColumn]->isRequired())
                     ->searchable()
+                    ->allowHtml()
+                    ->native(false)
                     ->columns(2)
                     ->columnSpanFull();
+
+                $component->modifyKeySelectUsing(static fn (Select $select): Select => $select->getOptionLabelUsing(
+                    static function (Select $component, Get $get, mixed $value) use ($types, $typeColumn): string {
+                        $alias = $get($typeColumn);
+
+                        if (! is_string($alias) && ! is_int($alias)) {
+                            return '';
+                        }
+
+                        foreach ($types as $type) {
+                            if ($type->getAlias() === (string) $alias) {
+                                return $component->evaluate($type->getOptionLabelUsing, ['value' => $value]) ?? '';
+                            }
+                        }
+
+                        return '';
+                    },
+                ));
             }
 
             $morphs[$typeColumn] = [$name, $component];
@@ -142,6 +166,7 @@ class FormGenerator extends AbstractGenerator
             }
 
             $title = RelationshipGuesser::guessModelTitleColumnName($related);
+            $userColumn = $related instanceof Authenticatable ? UserColumn::make("{$relationshipName}.{$title}") : null;
             $types[$modelClass] = Type::make($modelClass)
                 ->label($resource::getModelLabel())
                 ->titleAttribute($title)
@@ -152,7 +177,7 @@ class FormGenerator extends AbstractGenerator
                     ->mergeConstraintsFrom($query)
                     ->select($related->qualifyColumn('*'))
                     ->orderBy($related->qualifyColumn($title)))
-                ->getOptionLabelFromRecordUsing(static fn (Model $record): string => (string) (filled($value = $record->getAttribute($title)) ? $value : $record->getKey()));
+                ->getOptionLabelFromRecordUsing(static fn (Model $record): string => RelationshipOptionLabel::format($record, $title, $userColumn));
         }
 
         return array_values($types);
@@ -160,10 +185,29 @@ class FormGenerator extends AbstractGenerator
 
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
+        $relationship = $this->modelInstance->{$relationshipName}();
+        $related = $relationship->getRelated();
+        $hasJoins = filled($relationship->getQuery()->toBase()->joins);
+        $userColumn = $related instanceof Authenticatable ? UserColumn::make("{$relationshipName}.{$relationshipTitleColumnName}") : null;
+
         return Select::make($column->getName())
             ->label(ucfirst(strtolower(Str::headline($relationshipName))))
             ->required($column->getNotNull())
-            ->relationship($relationshipName, $relationshipTitleColumnName)
+            ->relationship($relationshipName, $relationshipTitleColumnName, modifyQueryUsing: static function (Builder $query) use ($hasJoins, $relationshipTitleColumnName): Builder {
+                if ($hasJoins) {
+                    $query->select($query->getModel()->qualifyColumn('*'));
+                }
+
+                if (empty($query->getQuery()->orders)) {
+                    $query->orderBy($query->qualifyColumn($relationshipTitleColumnName));
+                }
+
+                return $query;
+            })
+            ->getOptionLabelFromRecordUsing(static fn (Model $record, Select $component): string => RelationshipOptionLabel::format($record, $component->getRelationshipTitleAttribute(), $userColumn))
+            ->getOptionLabelUsing(static fn (Select $component): string => ($record = $component->getSelectedRecord()) === null ? '' : $component->getOptionLabelFromRecord($record))
+            ->allowHtml()
+            ->native(false)
             ->forceSearchCaseInsensitive() // Compatibility with specific db collations
             ->searchable(RelationshipGuesser::guessSearchColumns($this->modelInstance, $relationshipName, $relationshipTitleColumnName));
     }

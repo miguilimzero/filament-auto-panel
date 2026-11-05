@@ -55,6 +55,13 @@ function relationshipSearchSelect(Model $model, string $foreignKey = 'owner_id')
     return mountRelationshipSearchSelect(FormGenerator::makeForModel($model, relationManagerView: true)[$foreignKey], $model);
 }
 
+function relationshipSearchLabel(Model $record, string $title = 'name'): string
+{
+    $label = '<b>#' . e((string) $record->getKey()) . '</b>';
+
+    return $title === $record->getKeyName() ? $label : $label . ' - ' . e((string) $record->getAttribute($title));
+}
+
 it('searches generic relationships by name title email or partial id without changing labels or searching unrelated columns', function (): void {
     $titleMatch = RelationshipSearchContact::create(['id' => 73104, 'name' => 'Needle in title', 'email' => 'first@example.test']);
     $emailMatch = RelationshipSearchContact::create(['id' => 85206, 'name' => 'Email match', 'email' => 'before.NeEdLe.after@example.test']);
@@ -71,14 +78,14 @@ it('searches generic relationships by name title email or partial id without cha
         ->and($field->isRequired())->toBeFalse()
         ->and($field->isSearchable())->toBeTrue()
         ->and($field->isSearchForcedCaseInsensitive())->toBeTrue()
-        ->and($field->getSearchResults('nEeDlE'))->toBe([$emailMatch->id => 'Email match', $titleMatch->id => 'Needle in title'])
-        ->and($field->getSearchResults('310'))->toBe([$titleMatch->id => 'Needle in title'])
-        ->and($field->getSearchResults('AlTeRnAtE-tItLe'))->toBe([$alternateTitleMatch->id => $alternateTitleMatch->name])
+        ->and($field->getSearchResults('nEeDlE'))->toBe([$emailMatch->id => relationshipSearchLabel($emailMatch), $titleMatch->id => relationshipSearchLabel($titleMatch)])
+        ->and($field->getSearchResults('310'))->toBe([$titleMatch->id => relationshipSearchLabel($titleMatch)])
+        ->and($field->getSearchResults('AlTeRnAtE-tItLe'))->toBe([$alternateTitleMatch->id => relationshipSearchLabel($alternateTitleMatch)])
         ->and($field->getSearchResults('notes-only'))->toBe([]);
 
     $field->state($emailMatch->id);
     expect($field->getState())->toBe($emailMatch->id)
-        ->and($field->getOptionLabel())->toBe('Email match');
+        ->and($field->getOptionLabel())->toBe(relationshipSearchLabel($emailMatch));
 });
 
 it('deduplicates conventional primary-key names across all guessed search columns', function (string $keyName): void {
@@ -102,7 +109,7 @@ it('deduplicates conventional primary-key names across all guessed search column
         ->and(array_count_values($columns)[$keyName])->toBe(1);
 })->with(['id', 'name', 'title', 'email']);
 
-it('searches native user selects by email title partial id and mixed-case name without avatar markup', function (): void {
+it('searches native user selects by email title partial id and mixed-case name with rich labels', function (): void {
     Schema::table('user_field_identities', function (Blueprint $table): void {
         $table->string('email')->nullable();
         $table->string('title')->nullable();
@@ -115,13 +122,14 @@ it('searches native user selects by email title partial id and mixed-case name w
     expect($field::class)->toBe(Select::class)
         ->and($field->getSearchColumns())->toBe(['name', 'id', 'title', 'email'])
         ->and($field->getRelationshipTitleAttribute())->toBe('name')
-        ->and($field->isHtmlAllowed())->toBeFalse()
+        ->and($field->isHtmlAllowed())->toBeTrue()
+        ->and($field->isNative())->toBeFalse()
         ->and($field->isSearchForcedCaseInsensitive())->toBeTrue();
 
     foreach (['mAiLnEeDlE', 'aVaTaR tItLe', '310', 'aLiCe'] as $search) {
         $results = $field->getSearchResults($search);
         expect(array_keys($results))->toBe([$identity->id])
-            ->and($results[$identity->id])->toBe($identity->name);
+            ->and($results[$identity->id])->toBe(relationshipSearchLabel($identity) . ' (' . e((string) $identity->email) . ')');
     }
 
     $field->state($identity->id);
@@ -136,8 +144,8 @@ it('searches a relationship without an email column without issuing invalid SQL'
 
     expect(RelationshipGuesser::guessSearchColumns($model, 'owner', 'name'))->toBe(['name', 'id'])
         ->and($field->getSearchColumns())->toBe(['name', 'id'])
-        ->and($field->getSearchResults('310'))->toBe([$owner->id => $owner->name])
-        ->and($field->getSearchResults('wItHoUt'))->toBe([$owner->id => $owner->name]);
+        ->and($field->getSearchResults('310'))->toBe([$owner->id => relationshipSearchLabel($owner)])
+        ->and($field->getSearchResults('wItHoUt'))->toBe([$owner->id => relationshipSearchLabel($owner)]);
 });
 
 it('retains the title fallback for user models without a name column', function (): void {
@@ -149,8 +157,8 @@ it('retains the title fallback for user models without a name column', function 
         ->and($field->getRelationshipTitleAttribute())->toBe('title')
         ->and(RelationshipGuesser::guessSearchColumns($model, 'titleUser', 'title'))->toBe(['title', 'id'])
         ->and($field->getSearchColumns())->toBe(['title', 'id'])
-        ->and($field->getSearchResults('lLbAcK'))->toBe([$identity->id => $identity->title])
-        ->and($field->getSearchResults('310'))->toBe([$identity->id => $identity->title]);
+        ->and($field->getSearchResults('lLbAcK'))->toBe([$identity->id => relationshipSearchLabel($identity, 'title')])
+        ->and($field->getSearchResults('310'))->toBe([$identity->id => relationshipSearchLabel($identity, 'title')]);
 });
 
 it('searches custom string primary keys without changing option values', function (string $key, string $fragment): void {
@@ -168,14 +176,14 @@ it('searches custom string primary keys without changing option values', functio
 
     expect(RelationshipGuesser::guessSearchColumns($model, 'owner', 'name'))->toBe(['name', 'contact_key', 'id', 'title', 'email'])
         ->and($field->getSearchColumns())->toBe(['name', 'contact_key', 'id', 'title', 'email'])
-        ->and($field->getSearchResults('310'))->toBe([$key => $contact->name])
-        ->and($field->getSearchResults('AlTeRnAtE tItLe'))->toBe([$key => $contact->name])
-        ->and($field->getSearchResults($fragment))->toBe([$key => $contact->name])
-        ->and($field->getSearchResults('CuStOm-EmAiL'))->toBe([$key => $contact->name]);
+        ->and($field->getSearchResults('310'))->toBe([$key => relationshipSearchLabel($contact)])
+        ->and($field->getSearchResults('AlTeRnAtE tItLe'))->toBe([$key => relationshipSearchLabel($contact)])
+        ->and($field->getSearchResults($fragment))->toBe([$key => relationshipSearchLabel($contact)])
+        ->and($field->getSearchResults('CuStOm-EmAiL'))->toBe([$key => relationshipSearchLabel($contact)]);
 
     $field->state($key);
     expect($field->getState())->toBe($key)
-        ->and($field->getOptionLabel())->toBe($contact->name);
+        ->and($field->getOptionLabel())->toBe(relationshipSearchLabel($contact));
 })->with([
     'string' => ['contact-West-72', 't-wEsT-'],
     'UUID' => ['d46b5c80-3d8a-4f78-b73b-c8e945018cc2', 'A-4F78-B'],
@@ -192,7 +200,7 @@ it('deduplicates a key-only title fallback and preserves it even when hidden', f
     expect($field->getRelationshipTitleAttribute())->toBe('contact_key')
         ->and(RelationshipGuesser::guessSearchColumns($model, 'owner', 'contact_key'))->toBe(['contact_key'])
         ->and($field->getSearchColumns())->toBe(['contact_key'])
-        ->and($field->getSearchResults('oNlY-wEsT'))->toBe([$contact->getKey() => $contact->getKey()]);
+        ->and($field->getSearchResults('oNlY-wEsT'))->toBe([$contact->getKey() => '<b>#key-only-West-72</b>']);
 });
 
 it('keeps a custom belongs-to owner key as the option value while searching the model primary key', function (): void {
@@ -202,13 +210,13 @@ it('keeps a custom belongs-to owner key as the option value while searching the 
     $field = relationshipSearchSelect($model);
 
     expect($field->getSearchColumns())->toBe(['name', 'id', 'title', 'email'])
-        ->and($field->getSearchResults('310'))->toBe([$contact->handle => $contact->name])
-        ->and($field->getSearchResults('OwNeR-EmAiL'))->toBe([$contact->handle => $contact->name])
+        ->and($field->getSearchResults('310'))->toBe([$contact->handle => relationshipSearchLabel($contact)])
+        ->and($field->getSearchResults('OwNeR-EmAiL'))->toBe([$contact->handle => relationshipSearchLabel($contact)])
         ->and($field->getSearchResults('external-owner-key'))->toBe([]);
 
     $field->state($contact->handle);
     expect($field->getState())->toBe($contact->handle)
-        ->and($field->getOptionLabel())->toBe($contact->name);
+        ->and($field->getOptionLabel())->toBe(relationshipSearchLabel($contact));
 });
 
 it('uses the actual related connection and native table prefix for search', function (bool $explicitConnection, bool $withEmail): void {
@@ -247,9 +255,9 @@ it('uses the actual related connection and native table prefix for search', func
         ->and(RelationshipGuesser::guessSearchColumns($model, 'owner', 'title'))->toBe($columns)
         ->and($field->getSearchColumns())->toBe($columns)
         ->and($field->getRelationshipTitleAttribute())->toBe('title')
-        ->and($field->getSearchResults('310'))->toBe([73104 => 'Secondary title'])
-        ->and($field->getSearchResults('oNdArY tIt'))->toBe([73104 => 'Secondary title'])
-        ->and($field->getSearchResults('rOuTe-To-SeCoNdArY'))->toBe($withEmail ? [73104 => 'Secondary title'] : []);
+        ->and($field->getSearchResults('310'))->toBe([73104 => '<b>#73104</b> - Secondary title'])
+        ->and($field->getSearchResults('oNdArY tIt'))->toBe([73104 => '<b>#73104</b> - Secondary title'])
+        ->and($field->getSearchResults('rOuTe-To-SeCoNdArY'))->toBe($withEmail ? [73104 => '<b>#73104</b> - Secondary title'] : []);
 })->with([
     'inherited connection with email absent on default' => [false, true],
     'inherited connection without email present on default' => [false, false],
@@ -283,7 +291,7 @@ it('qualifies joined global-scope searches without searching joined-only columns
     $expected = array_map(static fn (string $column): string => $database->getDriverName() === 'pgsql'
         ? $related->qualifyColumn($column)
         : $database->getQueryGrammar()->wrap($related->qualifyColumn($column)), $columns);
-    $result = [$contact->id => $contact->name];
+    $result = [$contact->id => relationshipSearchLabel($contact)];
 
     expect($database->getTablePrefix())->toBe($connection === 'secondary' ? 'secondary_' : '')
         ->and($field::class)->toBe(Select::class)
@@ -297,7 +305,7 @@ it('qualifies joined global-scope searches without searching joined-only columns
         ->and($field->getSearchResults('630'))->toBe([])
         ->and($field->getSearchResults('notes-only'))->toBe([]);
     $field->state($contact->id);
-    expect($field->getOptionLabel())->toBe($contact->name);
+    expect($field->getOptionLabel())->toBe(relationshipSearchLabel($contact));
 })->with(['unprefixed' => 'testing', 'prefixed' => 'secondary'])->with(['with email' => true, 'missing email' => false]);
 
 it('preserves candidate exclusions and the existing label search when qualifying joined queries', function (string $connection, string $cast): void {
@@ -315,7 +323,7 @@ it('preserves candidate exclusions and the existing label search when qualifying
     $field = relationshipSearchSelect($model);
 
     expect($field->getSearchColumns())->toHaveCount(1)
-        ->and($field->getSearchResults('ViSiBlE lAbEl'))->toBe([73104 => 'Visible label'])
+        ->and($field->getSearchResults('ViSiBlE lAbEl'))->toBe([73104 => '<b>#73104</b> - Visible label'])
         ->and($field->getSearchResults('310'))->toBe([])
         ->and($field->getSearchResults('visible-excluded-needle'))->toBe([])
         ->and($field->getSearchResults('cast-excluded-needle'))->toBe([]);
@@ -331,8 +339,8 @@ it('never turns accessor-only keys or email into SQL search columns', function (
 
     expect(RelationshipGuesser::guessSearchColumns($model, 'owner', 'name'))->toBe(['name', 'id', 'title'])
         ->and($field->getSearchColumns())->toBe(['name', 'id', 'title'])
-        ->and($field->getSearchResults('310'))->toBe([$contact->id => $contact->name])
-        ->and($field->getSearchResults('iSiBlE'))->toBe([$contact->id => $contact->name])
+        ->and($field->getSearchResults('310'))->toBe([$contact->id => '<b>#accessor-key-needle</b> - Visible title'])
+        ->and($field->getSearchResults('iSiBlE'))->toBe([$contact->id => '<b>#accessor-key-needle</b> - Visible title'])
         ->and($field->getSearchResults('accessor-key-needle'))->toBe([])
         ->and($field->getSearchResults('accessor-email-needle'))->toBe([]);
 });
@@ -345,11 +353,18 @@ it('filters unsafe new candidates but always retains the existing title search',
     $model->ownerVisible = $visible;
     $model->ownerCasts = $casts;
     $field = relationshipSearchSelect($model);
-    $result = [73104 => 'Visible title'];
+    $result = [73104 => '<b>#73104</b> - Visible title'];
 
     expect(RelationshipGuesser::guessSearchColumns($model, 'owner', 'name'))->toBe($columns)
-        ->and($field->getSearchColumns())->toBe($columns)
-        ->and($field->getSearchResults('iSiBlE'))->toBe($result)
+        ->and($field->getSearchColumns())->toBe($columns);
+
+    // Encrypted casts on this BIGINT primary key are configuration-only cases:
+    // native option mapping must read the key, so these raw IDs cannot be rendered.
+    if (in_array($casts['id'] ?? null, ['encrypted', 'encrypted:array'], true)) {
+        return;
+    }
+
+    expect($field->getSearchResults('iSiBlE'))->toBe($result)
         ->and($field->getSearchResults('310'))->toBe(in_array('id', $columns, true) ? $result : [])
         ->and($field->getSearchResults('PrIvAtE-SeArCh'))->toBe(in_array('email', $columns, true) ? $result : []);
 })->with([
@@ -361,6 +376,8 @@ it('filters unsafe new candidates but always retains the existing title search',
     'encrypted candidates' => [[], [], ['id' => 'encrypted', 'title' => 'encrypted', 'email' => 'encrypted'], ['name']],
     'parameterized encrypted candidates' => [[], [], ['id' => 'encrypted:array', 'title' => 'encrypted:array', 'email' => 'encrypted:array'], ['name']],
     'hashed candidates' => [[], [], ['id' => 'hashed', 'title' => 'hashed', 'email' => 'hashed'], ['name']],
+    'encrypted email and title with valid key' => [[], [], ['title' => 'encrypted', 'email' => 'encrypted'], ['name', 'id']],
+    'parameterized encrypted email and title with valid key' => [[], [], ['title' => 'encrypted:array', 'email' => 'encrypted:array'], ['name', 'id']],
 ]);
 
 it('lets an extension replace generated search columns after the parent relationship handler', function (): void {
@@ -370,7 +387,7 @@ it('lets an extension replace generated search columns after the parent relation
 
     expect($field->getLabel())->toBe('Extension owner')
         ->and($field->getSearchColumns())->toBe(['handle'])
-        ->and($field->getSearchResults('SeArCh-HaNdLe'))->toBe([$contact->id => $contact->name])
+        ->and($field->getSearchResults('SeArCh-HaNdLe'))->toBe([$contact->id => relationshipSearchLabel($contact)])
         ->and($field->getSearchResults('310'))->toBe([])
         ->and($field->getSearchResults('not-searched'))->toBe([]);
 });

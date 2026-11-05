@@ -2,6 +2,8 @@
 
 namespace Miguilim\FilamentAutoPanel\Generators;
 
+use Illuminate\Database\Eloquent\Casts\AsEncryptedArrayObject;
+use Illuminate\Database\Eloquent\Casts\AsEncryptedCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -119,7 +121,9 @@ class RelationshipGuesser
 
             $castType = explode(':', $casts[$name] ?? '', 2)[0];
 
-            if (in_array($castType, ['encrypted', 'hashed'], true)) {
+            if (in_array($castType, ['encrypted', 'hashed'], true)
+                || is_a($castType, AsEncryptedArrayObject::class, true)
+                || is_a($castType, AsEncryptedCollection::class, true)) {
                 continue;
             }
 
