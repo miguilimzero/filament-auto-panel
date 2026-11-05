@@ -14,12 +14,13 @@ use Filament\QueryBuilder\Constraints\SelectConstraint;
 use Filament\QueryBuilder\Constraints\TextConstraint;
 use Filament\Tables\Filters\QueryBuilder;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
 use Illuminate\Database\Eloquent\Relations\MorphOneOrMany;
 use Illuminate\Database\Eloquent\Relations\Relation;
-use Miguilim\FilamentAutoPanel\Filament\Filters\IntegerComparisonOperator;
+use Miguilim\FilamentAutoPanel\Filament\Filters\NumericComparisonOperator;
 use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
 
 class FilterGenerator
@@ -144,14 +145,16 @@ class FilterGenerator
     {
         $constraint = NumberConstraint::make($column->getName())->integer($column->isInteger());
 
-        if ($column->isInteger()) {
-            $constraint->operators([
-                IntegerComparisonOperator::make('isMin'),
-                IntegerComparisonOperator::make('isMax'),
-                IntegerComparisonOperator::make('equals'),
-                IsFilledOperator::make()->visible(fn (): bool => $constraint->isNullable()),
-            ]);
-        }
+        $constraint->operators([
+            NumericComparisonOperator::make('isMin')->integer($column->isInteger()),
+            NumericComparisonOperator::make('isMax')->integer($column->isInteger()),
+            NumericComparisonOperator::make('equals')->integer($column->isInteger()),
+            IsFilledOperator::make()
+                ->visible(fn (): bool => $constraint->isNullable())
+                // Comparing numeric columns with '' treats zero as empty on MySQL.
+                ->query(static fn (Builder $query, string $qualifiedColumn, bool $isInverse): Builder => $query
+                    ->{$isInverse ? 'whereNull' : 'whereNotNull'}($qualifiedColumn)),
+        ]);
 
         return $constraint;
     }
