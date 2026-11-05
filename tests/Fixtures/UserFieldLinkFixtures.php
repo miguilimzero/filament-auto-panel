@@ -5,13 +5,13 @@ namespace Miguilim\FilamentAutoPanel\Tests\Fixtures;
 use Miguilim\FilamentAutoPanel\AutoResource;
 use Miguilim\FilamentAutoPanel\Mounters\PageMounter;
 
-require_once __DIR__ . '/Issue17UserFieldFixtures.php';
+require_once __DIR__ . '/UserFieldFixtures.php';
 
-class Issue17UserLinkResource extends AutoResource
+class UserFieldLinkResource extends AutoResource
 {
-    protected static ?string $model = Issue17Identity::class;
+    protected static ?string $model = UserFieldIdentity::class;
 
-    protected static ?string $slug = 'issue17-users';
+    protected static ?string $slug = 'user-field-users';
 
     public static bool $accessible = true;
 
@@ -21,7 +21,7 @@ class Issue17UserLinkResource extends AutoResource
     }
 }
 
-class Issue17UserLinkWithoutViewResource extends Issue17UserLinkResource
+class UserFieldLinkWithoutViewResource extends UserFieldLinkResource
 {
     public static function getPages(): array
     {

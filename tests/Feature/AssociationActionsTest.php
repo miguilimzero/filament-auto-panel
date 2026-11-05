@@ -16,39 +16,39 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Miguilim\FilamentAutoPanel\AutoRelationManager;
 use Miguilim\FilamentAutoPanel\Mounters\RelationManagerMounter;
-use Miguilim\FilamentAutoPanel\Tests\Fixtures\Issue11AssociationOwner;
-use Miguilim\FilamentAutoPanel\Tests\Fixtures\Issue11AssociationProduct;
-use Miguilim\FilamentAutoPanel\Tests\Fixtures\Issue11AssociationResource;
-use Miguilim\FilamentAutoPanel\Tests\Fixtures\Issue11ReadOnlyAssociationResource;
+use Miguilim\FilamentAutoPanel\Tests\Fixtures\AssociationOwner;
+use Miguilim\FilamentAutoPanel\Tests\Fixtures\AssociationProduct;
+use Miguilim\FilamentAutoPanel\Tests\Fixtures\AssociationResource;
+use Miguilim\FilamentAutoPanel\Tests\Fixtures\ReadOnlyAssociationResource;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\ListProducts;
 
-require_once __DIR__ . '/../Fixtures/Issue11AssociationActionFixtures.php';
+require_once __DIR__ . '/../Fixtures/AssociationActionFixtures.php';
 
-dataset('issue11 association routes', [
+dataset('association manager configurations', [
     'standalone' => [false],
     'resource-backed' => [true],
 ]);
 
-function issue11AssociationTable(
+function associationTable(
     bool $resourceBacked,
     string $relation = 'products',
-    ?Issue11AssociationOwner $owner = null,
+    ?AssociationOwner $owner = null,
     ?bool $enabled = null,
     bool $readOnly = false,
     ?string $inverse = null,
 ): Table {
-    $resource = $readOnly ? Issue11ReadOnlyAssociationResource::class : Issue11AssociationResource::class;
+    $resource = $readOnly ? ReadOnlyAssociationResource::class : AssociationResource::class;
     $class = $resourceBacked
         ? RelationManagerMounter::makeFromResource($resource, $relation, associateAttachActions: $enabled)
         : RelationManagerMounter::makeStandalone($relation, ['name'], associateAttachActions: $enabled, readOnly: $readOnly);
     $manager = new $class;
-    $manager->ownerRecord = $owner ?? Issue11AssociationOwner::create(['name' => 'Owner']);
+    $manager->ownerRecord = $owner ?? AssociationOwner::create(['name' => 'Owner']);
     $manager->pageClass = ListProducts::class;
 
     $inverse ??= match ($relation) {
         'morphProducts' => 'subject',
-        'customProducts' => 'issue11Owner',
-        'customMorphProducts' => 'issue11Subject',
+        'customProducts' => 'associationOwner',
+        'customMorphProducts' => 'associationSubject',
         default => 'owner',
     };
     $table = Table::make($manager)
@@ -58,7 +58,7 @@ function issue11AssociationTable(
     return $manager->table($resourceBacked ? $resource::table($table) : $table);
 }
 
-function issue11AssertAssociationActions(Table $table, bool $enabled): void
+function assertAssociationActions(Table $table, bool $enabled): void
 {
     if ($enabled) {
         expect($table->getAction('associate'))->toBeInstanceOf(AssociateAction::class)
@@ -77,7 +77,7 @@ function issue11AssertAssociationActions(Table $table, bool $enabled): void
         ->and($table->hasBulkAction('detach'))->toBeFalse();
 }
 
-function issue11AssertNoRelationshipActions(Table $table): void
+function assertNoRelationshipActions(Table $table): void
 {
     foreach (['associate', 'dissociate', 'attach', 'detach'] as $name) {
         expect($table->hasAction($name))->toBeFalse()
@@ -85,7 +85,7 @@ function issue11AssertNoRelationshipActions(Table $table): void
     }
 }
 
-function issue11ChangeNullableColumn(string $column, bool $nullable, string $connection = 'testing'): void
+function changeAssociationColumnNullability(string $column, bool $nullable, string $connection = 'testing'): void
 {
     Schema::connection($connection)->table('products', function (Blueprint $table) use ($column, $nullable): void {
         if (str_ends_with($column, '_type') || str_ends_with($column, '_kind')) {
@@ -96,10 +96,10 @@ function issue11ChangeNullableColumn(string $column, bool $nullable, string $con
     });
 }
 
-function issue11CreateRequiredPivot(string $relation): string
+function createAssociationPivot(string $relation): string
 {
     $morph = $relation === 'morphLinkedProducts';
-    $name = $morph ? 'issue11_association_productables' : 'issue11_association_owner_product';
+    $name = $morph ? 'association_productables' : 'association_owner_product';
 
     Schema::create($name, function (Blueprint $table) use ($morph): void {
         $table->foreignId($morph ? 'subject_id' : 'owner_id');
@@ -114,20 +114,20 @@ function issue11CreateRequiredPivot(string $relation): string
 }
 
 it('only offers has-many association actions when the real foreign key is nullable', function (bool $nullable, bool $resourceBacked): void {
-    issue11ChangeNullableColumn('owner_id', $nullable);
+    changeAssociationColumnNullability('owner_id', $nullable);
 
-    $table = issue11AssociationTable($resourceBacked);
+    $table = associationTable($resourceBacked);
 
-    issue11AssertAssociationActions($table, $nullable);
+    assertAssociationActions($table, $nullable);
     expect($table->getAction('create'))->not->toBeNull();
-})->with(['nullable' => [true], 'required' => [false]])->with('issue11 association routes');
+})->with(['nullable' => [true], 'required' => [false]])->with('association manager configurations');
 
 it('requires both morph columns to be nullable before offering association actions', function (bool $nullableId, bool $nullableType, bool $resourceBacked): void {
-    issue11ChangeNullableColumn('subject_id', $nullableId);
-    issue11ChangeNullableColumn('subject_type', $nullableType);
+    changeAssociationColumnNullability('subject_id', $nullableId);
+    changeAssociationColumnNullability('subject_type', $nullableType);
 
-    issue11AssertAssociationActions(
-        issue11AssociationTable($resourceBacked, 'morphProducts'),
+    assertAssociationActions(
+        associationTable($resourceBacked, 'morphProducts'),
         $nullableId && $nullableType,
     );
 })->with([
@@ -135,25 +135,25 @@ it('requires both morph columns to be nullable before offering association actio
     'required ID and nullable type' => [false, true],
     'nullable ID and required type' => [true, false],
     'both required' => [false, false],
-])->with('issue11 association routes');
+])->with('association manager configurations');
 
 it('reads custom relationship column names instead of assuming owner_id or subject_type', function (string $relation, string $column, bool $nullable, bool $resourceBacked): void {
     Schema::table('products', function (Blueprint $table): void {
-        $table->unsignedBigInteger('issue11_owner_key')->nullable();
-        $table->unsignedBigInteger('issue11_subject_key')->nullable();
-        $table->string('issue11_subject_kind')->nullable();
+        $table->unsignedBigInteger('association_owner_key')->nullable();
+        $table->unsignedBigInteger('association_subject_key')->nullable();
+        $table->string('association_subject_kind')->nullable();
     });
-    issue11ChangeNullableColumn($column, $nullable);
+    changeAssociationColumnNullability($column, $nullable);
 
-    issue11AssertAssociationActions(issue11AssociationTable($resourceBacked, $relation), $nullable);
+    assertAssociationActions(associationTable($resourceBacked, $relation), $nullable);
 })->with([
-    'custom nullable FK' => ['customProducts', 'issue11_owner_key', true],
-    'custom required FK' => ['customProducts', 'issue11_owner_key', false],
-    'custom nullable morph FK' => ['customMorphProducts', 'issue11_subject_key', true],
-    'custom required morph FK' => ['customMorphProducts', 'issue11_subject_key', false],
-    'custom nullable morph discriminator' => ['customMorphProducts', 'issue11_subject_kind', true],
-    'custom required morph discriminator' => ['customMorphProducts', 'issue11_subject_kind', false],
-])->with('issue11 association routes');
+    'custom nullable FK' => ['customProducts', 'association_owner_key', true],
+    'custom required FK' => ['customProducts', 'association_owner_key', false],
+    'custom nullable morph FK' => ['customMorphProducts', 'association_subject_key', true],
+    'custom required morph FK' => ['customMorphProducts', 'association_subject_key', false],
+    'custom nullable morph discriminator' => ['customMorphProducts', 'association_subject_kind', true],
+    'custom required morph discriminator' => ['customMorphProducts', 'association_subject_kind', false],
+])->with('association manager configurations');
 
 it('fails closed when a relationship column is missing', function (string $relation, string $column, bool $resourceBacked): void {
     Schema::table('products', function (Blueprint $table) use ($relation, $column): void {
@@ -165,61 +165,61 @@ it('fails closed when a relationship column is missing', function (string $relat
     });
 
     expect(collect(Schema::getColumns('products'))->pluck('name')->all())->not->toContain($column);
-    issue11AssertAssociationActions(issue11AssociationTable($resourceBacked, $relation), false);
+    assertAssociationActions(associationTable($resourceBacked, $relation), false);
 })->with([
     'missing has-many FK' => ['products', 'owner_id'],
     'missing morph FK' => ['morphProducts', 'subject_id'],
     'missing morph discriminator' => ['morphProducts', 'subject_type'],
-])->with('issue11 association routes');
+])->with('association manager configurations');
 
 it('fails closed when native column inspection finds no related table', function (string $relation, bool $resourceBacked): void {
     Schema::drop('products');
 
-    issue11AssertAssociationActions(issue11AssociationTable($resourceBacked, $relation), false);
-})->with(['has-many' => ['products'], 'morph-many' => ['morphProducts']])->with('issue11 association routes');
+    assertAssociationActions(associationTable($resourceBacked, $relation), false);
+})->with(['has-many' => ['products'], 'morph-many' => ['morphProducts']])->with('association manager configurations');
 
 it('does not let an explicit true flag bypass required relationship columns', function (string $relation, string $column, bool $resourceBacked): void {
-    issue11ChangeNullableColumn($column, false);
+    changeAssociationColumnNullability($column, false);
 
-    issue11AssertAssociationActions(issue11AssociationTable($resourceBacked, $relation, enabled: true), false);
+    assertAssociationActions(associationTable($resourceBacked, $relation, enabled: true), false);
 })->with([
     'has-many' => ['products', 'owner_id'],
     'morph-many' => ['morphProducts', 'subject_type'],
-])->with('issue11 association routes');
+])->with('association manager configurations');
 
 it('preserves the existing inverse relationship method guard', function (string $relation, bool $resourceBacked): void {
-    issue11AssertAssociationActions(
-        issue11AssociationTable($resourceBacked, $relation, inverse: 'issue11MissingInverse'),
+    assertAssociationActions(
+        associationTable($resourceBacked, $relation, inverse: 'missingAssociationInverse'),
         false,
     );
-})->with(['has-many' => ['products'], 'morph-many' => ['morphProducts']])->with('issue11 association routes');
+})->with(['has-many' => ['products'], 'morph-many' => ['morphProducts']])->with('association manager configurations');
 
 it('keeps the explicit false flag as an opt-out for every relationship action family', function (string $relation, bool $resourceBacked): void {
-    $table = issue11AssociationTable($resourceBacked, $relation, enabled: false);
+    $table = associationTable($resourceBacked, $relation, enabled: false);
 
-    issue11AssertNoRelationshipActions($table);
+    assertNoRelationshipActions($table);
     expect($table->getAction('create'))->not->toBeNull();
 })->with([
     'has-many' => ['products'],
     'morph-many' => ['morphProducts'],
     'belongs-to-many' => ['linkedProducts'],
     'morph-to-many' => ['morphLinkedProducts'],
-])->with('issue11 association routes');
+])->with('association manager configurations');
 
 it('disables every relationship action family for read-only managers and resources', function (string $relation, bool $resourceBacked): void {
-    $table = issue11AssociationTable($resourceBacked, $relation, enabled: true, readOnly: true);
+    $table = associationTable($resourceBacked, $relation, enabled: true, readOnly: true);
 
-    issue11AssertNoRelationshipActions($table);
+    assertNoRelationshipActions($table);
     expect($table->getAction('create'))->toBeNull();
 })->with([
     'has-many' => ['products'],
     'morph-many' => ['morphProducts'],
     'belongs-to-many' => ['linkedProducts'],
     'morph-to-many' => ['morphLinkedProducts'],
-])->with('issue11 association routes');
+])->with('association manager configurations');
 
 it('uses the related models inherited connection and native table prefix instead of the default connection', function (string $relation, string $column, bool $nullable, bool $resourceBacked): void {
-    issue11ChangeNullableColumn($column, ! $nullable);
+    changeAssociationColumnNullability($column, ! $nullable);
     $schema = Schema::connection('secondary');
     $schema->create('owners', function (Blueprint $table): void {
         $table->id();
@@ -234,17 +234,17 @@ it('uses the related models inherited connection and native table prefix instead
             $table->string('subject_type')->nullable($nullable);
             $table->string('name');
         });
-        $owner = (new Issue11AssociationOwner)->setConnection('secondary');
+        $owner = (new AssociationOwner)->setConnection('secondary');
         $owner->forceFill(['name' => 'Secondary owner'])->save();
         $related = $owner->{$relation}()->getRelated();
 
-        expect((new Issue11AssociationProduct)->getConnectionName())->toBeNull()
+        expect((new AssociationProduct)->getConnectionName())->toBeNull()
             ->and($related->getConnectionName())->toBe('secondary')
             ->and($related->getTable())->toBe('products')
             ->and($related->getConnection()->getTablePrefix())->toBe('secondary_')
             ->and($related->getConnection()->getSchemaBuilder()->getColumns('products'))->not->toBeEmpty();
 
-        issue11AssertAssociationActions(issue11AssociationTable($resourceBacked, $relation, $owner), $nullable);
+        assertAssociationActions(associationTable($resourceBacked, $relation, $owner), $nullable);
     } finally {
         $schema->dropIfExists('products');
         $schema->dropIfExists('owners');
@@ -254,27 +254,27 @@ it('uses the related models inherited connection and native table prefix instead
     'secondary required FK, default nullable' => ['products', 'owner_id', false],
     'secondary nullable morph type, default required' => ['morphProducts', 'subject_type', true],
     'secondary required morph type, default nullable' => ['morphProducts', 'subject_type', false],
-])->with('issue11 association routes');
+])->with('association manager configurations');
 
 it('rechecks live nullability on every mount without caching the default action decision', function (string $relation, string $column, bool $resourceBacked): void {
-    $owner = Issue11AssociationOwner::create(['name' => 'Owner']);
-    $first = issue11AssociationTable($resourceBacked, $relation, $owner);
-    issue11AssertAssociationActions($first, true);
+    $owner = AssociationOwner::create(['name' => 'Owner']);
+    $first = associationTable($resourceBacked, $relation, $owner);
+    assertAssociationActions($first, true);
 
-    issue11ChangeNullableColumn($column, false);
-    $second = issue11AssociationTable($resourceBacked, $relation, $owner);
+    changeAssociationColumnNullability($column, false);
+    $second = associationTable($resourceBacked, $relation, $owner);
     expect($second->getLivewire()::class)->toBe($first->getLivewire()::class);
-    issue11AssertAssociationActions($second, false);
+    assertAssociationActions($second, false);
 
-    issue11ChangeNullableColumn($column, true);
-    $third = issue11AssociationTable($resourceBacked, $relation, $owner);
+    changeAssociationColumnNullability($column, true);
+    $third = associationTable($resourceBacked, $relation, $owner);
     expect($third->getLivewire()::class)->toBe($first->getLivewire()::class);
-    issue11AssertAssociationActions($third, true);
+    assertAssociationActions($third, true);
 })->with([
     'has-many FK' => ['products', 'owner_id'],
     'morph FK' => ['morphProducts', 'subject_id'],
     'morph discriminator' => ['morphProducts', 'subject_type'],
-])->with('issue11 association routes');
+])->with('association manager configurations');
 
 it('executes native getColumns inspection on repeated mounts even without a schema change', function (bool $resourceBacked): void {
     $connection = DB::connection();
@@ -285,10 +285,10 @@ it('executes native getColumns inspection on repeated mounts even without a sche
         $connection->getSchemaBuilder()->getColumns('products');
         $queries = $connection->getQueryLog();
         $inspection = $queries[array_key_last($queries)];
-        $owner = Issue11AssociationOwner::create(['name' => 'Owner']);
+        $owner = AssociationOwner::create(['name' => 'Owner']);
 
         $class = $resourceBacked
-            ? RelationManagerMounter::makeFromResource(Issue11AssociationResource::class, 'products')
+            ? RelationManagerMounter::makeFromResource(AssociationResource::class, 'products')
             : RelationManagerMounter::makeStandalone('products', ['name']);
 
         for ($mount = 0; $mount < 2; $mount++) {
@@ -300,12 +300,12 @@ it('executes native getColumns inspection on repeated mounts even without a sche
                 ->inverseRelationship('owner');
 
             if ($resourceBacked) {
-                $table = Issue11AssociationResource::table($table);
+                $table = AssociationResource::table($table);
             }
 
             // Resource column generation must not satisfy the eligibility inspection assertion.
             $connection->flushQueryLog();
-            issue11AssertAssociationActions($manager->table($table), true);
+            assertAssociationActions($manager->table($table), true);
 
             expect(collect($connection->getQueryLog())->contains(
                 fn (array $query): bool => $query['query'] === $inspection['query'] && $query['bindings'] === $inspection['bindings'],
@@ -315,14 +315,14 @@ it('executes native getColumns inspection on repeated mounts even without a sche
         $connection->disableQueryLog();
         $connection->flushQueryLog();
     }
-})->with('issue11 association routes');
+})->with('association manager configurations');
 
 it('persists native single and bulk dissociation when the relationship columns are nullable', function (string $relation, bool $resourceBacked): void {
-    $owner = Issue11AssociationOwner::create(['name' => 'Owner']);
+    $owner = AssociationOwner::create(['name' => 'Owner']);
     $records = collect(['Single', 'Bulk one', 'Bulk two', 'Unselected'])->map(
         fn (string $name) => $owner->{$relation}()->create(['name' => $name]),
     );
-    $table = issue11AssociationTable($resourceBacked, $relation, $owner);
+    $table = associationTable($resourceBacked, $relation, $owner);
     $manager = $table->getLivewire();
     assert($manager instanceof AutoRelationManager);
     (new ReflectionProperty($manager, 'table'))->setValue($manager, $table);
@@ -349,10 +349,10 @@ it('persists native single and bulk dissociation when the relationship columns a
             expect($fresh->owner_id)->toBeNull();
         }
     }
-})->with(['has-many' => ['products'], 'morph-many' => ['morphProducts']])->with('issue11 association routes');
+})->with(['has-many' => ['products'], 'morph-many' => ['morphProducts']])->with('association manager configurations');
 
 it('keeps attach and detach actions enabled and persists native pivot insertion and deletion with required columns', function (string $relation, bool $resourceBacked): void {
-    $pivot = issue11CreateRequiredPivot($relation);
+    $pivot = createAssociationPivot($relation);
 
     try {
         $columns = collect(Schema::getColumns($pivot))->keyBy('name');
@@ -360,11 +360,11 @@ it('keeps attach and detach actions enabled and persists native pivot insertion 
             expect($column['nullable'])->toBeFalse();
         }
 
-        $owner = Issue11AssociationOwner::create(['name' => 'Owner']);
+        $owner = AssociationOwner::create(['name' => 'Owner']);
         $records = collect(['Single', 'Bulk one', 'Bulk two'])->map(
-            fn (string $name) => Issue11AssociationProduct::create(['name' => $name]),
+            fn (string $name) => AssociationProduct::create(['name' => $name]),
         );
-        $table = issue11AssociationTable($resourceBacked, $relation, $owner);
+        $table = associationTable($resourceBacked, $relation, $owner);
         $manager = $table->getLivewire();
         assert($manager instanceof AutoRelationManager);
         (new ReflectionProperty($manager, 'table'))->setValue($manager, $table);
@@ -378,7 +378,7 @@ it('keeps attach and detach actions enabled and persists native pivot insertion 
 
         foreach ($records as $record) {
             $attach = $table->getAction('attach')->data(['recordId' => $record->getKey()]);
-            $attach->call(['schema' => ActionSchema::make($manager)->model(Issue11AssociationProduct::class)]);
+            $attach->call(['schema' => ActionSchema::make($manager)->model(AssociationProduct::class)]);
             expect($attach->getStatus())->toBe(ActionStatus::Success);
         }
 
@@ -407,8 +407,8 @@ it('keeps attach and detach actions enabled and persists native pivot insertion 
         expect($bulk->getStatus())->toBe(ActionStatus::Success)
             ->and($bulk->getTotalSelectedRecordsCount())->toBe(2)
             ->and(DB::table($pivot)->count())->toBe(0)
-            ->and(Issue11AssociationProduct::count())->toBe(3);
+            ->and(AssociationProduct::count())->toBe(3);
     } finally {
         Schema::dropIfExists($pivot);
     }
-})->with(['belongs-to-many' => ['linkedProducts'], 'morph-to-many' => ['morphLinkedProducts']])->with('issue11 association routes');
+})->with(['belongs-to-many' => ['linkedProducts'], 'morph-to-many' => ['morphLinkedProducts']])->with('association manager configurations');

@@ -20,22 +20,22 @@ use Miguilim\FilamentAutoPanel\AutoResource;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\Models\Owner;
 use Throwable;
 
-class Issue17UserFieldFixtures
+class UserFieldFixtures
 {
     public static function create(string $connection = 'testing'): void
     {
         $schema = Schema::connection($connection);
 
         try {
-            $schema->create('issue17_identities', function (Blueprint $table): void {
+            $schema->create('user_field_identities', function (Blueprint $table): void {
                 $table->id();
                 $table->string('name');
             });
-            $schema->create('issue17_title_identities', function (Blueprint $table): void {
+            $schema->create('user_field_title_identities', function (Blueprint $table): void {
                 $table->id();
                 $table->string('title');
             });
-            $schema->create('issue17_records', function (Blueprint $table): void {
+            $schema->create('user_field_records', function (Blueprint $table): void {
                 $table->id();
                 $table->unsignedBigInteger('user_id');
                 $table->unsignedBigInteger('author_id')->nullable();
@@ -56,32 +56,32 @@ class Issue17UserFieldFixtures
     public static function drop(string $connection = 'testing'): void
     {
         $schema = Schema::connection($connection);
-        $schema->dropIfExists('issue17_records');
-        $schema->dropIfExists('issue17_title_identities');
-        $schema->dropIfExists('issue17_identities');
+        $schema->dropIfExists('user_field_records');
+        $schema->dropIfExists('user_field_title_identities');
+        $schema->dropIfExists('user_field_identities');
     }
 }
 
-class Issue17Identity extends Authenticatable implements HasAvatar
+class UserFieldIdentity extends Authenticatable implements HasAvatar
 {
     public $timestamps = false;
 
-    protected $table = 'issue17_identities';
+    protected $table = 'user_field_identities';
 
     protected $guarded = [];
 
     public function getFilamentAvatarUrl(): ?string
     {
-        return '/issue17-avatars/' . $this->getKey() . '.svg';
+        return '/user-field-avatars/' . $this->getKey() . '.svg';
     }
 }
 
-class Issue17TitleIdentity extends Issue17Identity
+class UserFieldTitleIdentity extends UserFieldIdentity
 {
-    protected $table = 'issue17_title_identities';
+    protected $table = 'user_field_title_identities';
 }
 
-class Issue17NamedIdentity extends Issue17TitleIdentity implements HasName
+class UserFieldNamedIdentity extends UserFieldTitleIdentity implements HasName
 {
     public function getFilamentName(): string
     {
@@ -89,7 +89,7 @@ class Issue17NamedIdentity extends Issue17TitleIdentity implements HasName
     }
 }
 
-class Issue17AccessorIdentity extends Issue17TitleIdentity
+class UserFieldAccessorIdentity extends UserFieldTitleIdentity
 {
     protected function name(): Attribute
     {
@@ -97,27 +97,27 @@ class Issue17AccessorIdentity extends Issue17TitleIdentity
     }
 }
 
-class Issue17Record extends Model
+class UserFieldRecord extends Model
 {
     public $timestamps = false;
 
-    protected $table = 'issue17_records';
+    protected $table = 'user_field_records';
 
     protected $guarded = [];
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(Issue17Identity::class, 'user_id');
+        return $this->belongsTo(UserFieldIdentity::class, 'user_id');
     }
 
     public function author(): BelongsTo
     {
-        return $this->belongsTo(Issue17Identity::class, 'author_id');
+        return $this->belongsTo(UserFieldIdentity::class, 'author_id');
     }
 
     public function reviewedBy(): BelongsTo
     {
-        return $this->belongsTo(Issue17Identity::class, 'reviewed_by_id');
+        return $this->belongsTo(UserFieldIdentity::class, 'reviewed_by_id');
     }
 
     public function owner(): BelongsTo
@@ -127,17 +127,17 @@ class Issue17Record extends Model
 
     public function titleUser(): BelongsTo
     {
-        return $this->belongsTo(Issue17TitleIdentity::class, 'title_user_id');
+        return $this->belongsTo(UserFieldTitleIdentity::class, 'title_user_id');
     }
 
     public function namedUser(): BelongsTo
     {
-        return $this->belongsTo(Issue17NamedIdentity::class, 'named_user_id');
+        return $this->belongsTo(UserFieldNamedIdentity::class, 'named_user_id');
     }
 
     public function accessorUser(): BelongsTo
     {
-        return $this->belongsTo(Issue17AccessorIdentity::class, 'accessor_user_id');
+        return $this->belongsTo(UserFieldAccessorIdentity::class, 'accessor_user_id');
     }
 
     public function subject(): MorphTo
@@ -146,7 +146,7 @@ class Issue17Record extends Model
     }
 }
 
-class Issue17NonUserRecord extends Issue17Record
+class UserFieldNonUserRecord extends UserFieldRecord
 {
     public function user(): BelongsTo
     {
@@ -154,57 +154,57 @@ class Issue17NonUserRecord extends Issue17Record
     }
 }
 
-class Issue17OrphanRecord extends Model
+class UserFieldOrphanRecord extends Model
 {
     public $timestamps = false;
 
-    protected $table = 'issue17_records';
+    protected $table = 'user_field_records';
 
     protected $guarded = [];
 }
 
-class Issue17UnverifiedRecord extends Issue17OrphanRecord
+class UserFieldUnverifiedRecord extends UserFieldOrphanRecord
 {
     public function user(): HasMany
     {
-        return $this->hasMany(Issue17Identity::class, 'user_id');
+        return $this->hasMany(UserFieldIdentity::class, 'user_id');
     }
 
     public function author(): BelongsTo
     {
-        return $this->belongsTo(Issue17Identity::class, 'reviewed_by_id');
+        return $this->belongsTo(UserFieldIdentity::class, 'reviewed_by_id');
     }
 }
 
-class Issue17AuthenticatableRecord extends Issue17Record implements AuthenticatableContract
+class UserFieldAuthenticatableRecord extends UserFieldRecord implements AuthenticatableContract
 {
     use AuthenticatableTrait;
 }
 
-class Issue17Owner extends Owner
+class UserFieldOwner extends Owner
 {
     protected $table = 'owners';
 
-    public function issue17Records(): HasMany
+    public function userFieldRecords(): HasMany
     {
-        return $this->hasMany(Issue17Record::class, 'owner_id');
+        return $this->hasMany(UserFieldRecord::class, 'owner_id');
     }
 }
 
-class Issue17RecordResource extends AutoResource
+class UserFieldRecordResource extends AutoResource
 {
-    protected static ?string $model = Issue17Record::class;
+    protected static ?string $model = UserFieldRecord::class;
 
     protected static array $searchableColumns = ['user.name' => 'both'];
 }
 
-class Issue17ListRecords extends ListRecords
+class UserFieldListRecords extends ListRecords
 {
-    protected static string $resource = Issue17RecordResource::class;
+    protected static string $resource = UserFieldRecordResource::class;
 
-    public array $issue17Data = [];
+    public array $userFieldData = [];
 
-    public function setIssue17Table(Table $table): void
+    public function setUserFieldTable(Table $table): void
     {
         $this->table = $table;
     }
