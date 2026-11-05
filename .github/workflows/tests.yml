@@ -20,9 +20,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - php: '8.2'
-            laravel: '^12.0'
-            testbench: '^10.0'
           - php: '8.3'
             laravel: '^12.0'
             testbench: '^10.0'
@@ -97,7 +94,7 @@ jobs:
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.3'
           extensions: intl, mbstring, dom, pdo_mysql, pdo_sqlite
           coverage: none
           tools: composer:v2
