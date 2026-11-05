@@ -8,7 +8,9 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Miguilim\FilamentAutoPanel\FilamentAutoPanelProvider;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\ProductResource;
+use Miguilim\FilamentAutoPanel\Tests\Support\ParallelDatabase;
 use Orchestra\Testbench\TestCase as Orchestra;
+use Throwable;
 
 class TestCase extends Orchestra
 {
@@ -52,6 +54,16 @@ class TestCase extends Orchestra
             'collation' => 'utf8mb4_unicode_ci',
         ];
 
+        try {
+            $connection = ParallelDatabase::forWorker()->connection($connection);
+        } catch (Throwable $exception) {
+            // Failed setup still runs teardown hooks; none may fall back to the base database.
+            $app['config']->set('database.default', 'parallel-isolation-failed');
+            $app['config']->set('database.connections', []);
+
+            throw $exception;
+        }
+
         $app['config']->set('database.default', 'testing');
         $app['config']->set('database.connections.testing', $connection);
         $app['config']->set('database.connections.secondary', [
@@ -94,11 +106,23 @@ class TestCase extends Orchestra
     protected function tearDown(): void
     {
         try {
+            if ($this->app === null) {
+                return;
+            }
+
             Schema::dropIfExists('products');
             Schema::dropIfExists('owners');
-            Schema::connection('secondary')->dropIfExists('products');
+            $secondary = $this->app['db']->getConnections()['secondary'] ?? null;
+            $secondary?->getSchemaBuilder()->dropIfExists('products');
         } finally {
-            $this->app['files']->deleteDirectory($this->componentCacheDirectory);
+            if ($this->app !== null) {
+                foreach ($this->app['db']->getConnections() as $connection) {
+                    $connection->disconnect();
+                }
+
+                $this->app['files']->deleteDirectory($this->componentCacheDirectory);
+            }
+
             parent::tearDown();
         }
     }

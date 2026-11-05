@@ -49,7 +49,7 @@ jobs:
           composer update --prefer-dist --no-interaction --no-progress
 
       - name: Run Pest
-        run: composer test
+        run: composer test -- --processes=2
 
   databases:
     name: ${{ matrix.database }} / Laravel 12
@@ -105,4 +105,4 @@ jobs:
           composer update --prefer-dist --no-interaction --no-progress
 
       - name: Run Pest
-        run: composer test
+        run: composer test -- --processes=2
