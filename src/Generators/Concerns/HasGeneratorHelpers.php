@@ -3,7 +3,6 @@
 namespace Miguilim\FilamentAutoPanel\Generators\Concerns;
 
 use BackedEnum;
-use Filament\Models\Contracts\HasName;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,7 +24,7 @@ trait HasGeneratorHelpers
         return new HtmlString("<span class=\"text-gray-500 dark:text-gray-400\">{$placeholder}</span>");
     }
 
-    protected function isUserRelationship(string $relationshipName, string $titleColumn): bool
+    protected function isUserRelationship(string $relationshipName): bool
     {
         $relationship = $this->modelInstance->{$relationshipName}();
 
@@ -35,8 +34,7 @@ trait HasGeneratorHelpers
 
         $related = $relationship->getRelated();
 
-        return $related instanceof Authenticatable
-            && ($titleColumn === 'name' || $related instanceof HasName || $related->hasAttribute('name'));
+        return $related instanceof Authenticatable;
     }
 
     protected function relationshipUrl(?Model $record, string $relationship): ?string

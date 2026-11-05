@@ -12,7 +12,7 @@ use Filament\Tables\Columns\Column as TableColumn;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
-use Zvizvi\UserFields\Components\UserColumn;
+use Miguilim\FilamentAutoPanel\Filament\Columns\UserColumn;
 
 class TableGenerator extends AbstractGenerator
 {
@@ -63,7 +63,7 @@ class TableGenerator extends AbstractGenerator
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
         $name = "{$relationshipName}.{$relationshipTitleColumnName}";
-        $textColumn = $this->isUserRelationship($relationshipName, $relationshipTitleColumnName)
+        $textColumn = $this->isUserRelationship($relationshipName)
             ? UserColumn::make($name)->label(ucfirst(strtolower(Str::headline($relationshipName))))
             : TextColumn::make($name);
 

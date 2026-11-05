@@ -10,35 +10,38 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 use Miguilim\FilamentAutoPanel\Filament\Actions\AutoEditAction;
+use Miguilim\FilamentAutoPanel\Filament\Columns\UserColumn;
 use Miguilim\FilamentAutoPanel\Generators\FormGenerator;
 use Miguilim\FilamentAutoPanel\Generators\InfolistGenerator;
 use Miguilim\FilamentAutoPanel\Generators\RelationshipGuesser;
 use Miguilim\FilamentAutoPanel\Generators\TableGenerator;
 use Miguilim\FilamentAutoPanel\Mounters\RelationManagerMounter;
+use Miguilim\FilamentAutoPanel\Tests\Fixtures\Models\Owner;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldAccessorIdentity;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldAuthenticatableRecord;
+use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldFixtures;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldIdentity;
+use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldKeyIdentity;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldListRecords;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldNamedIdentity;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldNonUserRecord;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldOrphanRecord;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldOwner;
+use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldPlainIdentity;
+use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldPlainRecord;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldRecord;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldRecordResource;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldTitleIdentity;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldUnverifiedRecord;
-use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldFixtures;
-use Miguilim\FilamentAutoPanel\Tests\Fixtures\Models\Owner;
-use Zvizvi\UserFields\Components\UserColumn;
-use Zvizvi\UserFields\Components\UserEntry;
-use Zvizvi\UserFields\Components\UserSelect;
 
 require_once __DIR__ . '/../Fixtures/UserFieldFixtures.php';
 
 beforeEach(function (): void {
     UserFieldFixtures::create();
+    UserFieldIdentity::$avatarCalls = 0;
 });
 
 afterEach(function (): void {
@@ -65,45 +68,66 @@ function mountUserFieldColumn(TextColumn $column, Model $record): TextColumn
     return $column->record($record);
 }
 
-function assertUserFieldHtml(string $html, UserFieldIdentity $identity, string $name): void
+function userFieldDom(string $html): DOMXPath
 {
-    $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $document = new DOMDocument();
+    expect($document->loadHTML(
+        '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>' . $html . '</body></html>',
+        LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING,
+    ))->toBeTrue();
 
-    expect($text)->toContain($name)
-        ->and($html)->toContain('<img', $identity->getFilamentAvatarUrl())
-        ->and(strtolower($html))->not->toContain('<script', 'ui-avatars.com');
+    return new DOMXPath($document);
 }
 
-it('loads the mandatory real user-fields components and registered avatar view', function (): void {
-    $identity = UserFieldIdentity::create(['name' => 'Plugin <b>identity</b> & Co']);
-    $record = UserFieldRecord::create(['user_id' => $identity->id, 'author_id' => $identity->id]);
-    $field = UserSelect::make('author_id')->relationship('author', 'name')->searchable();
-    FilamentSchema::make(new UserFieldListRecords())->model($record)->components([$field])->getFlatComponents(withHidden: true);
+function assertUserFieldText(string $html, string $name): void
+{
+    $dom = userFieldDom($html);
 
-    expect(\Composer\InstalledVersions::isInstalled('zvizvi/user-fields'))->toBeTrue()
-        ->and(view()->exists('user-fields::user-avatar-option'))->toBeTrue();
-    assertUserFieldHtml((string) $field->getSearchResults('Plugin')[$identity->id], $identity, $identity->name);
-    assertUserFieldHtml(mountUserFieldColumn(UserColumn::make('author.name'), $record)->toHtml(), $identity, $identity->name);
-    $entry = userFieldEntries([UserEntry::make('author.name')], $record)['author.name'];
-    assertUserFieldHtml($entry->toHtml(), $identity, $identity->name);
+    expect($dom->document->textContent)->toContain($name)
+        ->and($dom->query('//img | //script | //iframe | //object | //embed')->length)->toBe(0)
+        ->and($html)->not->toContain('ui-avatars.com', '/has-avatar-fallback/')
+        ->and(UserFieldIdentity::$avatarCalls)->toBe(0);
+}
+
+function assertUserFieldAvatar(string $html, string $url, string $name): DOMElement
+{
+    $dom = userFieldDom($html);
+    $images = $dom->query('//img');
+
+    expect($images->length)->toBe(1)
+        ->and($dom->document->textContent)->toContain($name)
+        ->and($dom->query('//script | //iframe | //object | //embed')->length)->toBe(0)
+        ->and($dom->query('//*[@onerror or @onload or @onclick or @onfocus or @autofocus]')->length)->toBe(0)
+        ->and($html)->not->toContain('ui-avatars.com', '/has-avatar-fallback/')
+        ->and(UserFieldIdentity::$avatarCalls)->toBe(0);
+    $image = $images->item(0);
+
+    expect($image->getAttribute('src'))->toBe($url)
+        ->and(preg_split('/\s+/', trim($image->getAttribute('class'))))->toContain('fi-avatar', 'fi-circular', 'fi-size-sm');
+
+    return $image;
+}
+
+it('does not require the removed user-fields dependency', function (): void {
+    expect(\Composer\InstalledVersions::isInstalled('zvizvi/user-fields'))->toBeFalse();
 });
 
-it('maps authenticatable foreign keys to real user fields using the actual relationship', function (string $foreignKey, string $relationship, string $label): void {
+it('maps authenticatable foreign keys to native selects and entries and the project user column', function (string $foreignKey, string $relationship, string $label): void {
     $fields = FormGenerator::make(UserFieldRecord::class, relationManagerView: true);
     FilamentSchema::make(new UserFieldListRecords())->model(UserFieldRecord::class)->components($fields)->getFlatComponents(withHidden: true);
     $columns = TableGenerator::make(UserFieldRecord::class);
     $entries = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class));
 
     expect(RelationshipGuesser::guessBelongsTo($foreignKey, new UserFieldRecord()))->toBe([$relationship, 'name'])
-        ->and($fields[$foreignKey])->toBeInstanceOf(UserSelect::class)
+        ->and($fields[$foreignKey]::class)->toBe(Select::class)
         ->and($fields[$foreignKey]->getName())->toBe($foreignKey)
         ->and($fields[$foreignKey]->getRelationshipName())->toBe($relationship)
         ->and($fields[$foreignKey]->getRelationshipTitleAttribute())->toBe('name')
         ->and($fields[$foreignKey]->getLabel())->toBe($label)
-        ->and($columns[$foreignKey])->toBeInstanceOf(UserColumn::class)
+        ->and($columns[$foreignKey]::class)->toBe(UserColumn::class)
         ->and($columns[$foreignKey]->getName())->toBe("{$relationship}.name")
         ->and($columns[$foreignKey]->getLabel())->toBe($label)
-        ->and($entries["{$relationship}.name"])->toBeInstanceOf(UserEntry::class)
+        ->and($entries["{$relationship}.name"]::class)->toBe(TextEntry::class)
         ->and($entries["{$relationship}.name"]->getLabel())->toBe($label);
 })->with([
     'conventional user' => ['user_id', 'user', 'User'],
@@ -115,38 +139,38 @@ it('preserves nullability searchable and case-insensitive relationship select co
     $fields = FormGenerator::make(UserFieldRecord::class, relationManagerView: true);
 
     foreach (['user_id' => true, 'author_id' => false] as $name => $required) {
-        expect($fields[$name])->toBeInstanceOf(UserSelect::class)
+        expect($fields[$name]::class)->toBe(Select::class)
             ->and($fields[$name]->isRequired())->toBe($required)
             ->and($fields[$name]->isSearchable())->toBeTrue()
             ->and($fields[$name]->isSearchForcedCaseInsensitive())->toBeTrue();
     }
 });
 
-it('searches real user options case-insensitively and renders escaped names with local avatars', function (): void {
-    $identity = UserFieldIdentity::create(['name' => 'Alice <script>alert("user-field")</script> & Co']);
+it('searches native user options case-insensitively without HTML or avatars', function (): void {
+    $identity = UserFieldIdentity::create(['name' => 'Alice <script>alert("user-field")</script> & Co', 'profile_photo_url' => '/avatars/alice.svg']);
     UserFieldIdentity::create(['name' => 'Unrelated person']);
     $field = FormGenerator::make(UserFieldRecord::class, relationManagerView: true)['author_id'];
     FilamentSchema::make(new UserFieldListRecords())->model(UserFieldRecord::class)->components([$field])->getFlatComponents(withHidden: true);
 
-    expect($field)->toBeInstanceOf(UserSelect::class);
-    $results = $field->getSearchResults('aLiCe');
-
-    expect(array_keys($results))->toBe([$identity->getKey()])
-        ->and($field->isHtmlAllowed())->toBeTrue();
-    assertUserFieldHtml((string) $results[$identity->getKey()], $identity, $identity->name);
+    expect($field::class)->toBe(Select::class)
+        ->and($field->getSearchResults('aLiCe'))->toBe([$identity->getKey() => $identity->name])
+        ->and($field->isHtmlAllowed())->toBeFalse()
+        ->and(UserFieldIdentity::$avatarCalls)->toBe(0);
 });
 
-it('hydrates a selected user option through the real relationship label renderer', function (): void {
-    $identity = UserFieldIdentity::create(['name' => 'Selected <b>user</b> & Co']);
+it('hydrates a selected user option with its plain native relationship title', function (): void {
+    $identity = UserFieldIdentity::create(['name' => 'Selected <b>user</b> & Co', 'profile_photo_url' => '/avatars/selected.svg']);
     $record = UserFieldRecord::create(['user_id' => $identity->id, 'author_id' => $identity->id]);
     $field = FormGenerator::make(UserFieldRecord::class, relationManagerView: true)['author_id'];
     $host = new UserFieldListRecords();
     $schema = FilamentSchema::make($host)->model($record)->statePath('userFieldData')->components([$field]);
     $schema->fill($record->attributesToArray());
 
-    expect($field)->toBeInstanceOf(UserSelect::class)
-        ->and((int) $host->userFieldData['author_id'])->toBe($identity->id);
-    assertUserFieldHtml((string) $field->getOptionLabel(), $identity, $identity->name);
+    expect($field::class)->toBe(Select::class)
+        ->and((int) $host->userFieldData['author_id'])->toBe($identity->id)
+        ->and($field->getOptionLabel())->toBe($identity->name)
+        ->and($field->isHtmlAllowed())->toBeFalse()
+        ->and(UserFieldIdentity::$avatarCalls)->toBe(0);
 });
 
 it('saves generated resource user selects using foreign keys rather than relationship display paths', function (string $operation): void {
@@ -167,7 +191,7 @@ it('saves generated resource user selects using foreign keys rather than relatio
         ->filter(fn ($component): bool => $component instanceof Select)
         ->keyBy(fn ($field): string => $field->getName());
 
-    expect($fields['user_id'])->toBeInstanceOf(UserSelect::class);
+    expect($fields['user_id']::class)->toBe(Select::class);
     $host->userFieldData['user_id'] = $second->id;
     $host->userFieldData['author_id'] = null;
     $state = $edit
@@ -188,42 +212,62 @@ it('saves generated resource user selects using foreign keys rather than relatio
         ->and($record->user->is($second))->toBeTrue();
 })->with(['create', 'edit']);
 
-
 it('validates a required user select before saving an empty foreign key', function (): void {
     $field = FormGenerator::make(UserFieldRecord::class, relationManagerView: true)['user_id'];
     $schema = FilamentSchema::make(new UserFieldListRecords())->model(UserFieldRecord::class)->statePath('userFieldData')->components([$field]);
     $schema->fill(['user_id' => null]);
 
-    expect($field)->toBeInstanceOf(UserSelect::class)
+    expect($field::class)->toBe(Select::class)
         ->and(fn () => $schema->getState())->toThrow(ValidationException::class)
         ->and(UserFieldRecord::count())->toBe(0);
 });
 
-it('renders real user display HTML with escaped names and local avatars', function (string $surface): void {
-    $identity = UserFieldIdentity::create(['name' => 'Display <script>alert("user-field")</script> & Co']);
-    $differentUser = UserFieldIdentity::create(['name' => 'Not the author']);
+it('renders an escaped native text entry without an avatar even when one is available', function (): void {
+    $identity = UserFieldIdentity::create(['name' => 'Display <script>alert("user-field")</script> & Co', 'profile_photo_url' => '/avatars/display.svg']);
+    $record = UserFieldRecord::create(['user_id' => $identity->id, 'author_id' => $identity->id]);
+    $entry = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record)['author.name'];
+
+    expect($entry::class)->toBe(TextEntry::class)
+        ->and($entry->getState())->toBe($identity->name);
+    assertUserFieldText($entry->toHtml(), $identity->name);
+});
+
+it('renders the default avatar attribute beside the actual related name through a native text column prefix', function (): void {
+    $identity = UserFieldIdentity::create(['name' => 'Author <b>identity</b> & Co', 'profile_photo_url' => '/avatars/author.svg?size=32&theme=light']);
+    $differentUser = UserFieldIdentity::create(['name' => 'Not the author', 'profile_photo_url' => '/avatars/not-author.svg']);
     $record = UserFieldRecord::create(['user_id' => $differentUser->id, 'author_id' => $identity->id]);
+    $column = mountUserFieldColumn(TableGenerator::make(UserFieldRecord::class)['author_id'], $record);
 
-    if ($surface === 'table') {
-        $component = mountUserFieldColumn(TableGenerator::make(UserFieldRecord::class)['author_id'], $record);
-        expect($component)->toBeInstanceOf(UserColumn::class);
-    } else {
-        $component = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record)['author.name'];
-        expect($component)->toBeInstanceOf(UserEntry::class);
-    }
+    expect(get_parent_class($column))->toBe(TextColumn::class)
+        ->and($column->getName())->toBe('author.name')
+        ->and($column->getState())->toBe($identity->name)
+        ->and($column->getAvatarAttribute())->toBe('profile_photo_url')
+        ->and($column->getPrefix())->toBeInstanceOf(HtmlString::class);
+    $image = assertUserFieldAvatar($column->toHtml(), $identity->profile_photo_url, $identity->name);
+    expect($image->getAttribute('style'))->toMatch('/(?:^|;)\s*width\s*:\s*\d*\.?\d+(?:px|rem|em)\b/i')
+        ->and($image->getAttribute('style'))->toMatch('/(?:^|;)\s*height\s*:\s*\d*\.?\d+(?:px|rem|em)\b/i');
+});
 
-    assertUserFieldHtml($component->toHtml(), $identity, $identity->name);
-})->with(['table', 'infolist']);
+it('renders authenticatable relationships without requiring the HasAvatar contract', function (): void {
+    $identity = UserFieldPlainIdentity::create(['name' => 'Plain authenticatable', 'profile_photo_url' => '/avatars/plain.svg']);
+    $record = UserFieldPlainRecord::create(['user_id' => $identity->id, 'author_id' => $identity->id]);
+    $column = mountUserFieldColumn(TableGenerator::make(UserFieldPlainRecord::class)['author_id'], $record);
 
-it('retains native related-name search sorting and eager loading for user columns', function (): void {
-    $zulu = UserFieldIdentity::create(['name' => 'Zulu']);
-    $alpha = UserFieldIdentity::create(['name' => 'Alpha']);
+    expect($identity)->not->toBeInstanceOf(\Filament\Models\Contracts\HasAvatar::class)
+        ->and($column::class)->toBe(UserColumn::class)
+        ->and($column->getName())->toBe('author.name');
+    assertUserFieldAvatar($column->toHtml(), $identity->profile_photo_url, $identity->name);
+});
+
+it('retains native related-name search sorting and eager loading without extra avatar queries', function (): void {
+    $zulu = UserFieldIdentity::create(['name' => 'Zulu', 'profile_photo_url' => '/avatars/zulu.svg']);
+    $alpha = UserFieldIdentity::create(['name' => 'Alpha', 'profile_photo_url' => '/avatars/alpha.svg']);
     $last = UserFieldRecord::create(['user_id' => $zulu->id]);
     $first = UserFieldRecord::create(['user_id' => $alpha->id]);
     $column = TableGenerator::make(UserFieldRecord::class, searchableColumns: ['user.name' => 'both'])['user_id'];
     mountUserFieldColumn($column, $last);
 
-    expect($column)->toBeInstanceOf(UserColumn::class)
+    expect($column::class)->toBe(UserColumn::class)
         ->and($column->getName())->toBe('user.name')
         ->and($column->isGloballySearchable())->toBeTrue()
         ->and($column->isIndividuallySearchable())->toBeTrue();
@@ -244,7 +288,7 @@ it('retains native related-name search sorting and eager loading for user column
         expect($queryCount)->toBe(2);
         foreach ($records as $record) {
             expect($record->relationLoaded('user'))->toBeTrue();
-            expect($column->record($record)->toHtml())->toContain($record->user->name, $record->user->getFilamentAvatarUrl());
+            assertUserFieldAvatar($column->record($record)->toHtml(), $record->user->profile_photo_url, $record->user->name);
         }
         expect(count($connection->getQueryLog()))->toBe($queryCount);
     } finally {
@@ -252,6 +296,32 @@ it('retains native related-name search sorting and eager loading for user column
         $connection->flushQueryLog();
     }
 });
+
+it('renders eager-loaded avatar accessors without issuing additional queries', function (string $attribute): void {
+    $required = UserFieldIdentity::create(['name' => 'Required identity']);
+    foreach (['First accessor', 'Second accessor'] as $title) {
+        $identity = UserFieldAccessorIdentity::create(['title' => $title]);
+        UserFieldRecord::create(['user_id' => $required->id, 'accessor_user_id' => $identity->id]);
+    }
+    $column = TableGenerator::make(UserFieldRecord::class)['accessor_user_id']->avatarAttribute($attribute);
+    mountUserFieldColumn($column, new UserFieldRecord());
+    $connection = $required->getConnection();
+    $connection->enableQueryLog();
+    $connection->flushQueryLog();
+
+    try {
+        $records = $column->applyEagerLoading(UserFieldRecord::query())->get();
+        expect(count($connection->getQueryLog()))->toBe(2);
+        foreach ($records as $record) {
+            expect($record->relationLoaded('accessorUser'))->toBeTrue();
+            assertUserFieldAvatar($column->record($record)->toHtml(), $record->accessorUser->getAttribute($attribute), $record->accessorUser->title);
+        }
+        expect(count($connection->getQueryLog()))->toBe(2);
+    } finally {
+        $connection->disableQueryLog();
+        $connection->flushQueryLog();
+    }
+})->with(['profile_photo_url', 'portrait_url']);
 
 it('keeps non-authenticatable relationships generic even when the relationship is named user', function (): void {
     foreach ([UserFieldNonUserRecord::class => 'user_id', UserFieldRecord::class => 'owner_id'] as $model => $foreignKey) {
@@ -285,25 +355,35 @@ it('leaves orphan user IDs and unverified relationships as ordinary numeric fiel
     }
 });
 
-it('falls back to generic title fields for authenticatable models without a Filament-compatible name', function (): void {
-    $identity = UserFieldTitleIdentity::create(['title' => 'Title only']);
-    $user = UserFieldIdentity::create(['name' => 'Required identity']);
-    $record = UserFieldRecord::create(['user_id' => $user->id, 'title_user_id' => $identity->id]);
-    $field = FormGenerator::make(UserFieldRecord::class, relationManagerView: true)['title_user_id'];
-    FilamentSchema::make(new UserFieldListRecords())->model($record)->components([$field])->getFlatComponents(withHidden: true);
-    $column = mountUserFieldColumn(TableGenerator::make(UserFieldRecord::class)['title_user_id'], $record);
-    $entry = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record)['titleUser.title'];
+it('detects authenticatable title and key relationships without requiring name or HasName', function (string $identityClass, array $attributes, string $foreignKey, string $relationship, string $title): void {
+    $identity = $identityClass::create($attributes);
+    $required = UserFieldIdentity::create(['name' => 'Required identity']);
+    $record = UserFieldRecord::create(['user_id' => $required->id, $foreignKey => $identity->id]);
+    $field = FormGenerator::make(UserFieldRecord::class, relationManagerView: true)[$foreignKey];
+    $schema = FilamentSchema::make(new UserFieldListRecords())->model($record)->statePath('userFieldData')->components([$field]);
+    $schema->fill($record->attributesToArray());
+    $column = mountUserFieldColumn(TableGenerator::make(UserFieldRecord::class)[$foreignKey], $record);
+    $entry = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record)["{$relationship}.{$title}"];
+    $label = (string) $identity->getAttribute($title);
 
-    expect($field::class)->toBe(Select::class)
-        ->and($field->getRelationshipTitleAttribute())->toBe('title')
-        ->and($field->getSearchResults('Title'))->toBe([$identity->id => 'Title only'])
-        ->and($column::class)->toBe(TextColumn::class)
+    expect(RelationshipGuesser::guessBelongsTo($foreignKey, $record))->toBe([$relationship, $title])
+        ->and($field::class)->toBe(Select::class)
+        ->and($field->getRelationshipTitleAttribute())->toBe($title)
+        ->and((string) $field->getOptionLabel())->toBe($label)
+        ->and((string) $field->getSearchResults($label)[$identity->id])->toBe($label)
+        ->and($column::class)->toBe(UserColumn::class)
+        ->and($column->getName())->toBe("{$relationship}.{$title}")
+        ->and((string) $column->getState())->toBe($label)
         ->and($entry::class)->toBe(TextEntry::class)
-        ->and($column->toHtml())->toContain('Title only')->not->toContain('<img')
-        ->and($entry->toHtml())->toContain('Title only')->not->toContain('<img');
-});
+        ->and((string) $entry->getState())->toBe($label);
+    assertUserFieldText($column->toHtml(), $label);
+    assertUserFieldText($entry->toHtml(), $label);
+})->with([
+    'title only' => [UserFieldTitleIdentity::class, ['title' => 'Title only'], 'title_user_id', 'titleUser', 'title'],
+    'key only' => [UserFieldKeyIdentity::class, [], 'key_user_id', 'keyUser', 'id'],
+]);
 
-it('supports title-backed authenticatable models with a custom Filament name or name accessor', function (string $identityClass, string $foreignKey, string $relationship, string $prefix): void {
+it('uses the relationship title rather than automatically applying HasName or a name accessor', function (string $identityClass, string $foreignKey, string $relationship): void {
     $identity = $identityClass::create(['title' => 'Title <b>identity</b> & Co']);
     $required = UserFieldIdentity::create(['name' => 'Required identity']);
     $record = UserFieldRecord::create(['user_id' => $required->id, $foreignKey => $identity->id]);
@@ -313,34 +393,60 @@ it('supports title-backed authenticatable models with a custom Filament name or 
     $column = mountUserFieldColumn(TableGenerator::make(UserFieldRecord::class)[$foreignKey], $record);
     $entry = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record)["{$relationship}.title"];
 
-    expect($field)->toBeInstanceOf(UserSelect::class)
+    expect($field::class)->toBe(Select::class)
         ->and($field->getRelationshipTitleAttribute())->toBe('title')
-        ->and($column)->toBeInstanceOf(UserColumn::class)
+        ->and($field->getSearchResults('Title'))->toBe([$identity->id => $identity->title])
+        ->and($field->getOptionLabel())->toBe($identity->title)
+        ->and($column::class)->toBe(UserColumn::class)
         ->and($column->getName())->toBe("{$relationship}.title")
-        ->and($entry)->toBeInstanceOf(UserEntry::class);
-    $results = $field->getSearchResults('Title');
-    $displayName = $prefix . $identity->title;
-    assertUserFieldHtml((string) $results[$identity->id], $identity, $displayName);
-    assertUserFieldHtml((string) $field->getOptionLabel(), $identity, $displayName);
-    assertUserFieldHtml($column->toHtml(), $identity, $displayName);
-    assertUserFieldHtml($entry->toHtml(), $identity, $displayName);
+        ->and($column->getState())->toBe($identity->title)
+        ->and($entry::class)->toBe(TextEntry::class)
+        ->and($entry->getState())->toBe($identity->title);
+    assertUserFieldText($entry->toHtml(), $identity->title);
+    expect(userFieldDom($column->toHtml())->document->textContent)->toContain($identity->title)->not->toContain('Display: ', 'Accessor: ');
 })->with([
-    'HasName contract' => [UserFieldNamedIdentity::class, 'named_user_id', 'namedUser', 'Display: '],
-    'name accessor' => [UserFieldAccessorIdentity::class, 'accessor_user_id', 'accessorUser', 'Accessor: '],
+    'HasName contract' => [UserFieldNamedIdentity::class, 'named_user_id', 'namedUser'],
+    'name accessor' => [UserFieldAccessorIdentity::class, 'accessor_user_id', 'accessorUser'],
 ]);
 
+it('honors explicit native relationship title and accessor label overrides', function (): void {
+    $identity = UserFieldAccessorIdentity::create(['title' => 'Overridden title']);
+    $required = UserFieldIdentity::create(['name' => 'Required identity']);
+    $record = UserFieldRecord::create(['user_id' => $required->id, 'accessor_user_id' => $identity->id]);
+    $fieldOverride = Select::make('accessor_user_id')->relationship('accessorUser', 'title')->searchable()
+        ->getOptionLabelFromRecordUsing(fn (Model $record): string => $record->name);
+    $columnOverride = UserColumn::make('accessorUser.name');
+    $entryOverride = TextEntry::make('accessorUser.name');
+    $field = FormGenerator::make(UserFieldRecord::class, overwriteColumns: ['accessor_user_id' => $fieldOverride], relationManagerView: true)['accessor_user_id'];
+    $schema = FilamentSchema::make(new UserFieldListRecords())->model($record)->statePath('userFieldData')->components([$field]);
+    $schema->fill($record->attributesToArray());
+    $column = mountUserFieldColumn(TableGenerator::make(UserFieldRecord::class, overwriteColumns: ['accessor_user_id' => $columnOverride])['accessor_user_id'], $record);
+    $entry = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class, overwriteColumns: ['accessor_user_id' => $entryOverride]), $record)['accessorUser.name'];
+
+    expect($field)->toBe($fieldOverride)
+        ->and($field->getSearchResults('Overridden'))->toBe([$identity->id => $identity->name])
+        ->and($field->getOptionLabel())->toBe($identity->name)
+        ->and($field->isHtmlAllowed())->toBeFalse()
+        ->and($column)->toBe($columnOverride)
+        ->and($column->getState())->toBe($identity->name)
+        ->and($entry)->toBe($entryOverride)
+        ->and($entry->getState())->toBe($identity->name);
+    assertUserFieldAvatar($column->toHtml(), $identity->profile_photo_url, $identity->name);
+    assertUserFieldText($entry->toHtml(), $identity->name);
+});
+
 it('renders nullable or missing related users without an avatar or a type error', function (?int $authorId): void {
-    $identity = UserFieldIdentity::create(['name' => 'Required identity']);
+    $identity = UserFieldIdentity::create(['name' => 'Required identity', 'profile_photo_url' => '/avatars/not-author.svg']);
     $record = UserFieldRecord::create(['user_id' => $identity->id, 'author_id' => $authorId]);
     $column = mountUserFieldColumn(TableGenerator::make(UserFieldRecord::class)['author_id'], $record);
     $entry = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record)['author.name'];
 
-    expect($column)->toBeInstanceOf(UserColumn::class)
-        ->and($entry)->toBeInstanceOf(UserEntry::class)
+    expect($column::class)->toBe(UserColumn::class)
+        ->and($entry::class)->toBe(TextEntry::class)
         ->and(blank($column->getState()))->toBeTrue()
-        ->and(blank($entry->getState()))->toBeTrue()
-        ->and($column->toHtml())->not->toContain('<img', 'ui-avatars.com')
-        ->and($entry->toHtml())->not->toContain('<img', 'ui-avatars.com');
+        ->and(blank($entry->getState()))->toBeTrue();
+    assertUserFieldText($column->toHtml(), 'null');
+    assertUserFieldText($entry->toHtml(), 'null');
 })->with(['nullable foreign key' => [null], 'missing related row' => [999999]]);
 
 it('preserves exclusion overwrite and enum dictionary priority ahead of user detection', function (): void {
@@ -375,7 +481,7 @@ it('preserves exclusion overwrite and enum dictionary priority ahead of user det
 
 it('keeps morph display heterogeneous even when its source implements Authenticatable', function (): void {
     Schema::table('user_field_records', fn (Blueprint $table) => $table->string('name')->default('Referring identity'));
-    $identity = UserFieldIdentity::create(['name' => 'Morph identity']);
+    $identity = UserFieldIdentity::create(['name' => 'Morph identity', 'profile_photo_url' => '/avatars/not-for-morph.svg']);
     $owner = Owner::create(['name' => 'Morph owner']);
     $title = UserFieldTitleIdentity::create(['title' => 'Morph title']);
 
@@ -395,13 +501,13 @@ it('keeps morph display heterogeneous even when its source implements Authentica
             ->and($column::class)->toBe(TextColumn::class)
             ->and($column->getState())->toBe($expected)
             ->and($entry::class)->toBe(TextEntry::class)
-            ->and($entry->getState())->toBe($expected)
-            ->and($column->toHtml())->not->toContain('<img')
-            ->and($entry->toHtml())->not->toContain('<img');
+            ->and($entry->getState())->toBe($expected);
+        assertUserFieldText($column->toHtml(), $expected);
+        assertUserFieldText($entry->toHtml(), $expected);
     }
 });
 
-it('uses real user fields in standalone and resource-backed relation managers', function (bool $resourceBacked): void {
+it('uses native user fields in standalone and resource-backed relation managers', function (bool $resourceBacked): void {
     $class = $resourceBacked
         ? RelationManagerMounter::makeFromResource(UserFieldRecordResource::class, 'userFieldRecords', associateAttachActions: false)
         : RelationManagerMounter::makeStandalone('userFieldRecords', visibleColumns: ['user.name', 'author.name'], searchableColumns: ['user.name' => 'both'], associateAttachActions: false);
@@ -418,13 +524,13 @@ it('uses real user fields in standalone and resource-backed relation managers', 
     $entries = userFieldEntries($manager->infolist(FilamentSchema::make($manager)->model(UserFieldRecord::class))->getComponents());
 
     expect($fields)->not->toHaveKey('owner_id')
-        ->and($fields['user_id'])->toBeInstanceOf(UserSelect::class)
-        ->and($fields['author_id'])->toBeInstanceOf(UserSelect::class)
+        ->and($fields['user_id']::class)->toBe(Select::class)
+        ->and($fields['author_id']::class)->toBe(Select::class)
         ->and($table->getColumns())->not->toHaveKey('owner.name')
-        ->and($table->getColumns()['user.name'])->toBeInstanceOf(UserColumn::class)
+        ->and($table->getColumns()['user.name']::class)->toBe(UserColumn::class)
         ->and($table->getColumns()['user.name']->isGloballySearchable())->toBeTrue()
         ->and($entries)->not->toHaveKey('owner.name')
-        ->and($entries['user.name'])->toBeInstanceOf(UserEntry::class);
+        ->and($entries['user.name']::class)->toBe(TextEntry::class);
 })->with(['standalone' => [false], 'resource-backed' => [true]]);
 
 it('detects and queries user fields on the current model connection with a table prefix', function (): void {
@@ -433,7 +539,7 @@ it('detects and queries user fields on the current model connection with a table
     try {
         Schema::table('user_field_identities', fn (Blueprint $table) => $table->renameColumn('name', 'title'));
         $identity = (new UserFieldIdentity())->setConnection('secondary');
-        $identity->fill(['name' => 'Secondary <b>identity</b> & Co'])->save();
+        $identity->fill(['name' => 'Secondary <b>identity</b> & Co', 'profile_photo_url' => '/avatars/secondary.svg'])->save();
         $model = (new UserFieldRecord())->setConnection('secondary');
         $model->fill(['user_id' => $identity->id])->save();
         $related = $model->user()->getRelated();
@@ -445,14 +551,14 @@ it('detects and queries user fields on the current model connection with a table
         expect($related->getConnectionName())->toBe('secondary')
             ->and($related->getConnection()->getTablePrefix())->toBe('secondary_')
             ->and(RelationshipGuesser::guessBelongsTo('user_id', $model))->toBe(['user', 'name'])
-            ->and($fields['user_id'])->toBeInstanceOf(UserSelect::class)
-            ->and($columns['user_id'])->toBeInstanceOf(UserColumn::class)
+            ->and($fields['user_id']::class)->toBe(Select::class)
+            ->and($columns['user_id']::class)->toBe(UserColumn::class)
             ->and($columns['user_id']->getName())->toBe('user.name')
-            ->and($entries['user.name'])->toBeInstanceOf(UserEntry::class)
-            ->and(FormGenerator::make(UserFieldRecord::class, relationManagerView: true)['user_id']::class)->toBe(Select::class);
-        assertUserFieldHtml((string) $fields['user_id']->getSearchResults('SECONDARY')[$identity->id], $identity, $identity->name);
-        assertUserFieldHtml(mountUserFieldColumn($columns['user_id'], $model)->toHtml(), $identity, $identity->name);
-        assertUserFieldHtml($entries['user.name']->toHtml(), $identity, $identity->name);
+            ->and($entries['user.name']::class)->toBe(TextEntry::class)
+            ->and(FormGenerator::make(UserFieldRecord::class, relationManagerView: true)['user_id']->getRelationshipTitleAttribute())->toBe('title')
+            ->and($fields['user_id']->getSearchResults('SECONDARY'))->toBe([$identity->id => $identity->name]);
+        assertUserFieldAvatar(mountUserFieldColumn($columns['user_id'], $model)->toHtml(), $identity->profile_photo_url, $identity->name);
+        assertUserFieldText($entries['user.name']->toHtml(), $identity->name);
     } finally {
         UserFieldFixtures::drop('secondary');
     }

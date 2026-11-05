@@ -24,7 +24,7 @@ use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldTitleIdentity;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldFixtures;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\Models\Owner;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\Models\Product;
-use Zvizvi\UserFields\Components\UserSelect;
+
 
 require_once __DIR__ . '/../Fixtures/RelationshipSearchFixtures.php';
 require_once __DIR__ . '/../Fixtures/UserFieldFixtures.php';
@@ -102,7 +102,7 @@ it('deduplicates conventional primary-key names across all guessed search column
         ->and(array_count_values($columns)[$keyName])->toBe(1);
 })->with(['id', 'name', 'title', 'email']);
 
-it('searches real user selects by email title partial id and mixed-case name while retaining avatar labels', function (): void {
+it('searches native user selects by email title partial id and mixed-case name without avatar markup', function (): void {
     Schema::table('user_field_identities', function (Blueprint $table): void {
         $table->string('email')->nullable();
         $table->string('title')->nullable();
@@ -112,17 +112,16 @@ it('searches real user selects by email title partial id and mixed-case name whi
     $model = new UserFieldRecord(['author_id' => $identity->id]);
     $field = relationshipSearchSelect($model, 'author_id');
 
-    expect($field::class)->toBe(UserSelect::class)
+    expect($field::class)->toBe(Select::class)
         ->and($field->getSearchColumns())->toBe(['name', 'id', 'title', 'email'])
         ->and($field->getRelationshipTitleAttribute())->toBe('name')
-        ->and($field->isHtmlAllowed())->toBeTrue()
+        ->and($field->isHtmlAllowed())->toBeFalse()
         ->and($field->isSearchForcedCaseInsensitive())->toBeTrue();
 
     foreach (['mAiLnEeDlE', 'aVaTaR tItLe', '310', 'aLiCe'] as $search) {
         $results = $field->getSearchResults($search);
         expect(array_keys($results))->toBe([$identity->id])
-            ->and((string) $results[$identity->id])->toContain('<img', $identity->getFilamentAvatarUrl(), e($identity->name))
-            ->not->toContain($identity->email);
+            ->and($results[$identity->id])->toBe($identity->name);
     }
 
     $field->state($identity->id);

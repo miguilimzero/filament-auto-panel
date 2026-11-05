@@ -30,10 +30,15 @@ class UserFieldFixtures
             $schema->create('user_field_identities', function (Blueprint $table): void {
                 $table->id();
                 $table->string('name');
+                $table->string('profile_photo_url')->nullable();
+                $table->string('portrait_url')->nullable();
             });
             $schema->create('user_field_title_identities', function (Blueprint $table): void {
                 $table->id();
                 $table->string('title');
+            });
+            $schema->create('user_field_key_identities', function (Blueprint $table): void {
+                $table->id();
             });
             $schema->create('user_field_records', function (Blueprint $table): void {
                 $table->id();
@@ -44,6 +49,7 @@ class UserFieldFixtures
                 $table->unsignedBigInteger('title_user_id')->nullable();
                 $table->unsignedBigInteger('named_user_id')->nullable();
                 $table->unsignedBigInteger('accessor_user_id')->nullable();
+                $table->unsignedBigInteger('key_user_id')->nullable();
                 $table->nullableMorphs('subject');
             });
         } catch (Throwable $exception) {
@@ -57,28 +63,41 @@ class UserFieldFixtures
     {
         $schema = Schema::connection($connection);
         $schema->dropIfExists('user_field_records');
+        $schema->dropIfExists('user_field_key_identities');
         $schema->dropIfExists('user_field_title_identities');
         $schema->dropIfExists('user_field_identities');
     }
 }
 
-class UserFieldIdentity extends Authenticatable implements HasAvatar
+class UserFieldPlainIdentity extends Authenticatable
 {
     public $timestamps = false;
 
     protected $table = 'user_field_identities';
 
     protected $guarded = [];
+}
+
+class UserFieldIdentity extends UserFieldPlainIdentity implements HasAvatar
+{
+    public static int $avatarCalls = 0;
 
     public function getFilamentAvatarUrl(): ?string
     {
-        return '/user-field-avatars/' . $this->getKey() . '.svg';
+        static::$avatarCalls++;
+
+        return '/has-avatar-fallback/' . $this->getKey() . '.svg';
     }
 }
 
 class UserFieldTitleIdentity extends UserFieldIdentity
 {
     protected $table = 'user_field_title_identities';
+}
+
+class UserFieldKeyIdentity extends UserFieldIdentity
+{
+    protected $table = 'user_field_key_identities';
 }
 
 class UserFieldNamedIdentity extends UserFieldTitleIdentity implements HasName
@@ -94,6 +113,16 @@ class UserFieldAccessorIdentity extends UserFieldTitleIdentity
     protected function name(): Attribute
     {
         return Attribute::get(fn (): string => 'Accessor: ' . $this->title);
+    }
+
+    protected function profilePhotoUrl(): Attribute
+    {
+        return Attribute::get(fn (): string => '/accessor-avatars/' . $this->getKey() . '.svg');
+    }
+
+    protected function portraitUrl(): Attribute
+    {
+        return Attribute::get(fn (): string => '/accessor-portraits/' . $this->getKey() . '.svg');
     }
 }
 
@@ -140,9 +169,22 @@ class UserFieldRecord extends Model
         return $this->belongsTo(UserFieldAccessorIdentity::class, 'accessor_user_id');
     }
 
+    public function keyUser(): BelongsTo
+    {
+        return $this->belongsTo(UserFieldKeyIdentity::class, 'key_user_id');
+    }
+
     public function subject(): MorphTo
     {
         return $this->morphTo();
+    }
+}
+
+class UserFieldPlainRecord extends UserFieldRecord
+{
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(UserFieldPlainIdentity::class, 'author_id');
     }
 }
 

@@ -21,7 +21,6 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Str;
 use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
 use Miguilim\FilamentAutoPanel\Filament\StateCasts\JsonStateCast;
-use Zvizvi\UserFields\Components\UserSelect;
 
 class FormGenerator extends AbstractGenerator
 {
@@ -161,11 +160,8 @@ class FormGenerator extends AbstractGenerator
 
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
-        $select = $this->isUserRelationship($relationshipName, $relationshipTitleColumnName)
-            ? UserSelect::make($column->getName())->label(ucfirst(strtolower(Str::headline($relationshipName))))
-            : Select::make($column->getName());
-
-        return $select
+        return Select::make($column->getName())
+            ->label(ucfirst(strtolower(Str::headline($relationshipName))))
             ->required($column->getNotNull())
             ->relationship($relationshipName, $relationshipTitleColumnName)
             ->forceSearchCaseInsensitive() // Compatibility with specific db collations

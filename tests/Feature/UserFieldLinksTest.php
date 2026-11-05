@@ -1,12 +1,14 @@
 <?php
 
 use Filament\Facades\Filament;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Panel;
 use Filament\Schemas\Schema as FilamentSchema;
 use Filament\Tables\Table;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Miguilim\FilamentAutoPanel\AutoResource;
+use Miguilim\FilamentAutoPanel\Filament\Columns\UserColumn;
 use Miguilim\FilamentAutoPanel\Generators\InfolistGenerator;
 use Miguilim\FilamentAutoPanel\Generators\TableGenerator;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldIdentity;
@@ -15,14 +17,13 @@ use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldRecord;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldFixtures;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldLinkResource;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\UserFieldLinkWithoutViewResource;
-use Zvizvi\UserFields\Components\UserColumn;
-use Zvizvi\UserFields\Components\UserEntry;
 
 require_once __DIR__ . '/../Fixtures/UserFieldFixtures.php';
 require_once __DIR__ . '/../Fixtures/UserFieldLinkFixtures.php';
 
 beforeEach(function (): void {
     UserFieldFixtures::create();
+    UserFieldIdentity::$avatarCalls = 0;
     UserFieldLinkResource::$accessible = true;
 });
 
@@ -48,7 +49,7 @@ function registerUserFieldLinkResource(string $resource): Panel
 function userFieldLinkComponents(): array
 {
     $otherUser = UserFieldIdentity::create(['id' => 101, 'name' => 'Not the author']);
-    $author = UserFieldIdentity::create(['id' => 202, 'name' => 'Profile link author']);
+    $author = UserFieldIdentity::create(['id' => 202, 'name' => 'Profile link <b>author</b>', 'profile_photo_url' => '/avatars/link-author.svg']);
     $record = UserFieldRecord::create(['id' => 303, 'user_id' => $otherUser->id, 'author_id' => $author->id]);
 
     expect($record->getKey())->not->toBe($author->getKey())
@@ -65,11 +66,11 @@ function userFieldLinkComponents(): array
         ->model($record)
         ->components(InfolistGenerator::make(UserFieldRecord::class));
     $entry = collect($schema->getFlatComponents(withHidden: true))
-        ->first(fn ($component): bool => $component instanceof UserEntry && $component->getName() === 'author.name');
+        ->first(fn ($component): bool => $component instanceof TextEntry && $component->getName() === 'author.name');
 
-    expect($column)->toBeInstanceOf(UserColumn::class)
+    expect($column::class)->toBe(UserColumn::class)
         ->and($column->getName())->toBe('author.name')
-        ->and($entry)->toBeInstanceOf(UserEntry::class);
+        ->and($entry::class)->toBe(TextEntry::class);
 
     return [$column, $entry, $record];
 }
@@ -90,7 +91,22 @@ it('links user columns and entries to the actual related user view route', funct
         $route = Route::getRoutes()->match(Request::create($component->getUrl()));
         expect($route->getName())->toBe($routeName)
             ->and($route->parameter('record'))->toBe((string) $record->author->getRouteKey());
+
+        $html = $component === $column ? $column->renderInLayout()->toHtml() : $entry->toHtml();
+        $document = new DOMDocument();
+        expect($document->loadHTML($html, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING))->toBeTrue();
+        $dom = new DOMXPath($document);
+        $links = $dom->query('//a[@href]');
+        expect($links->length)->toBe(1)
+            ->and($links->item(0)->getAttribute('href'))->toBe($expected)
+            ->and($links->item(0)->textContent)->toContain($record->author->name)
+            ->and($dom->query('//b')->length)->toBe(0)
+            ->and($dom->query('//img')->length)->toBe($component === $column ? 1 : 0);
+        if ($component === $column) {
+            expect($dom->query('//img')->item(0)->getAttribute('src'))->toBe('/avatars/link-author.svg');
+        }
     }
+    expect(UserFieldIdentity::$avatarCalls)->toBe(0);
 });
 
 it('does not link user columns or entries to an inaccessible user resource', function (): void {

@@ -19,7 +19,6 @@ return Application::configure(basePath: getenv('AUTO_PANEL_APP_ROOT'))
         \Filament\Notifications\NotificationsServiceProvider::class,
         \Filament\Widgets\WidgetsServiceProvider::class,
         \Filament\FilamentServiceProvider::class,
-        \Zvizvi\UserFields\UserFieldsServiceProvider::class,
         \Miguilim\FilamentAutoPanel\FilamentAutoPanelProvider::class,
         OptimizationPanelProvider::class,
     ], withBootstrapProviders: false)

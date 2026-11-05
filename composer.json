@@ -15,8 +15,7 @@
   },
   "require": {
     "php": "^8.3",
-    "filament/filament": "^5.0",
-    "zvizvi/user-fields": "^0.0.8"
+    "filament/filament": "^5.0"
   },
   "require-dev": {
     "orchestra/testbench": "^9.0|^10.0|^11.0",
