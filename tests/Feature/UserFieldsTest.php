@@ -1,5 +1,6 @@
 <?php
 
+use Filament\Forms\Components\MorphToSelect;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
@@ -389,8 +390,8 @@ it('keeps morph display heterogeneous even when its source implements Authentica
         $entry = collect($entries)->first(fn (TextEntry $entry): bool => str_starts_with($entry->getName(), 'subject.'));
         $expected = $target->getAttribute('name') ?? $target->getAttribute('title');
 
-        expect($fields)->toHaveKeys(['subject_type', 'subject_id'])
-            ->and($fields['subject_id']::class)->toBe(TextInput::class)
+        expect($fields)->toHaveKey('subject')->not->toHaveKeys(['subject_type', 'subject_id'])
+            ->and($fields['subject']::class)->toBe(MorphToSelect::class)
             ->and($column::class)->toBe(TextColumn::class)
             ->and($column->getState())->toBe($expected)
             ->and($entry::class)->toBe(TextEntry::class)

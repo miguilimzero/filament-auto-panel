@@ -1,6 +1,7 @@
 <?php
 
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\MorphToSelect;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Textarea;
@@ -371,7 +372,10 @@ it('pairs multiple morphs by prefix regardless of column order and leaves unrela
             ->and($columns['review_owner_id']->getName())->toBe('reviewOwner.name')
             ->and($entries)->toHaveKeys(['subject', 'reviewTarget', 'orphan_id', 'orphan_type'])
             ->and($infolist)->toHaveCount(1)
-            ->and($fields)->toHaveKeys(['subject_id', 'subject_type', 'review_target_id', 'review_target_type']);
+            ->and($fields)->toHaveKeys(['subject', 'reviewTarget'])
+            ->not->toHaveKeys(['subject_id', 'subject_type', 'review_target_id', 'review_target_type'])
+            ->and($fields['subject'])->toBeInstanceOf(MorphToSelect::class)
+            ->and($fields['reviewTarget'])->toBeInstanceOf(MorphToSelect::class);
 
         $unrelated = TableGenerator::make(GeneratorRefactorUnrelatedProduct::class);
 

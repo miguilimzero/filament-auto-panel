@@ -65,8 +65,11 @@ class AutoResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
+        $modelClass = static::getModel();
+        $model = $schema->getModelInstance() ?? new $modelClass();
+
         return $schema
-            ->components(FormGenerator::make(...static::getSchemaOptions('form'), modelClass: static::getModel()))
+            ->components(FormGenerator::makeForModel(...static::getSchemaOptions('form'), model: $model))
             ->columns(2);
     }
 

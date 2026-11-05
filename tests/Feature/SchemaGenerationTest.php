@@ -3,6 +3,7 @@
 use Composer\InstalledVersions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\MorphToSelect;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Textarea;
@@ -135,13 +136,14 @@ it('falls back to the native primary index for a relationship title', function (
     expect(RelationshipGuesser::guessBelongsTo('owner_id', new Product()))->toBe(['owner', 'owner_key']);
 });
 
-it('combines morph columns for display but retains them in forms', function (): void {
+it('combines morph displays and generates a native morph selector in forms', function (): void {
     $columns = TableGenerator::make(Product::class);
     $fields = FormGenerator::make(Product::class, relationManagerView: true);
 
     expect($columns)->toHaveKey('subject')->not->toHaveKeys(['subject_type', 'subject_id'])
         ->and($columns['subject']->getName())->toBe('subject.name')
-        ->and($fields)->toHaveKeys(['subject_type', 'subject_id']);
+        ->and($fields)->toHaveKey('subject')->not->toHaveKeys(['subject_type', 'subject_id'])
+        ->and($fields['subject'])->toBeInstanceOf(MorphToSelect::class);
 });
 
 it('uses the model connection and table prefix rather than the default connection', function (): void {

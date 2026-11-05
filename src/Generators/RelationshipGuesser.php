@@ -37,26 +37,39 @@ class RelationshipGuesser
      */
     public static function guessMorphTo(string $column, Model $model): array
     {
+        $name = static::guessMorphToRelationshipName($column, $model);
+
+        return $name === null ? [] : [$name, static::guessTitleColumnName($column, $model, $name)];
+    }
+
+    public static function guessMorphToRelationshipName(string $column, Model $model): ?string
+    {
         if (! str_ends_with($column, '_type')) {
-            return [];
+            return null;
         }
 
         $prefix = substr($column, 0, -5);
+        $model = clone $model;
+        $model->setAttribute($column, null);
 
         foreach (static::relationshipNames($prefix) as $name) {
             $relationship = static::resolveRelationship($model, $name);
 
             if ($relationship instanceof MorphTo && $relationship->getMorphType() === $column && $relationship->getForeignKeyName() === "{$prefix}_id") {
-                return [$name, static::guessTitleColumnName($column, $model, $name)];
+                return $name;
             }
         }
 
-        return [];
+        return null;
     }
 
     public static function guessTitleColumnName(string $column, Model $model, string $relationshipName): string
     {
-        $related = $model->{$relationshipName}()->getRelated();
+        return static::guessModelTitleColumnName($model->{$relationshipName}()->getRelated());
+    }
+
+    public static function guessModelTitleColumnName(Model $related): string
+    {
         $schema = $related->getConnection()->getSchemaBuilder();
         $table = $related->getTable();
         $columns = $schema->getColumnListing($table);

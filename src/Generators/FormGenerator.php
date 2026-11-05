@@ -2,6 +2,10 @@
 
 namespace Miguilim\FilamentAutoPanel\Generators;
 
+use Filament\Facades\Filament;
+use Filament\Forms\Components\Field;
+use Filament\Forms\Components\MorphToSelect;
+use Filament\Forms\Components\MorphToSelect\Type;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\DatePicker;
@@ -11,7 +15,9 @@ use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Group;
 use Filament\Forms\Components\KeyValue;
 use Filament\Support\Components\ViewComponent;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Str;
 use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
 use Miguilim\FilamentAutoPanel\Filament\StateCasts\JsonStateCast;
@@ -38,6 +44,119 @@ class FormGenerator extends AbstractGenerator
     {
         return (new static($model))->relationManagerView($relationManagerView)
             ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary);
+    }
+
+    protected function getResourceColumns(array $exceptColumn, array $overwriteColumns, array $enumDictionary): array
+    {
+        $columns = parent::getResourceColumns($exceptColumn, $overwriteColumns, $enumDictionary);
+        $morphs = [];
+        $morphKeys = [];
+
+        foreach ($columns as $typeColumn => $field) {
+            if (! str_ends_with($typeColumn, '_type')) {
+                continue;
+            }
+
+            $keyColumn = substr($typeColumn, 0, -5) . '_id';
+
+            if (! isset($columns[$keyColumn])
+                || isset($overwriteColumns[$typeColumn]) || isset($overwriteColumns[$keyColumn])
+                || isset($enumDictionary[$typeColumn]) || isset($enumDictionary[$keyColumn])
+                || ! $field instanceof Field || ! $columns[$keyColumn] instanceof Field) {
+                continue;
+            }
+
+            $name = RelationshipGuesser::guessMorphToRelationshipName($typeColumn, $this->modelInstance);
+
+            if ($name === null || isset($columns[$name])) {
+                continue;
+            }
+
+            $component = $overwriteColumns[$name] ?? null;
+
+            if ($component === null) {
+                $numericKey = $columns[$keyColumn] instanceof TextInput && $columns[$keyColumn]->isNumeric();
+                $types = $this->getMorphToTypes($name, $typeColumn, $numericKey);
+
+                if (! $types) {
+                    continue;
+                }
+
+                $component = MorphToSelect::make($name)
+                    ->types($types)
+                    ->required($field->isRequired() || $columns[$keyColumn]->isRequired())
+                    ->searchable()
+                    ->columns(2)
+                    ->columnSpanFull();
+            }
+
+            $morphs[$typeColumn] = [$name, $component];
+            $morphKeys[] = $keyColumn;
+        }
+
+        $result = [];
+
+        foreach ($columns as $name => $component) {
+            if (in_array($name, $morphKeys, true)) {
+                continue;
+            }
+
+            if (isset($morphs[$name])) {
+                [$name, $component] = $morphs[$name];
+            }
+
+            $result[$name] = $component;
+        }
+
+        return $result;
+    }
+
+    /** @return array<Type> */
+    protected function getMorphToTypes(string $relationshipName, string $typeColumn, bool $numericKey): array
+    {
+        $source = clone $this->modelInstance;
+        $source->setAttribute($typeColumn, null);
+        $ownerKey = $source->{$relationshipName}()->getOwnerKeyName();
+        $types = [];
+
+        foreach (Filament::getCurrentPanel()?->getResources() ?? [] as $resource) {
+            if (! $resource::canAccess()) {
+                continue;
+            }
+
+            $modelClass = $resource::getModel();
+
+            if (isset($types[$modelClass])
+                || (Relation::requiresMorphMap() && ! in_array($modelClass, Relation::morphMap(), true))) {
+                continue;
+            }
+
+            $related = new $modelClass();
+
+            if (($numericKey && $related->getKeyType() !== 'int')
+                || ($ownerKey !== null && $ownerKey !== $related->getKeyName())) {
+                continue;
+            }
+
+            if ($related->getConnectionName() === null) {
+                $related->setConnection($this->modelInstance->getConnectionName());
+            }
+
+            $title = RelationshipGuesser::guessModelTitleColumnName($related);
+            $types[$modelClass] = Type::make($modelClass)
+                ->label($resource::getModelLabel())
+                ->titleAttribute($title)
+                ->searchColumns(RelationshipGuesser::guessModelSearchColumns($related, $title))
+                ->forceSearchCaseInsensitive()
+                // Native selected-label lookups already contain the key constraint.
+                ->modifyOptionsQueryUsing(fn (Builder $query): Builder => $related->newQuery()
+                    ->mergeConstraintsFrom($query)
+                    ->select($related->qualifyColumn('*'))
+                    ->orderBy($related->qualifyColumn($title)))
+                ->getOptionLabelFromRecordUsing(static fn (Model $record): string => (string) (filled($value = $record->getAttribute($title)) ? $value : $record->getKey()));
+        }
+
+        return array_values($types);
     }
 
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
