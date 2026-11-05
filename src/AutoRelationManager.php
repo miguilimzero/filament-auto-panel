@@ -164,11 +164,34 @@ class AutoRelationManager extends RelationManager
         if (($relationship instanceof HasMany || $relationship instanceof MorphMany)
             && $inverse !== null
             && method_exists($relationship->getModel(), $inverse)
-        ) {
+            && $this->hasNullableRelationshipColumns($relationship)) {
             return [[AssociateAction::make(), ...$header], [DissociateAction::make()], [DissociateBulkAction::make()]];
         }
 
         return [$header, [], []];
+    }
+
+    protected function hasNullableRelationshipColumns(HasOneOrMany $relationship): bool
+    {
+        $model = $relationship->getRelated();
+        $nullableColumns = array_column(
+            $model->getConnection()->getSchemaBuilder()->getColumns($model->getTable()),
+            'nullable',
+            'name',
+        );
+        $requiredColumns = [$relationship->getForeignKeyName()];
+
+        if ($relationship instanceof MorphOneOrMany) {
+            $requiredColumns[] = $relationship->getMorphType();
+        }
+
+        foreach ($requiredColumns as $name) {
+            if (($nullableColumns[$name] ?? false) !== true) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /** @return array<string> */
