@@ -12,10 +12,13 @@ class Column
 
     protected bool $objectCast = false;
 
+    protected bool $integer;
+
     public function __construct(protected array $data, ?string $cast = null, ?string $driver = null)
     {
         $typeName = strtolower($data['type_name']);
         $definition = strtolower($data['type']);
+        $this->integer = in_array($typeName, ['integer', 'int', 'int4', 'tinyint', 'smallint', 'int2', 'mediumint', 'bigint', 'int8'], true);
 
         $this->type = match (true) {
             preg_match('/^tinyint\(1\)(?: unsigned)?$/', $definition) === 1 => 'boolean',
@@ -58,6 +61,11 @@ class Column
             }
 
             $this->objectCast = $castType === 'object';
+            $this->integer = match ($castType) {
+                'int', 'integer', 'timestamp' => true,
+                'float', 'double', 'real', 'decimal' => false,
+                default => $this->integer,
+            };
 
             $this->type = match ($castType) {
                 'bool', 'boolean' => 'boolean',
@@ -104,6 +112,11 @@ class Column
     public function isObjectCast(): bool
     {
         return $this->objectCast;
+    }
+
+    public function isInteger(): bool
+    {
+        return $this->type === 'integer' && $this->integer;
     }
 
     public function isNumeric(): bool

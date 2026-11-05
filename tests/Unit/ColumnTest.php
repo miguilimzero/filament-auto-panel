@@ -128,6 +128,25 @@ it('identifies object casts without changing the array handler type', function (
     ['encrypted:array', false],
 ]);
 
+it('distinguishes integer storage and casts from fractional numeric columns', function (string $typeName, string $definition, ?string $cast, bool $expected): void {
+    $column = new Column(['name' => 'value', 'type_name' => $typeName, 'type' => $definition, 'nullable' => false], $cast);
+
+    expect($column->isInteger())->toBe($expected);
+})->with([
+    'integer' => ['integer', 'integer', null, true],
+    'unsigned bigint' => ['bigint', 'bigint unsigned', null, true],
+    'tinyint boolean' => ['tinyint', 'tinyint(1)', null, false],
+    'float' => ['float', 'float', null, false],
+    'double' => ['double', 'double', null, false],
+    'decimal' => ['decimal', 'decimal(20, 10)', null, false],
+    'integer cast' => ['varchar', 'varchar(80)', 'integer', true],
+    'timestamp cast' => ['varchar', 'varchar(80)', 'timestamp', true],
+    'float cast' => ['integer', 'integer', 'float', false],
+    'decimal cast' => ['integer', 'integer', 'decimal:2', false],
+    'string cast' => ['integer', 'integer', 'string', false],
+    'boolean cast' => ['integer', 'integer', 'boolean', false],
+]);
+
 it('lets a string cast override a numeric database type', function (): void {
     $column = new Column(['name' => 'value', 'type_name' => 'integer', 'type' => 'integer', 'nullable' => false], 'string');
 
