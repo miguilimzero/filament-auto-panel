@@ -28,6 +28,7 @@ class TestCase extends Orchestra
             \Filament\Notifications\NotificationsServiceProvider::class,
             \Filament\Widgets\WidgetsServiceProvider::class,
             \Filament\FilamentServiceProvider::class,
+            \Zvizvi\UserFields\UserFieldsServiceProvider::class,
             FilamentAutoPanelProvider::class,
         ];
     }

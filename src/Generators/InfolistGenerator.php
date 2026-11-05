@@ -13,6 +13,7 @@ use Filament\Support\Enums\IconPosition;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
+use Zvizvi\UserFields\Components\UserEntry;
 
 class InfolistGenerator extends AbstractGenerator
 {
@@ -28,7 +29,8 @@ class InfolistGenerator extends AbstractGenerator
 
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent
     {
-        $textEntry = TextEntry::make("{$relationshipName}.{$relationshipTitleColumnName}")
+        $entryClass = $this->isUserRelationship($relationshipName, $relationshipTitleColumnName) ? UserEntry::class : TextEntry::class;
+        $textEntry = $entryClass::make("{$relationshipName}.{$relationshipTitleColumnName}")
             ->label(ucfirst(strtolower(Str::headline($relationshipName))))
             ->placeholder(fn () => $this->placeholderHtml())
             ->weight(FontWeight::Bold)
