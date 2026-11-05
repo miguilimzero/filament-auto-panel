@@ -326,6 +326,8 @@ it('persists native single and bulk dissociation when the relationship columns a
     $manager = $table->getLivewire();
     assert($manager instanceof AutoRelationManager);
     (new ReflectionProperty($manager, 'table'))->setValue($manager, $table);
+    $manager->getTableFiltersForm()->fill();
+    $manager->tableFilters = $manager->tableDeferredFilters;
     $single = $table->getAction('dissociate')->record($records[0]);
 
     $single->call();
@@ -368,6 +370,8 @@ it('keeps attach and detach actions enabled and persists native pivot insertion 
         $manager = $table->getLivewire();
         assert($manager instanceof AutoRelationManager);
         (new ReflectionProperty($manager, 'table'))->setValue($manager, $table);
+        $manager->getTableFiltersForm()->fill();
+        $manager->tableFilters = $manager->tableDeferredFilters;
 
         expect($table->getAction('attach'))->toBeInstanceOf(AttachAction::class)
             ->and($table->getAction('detach'))->toBeInstanceOf(DetachAction::class)

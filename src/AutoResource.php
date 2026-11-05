@@ -10,6 +10,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Miguilim\FilamentAutoPanel\Concerns\HasAutoPanelConfiguration;
+use Miguilim\FilamentAutoPanel\Generators\FilterGenerator;
 use Miguilim\FilamentAutoPanel\Generators\FormGenerator;
 use Miguilim\FilamentAutoPanel\Generators\InfolistGenerator;
 use Miguilim\FilamentAutoPanel\Generators\TableGenerator;
@@ -75,7 +76,11 @@ class AutoResource extends Resource
 
     public static function table(Table $table): Table
     {
-        $filters = static::getFilters();
+        $modelClass = static::getModel();
+        $filters = [
+            ...FilterGenerator::makeForTable($table, new $modelClass(), enumDictionary: static::getEnumDictionary()),
+            ...static::getFilters(),
+        ];
 
         if (static::hasSoftDeletes()) {
             $filters[] = TrashedFilter::make();

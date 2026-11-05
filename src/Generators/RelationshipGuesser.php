@@ -17,19 +17,26 @@ class RelationshipGuesser
      */
     public static function guessBelongsTo(string $column, Model $model): array
     {
+        $name = static::guessBelongsToRelationshipName($column, $model);
+
+        return $name === null ? [] : [$name, static::guessTitleColumnName($column, $model, $name)];
+    }
+
+    public static function guessBelongsToRelationshipName(string $column, Model $model): ?string
+    {
         if (! str_ends_with($column, '_id')) {
-            return [];
+            return null;
         }
 
         foreach (static::relationshipNames(substr($column, 0, -3)) as $name) {
             $relationship = static::resolveRelationship($model, $name);
 
             if ($relationship instanceof BelongsTo && ! $relationship instanceof MorphTo && $relationship->getForeignKeyName() === $column) {
-                return [$name, static::guessTitleColumnName($column, $model, $name)];
+                return $name;
             }
         }
 
-        return [];
+        return null;
     }
 
     /**

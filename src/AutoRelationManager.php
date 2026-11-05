@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOneOrMany;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Miguilim\FilamentAutoPanel\Concerns\HasAutoPanelConfiguration;
+use Miguilim\FilamentAutoPanel\Generators\FilterGenerator;
 use Miguilim\FilamentAutoPanel\Generators\FormGenerator;
 use Miguilim\FilamentAutoPanel\Generators\InfolistGenerator;
 use Miguilim\FilamentAutoPanel\Generators\RelationshipGuesser;
@@ -88,7 +89,15 @@ class AutoRelationManager extends RelationManager
         }
 
         $softDeletes = $this->hasSoftDeletes();
-        $filters = $this->getFilters();
+        $filters = [
+            ...FilterGenerator::makeForTable(
+                $table,
+                $this->getRelationship()->getRelated(),
+                exceptColumns: $this->getExceptRelationshipColumns(),
+                enumDictionary: $this->getSchemaOptions('table')['enumDictionary'],
+            ),
+            ...$this->getFilters(),
+        ];
 
         if ($softDeletes) {
             $filters[] = TrashedFilter::make();
