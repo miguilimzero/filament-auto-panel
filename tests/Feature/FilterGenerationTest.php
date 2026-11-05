@@ -7,6 +7,7 @@ use Filament\QueryBuilder\Constraints\RelationshipConstraint;
 use Filament\QueryBuilder\Constraints\RelationshipConstraint\Operators\IsRelatedToOperator;
 use Filament\QueryBuilder\Constraints\SelectConstraint;
 use Filament\QueryBuilder\Constraints\TextConstraint;
+use Filament\Support\Enums\Width;
 use Filament\Tables\Filters\BaseFilter;
 use Filament\Tables\Filters\QueryBuilder;
 use Filament\Tables\Filters\TrashedFilter;
@@ -604,6 +605,7 @@ it('prepends generated resource filters while retaining custom and soft-delete f
     $constraints = $filters['queryBuilder']->getConstraints();
 
     expect(array_keys($filters))->toBe(['queryBuilder', 'manual', 'trashed'])
+        ->and($table->getFiltersFormWidth())->toBe(Width::ThreeExtraLarge)
         ->and($filters['queryBuilder'])->toBeInstanceOf(QueryBuilder::class)
         ->and($filters['trashed'])->toBeInstanceOf(TrashedFilter::class)
         ->and($constraints)->toHaveKeys(['description', 'quantity', 'status'])
@@ -626,6 +628,7 @@ it('generates standalone manager filters independently of visible table columns 
     $constraints = $filters['queryBuilder']->getConstraints();
 
     expect(array_keys($filters))->toBe(['queryBuilder', 'manual', 'trashed'])
+        ->and($table->getFiltersFormWidth())->toBe(Width::ThreeExtraLarge)
         ->and($constraints)->toHaveKeys(['name', 'description', 'quantity', 'status'])->not->toHaveKeys(['owner', 'owner_id'])
         ->and($constraints['status']->getOptions())->toBe(['draft' => 'Draft filter'])
         ->and($filters['trashed'])->toBeInstanceOf(TrashedFilter::class);
@@ -651,6 +654,7 @@ it('inherits resource filters in resource-backed managers without duplication or
     $constraints = $filters['queryBuilder']->getConstraints();
 
     expect(array_keys($filters))->toBe(['queryBuilder', 'manual', 'trashed'])
+        ->and($table->getFiltersFormWidth())->toBe(Width::ThreeExtraLarge)
         ->and($filters['trashed'])->toBeInstanceOf(TrashedFilter::class)
         ->and($constraints)->not->toHaveKeys(['owner', 'owner_id']);
 

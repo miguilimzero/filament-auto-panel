@@ -5,6 +5,7 @@ namespace Miguilim\FilamentAutoPanel;
 use Filament\Actions\BulkActionGroup;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Width;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -91,6 +92,7 @@ class AutoResource extends Resource
         $table
             ->columns(TableGenerator::make(...static::getSchemaOptions('table'), modelClass: static::getModel()))
             ->filters($filters)
+            ->filtersFormWidth(Width::ThreeExtraLarge)
             ->recordActions(static::getTableActions())
             ->toolbarActions($bulkActions ? [BulkActionGroup::make($bulkActions)] : []);
 

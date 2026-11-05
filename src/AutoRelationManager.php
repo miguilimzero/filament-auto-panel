@@ -11,6 +11,7 @@ use Filament\Actions\DissociateAction;
 use Filament\Actions\DissociateBulkAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Width;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -113,6 +114,7 @@ class AutoRelationManager extends RelationManager
                 exceptColumns: $this->getExceptRelationshipColumns(),
             ))
             ->filters($filters)
+            ->filtersFormWidth(Width::ThreeExtraLarge)
             ->headerActions($headerActions)
             ->recordActions(Actions::merge($this->getTableActions(), $recordActions))
             ->toolbarActions($bulkActions ? [BulkActionGroup::make($bulkActions)] : []);
