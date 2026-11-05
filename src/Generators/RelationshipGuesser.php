@@ -76,6 +76,52 @@ class RelationshipGuesser
         return $related->getKeyName();
     }
 
+    /** @return list<string> */
+    public static function guessSearchColumns(Model $model, string $relationshipName, string $titleColumn): array
+    {
+        return static::guessModelSearchColumns($model->{$relationshipName}()->getRelated(), $titleColumn);
+    }
+
+    /** @return list<string> */
+    public static function guessModelSearchColumns(Model $related, string $titleColumn): array
+    {
+        $connection = $related->getConnection();
+        $columns = $connection->getSchemaBuilder()->getColumnListing($related->getTable());
+        $casts = $related->getCasts();
+        $searchColumns = [$titleColumn];
+
+        foreach (array_unique([$related->getKeyName(), 'id', 'name', 'title', 'email']) as $name) {
+            if (! in_array($name, $columns, true)
+                || in_array($name, $related->getHidden(), true)
+                || ($related->getVisible() && ! in_array($name, $related->getVisible(), true))) {
+                continue;
+            }
+
+            $castType = explode(':', $casts[$name] ?? '', 2)[0];
+
+            if (in_array($castType, ['encrypted', 'hashed'], true)) {
+                continue;
+            }
+
+            $searchColumns[] = $name;
+        }
+
+        $searchColumns = array_values(array_unique($searchColumns));
+
+        if (! $related->newQuery()->applyScopes()->getQuery()->joins) {
+            return $searchColumns;
+        }
+
+        return array_map(static function (string $column) use ($related, $connection): string {
+            $column = $related->qualifyColumn($column);
+
+            // Filament quotes and prefixes PostgreSQL itself; other drivers use raw lower() expressions.
+            return $connection->getDriverName() === 'pgsql'
+                ? $column
+                : $connection->getQueryGrammar()->wrap($column);
+        }, $searchColumns);
+    }
+
     public static function getRecordTitle(?Model $record): mixed
     {
         if ($record === null) {

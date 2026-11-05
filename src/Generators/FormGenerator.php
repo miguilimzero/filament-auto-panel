@@ -50,7 +50,7 @@ class FormGenerator extends AbstractGenerator
             ->required($column->getNotNull())
             ->relationship($relationshipName, $relationshipTitleColumnName)
             ->forceSearchCaseInsensitive() // Compatibility with specific db collations
-            ->searchable();
+            ->searchable(RelationshipGuesser::guessSearchColumns($this->modelInstance, $relationshipName, $relationshipTitleColumnName));
     }
 
     protected function handleEnumDictionaryColumn(Column $column, array $dictionary): ViewComponent
