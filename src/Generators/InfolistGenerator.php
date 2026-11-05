@@ -13,6 +13,7 @@ use Filament\Support\Enums\IconPosition;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
+use Miguilim\FilamentAutoPanel\Support\DecimalFormatter;
 
 class InfolistGenerator extends AbstractGenerator
 {
@@ -109,7 +110,12 @@ class InfolistGenerator extends AbstractGenerator
             ->placeholder(fn () => $this->placeholderHtml());
 
         if (! $isPrimaryKey && $column->isNumeric()) {
-            return $textEntry->numeric($column->getDecimalPlaces());
+            return $textEntry->numeric($column->getDecimalPlaces())
+                ->formatStateUsing(static fn (TextEntry $component, mixed $state): ?string => DecimalFormatter::format(
+                    $state,
+                    $column->getDecimalPlaces(),
+                    $component->getContainer()->getDefaultNumberLocale() ?? config('app.locale'),
+                ));
         }
 
         return $textEntry;

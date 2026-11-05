@@ -292,7 +292,7 @@ it('decodes native JSON values for key-value entries without a model cast', func
     'null' => [null],
 ]);
 
-it('keeps existing float formatting and applies the model decimal scale', function (): void {
+it('preserves floating point fractions and applies the model decimal scale', function (): void {
     $columns = TableGenerator::make(Product::class);
     Table::make(new ListProducts())->columns($columns);
     $infolist = InfolistGenerator::make(Product::class);
@@ -306,7 +306,7 @@ it('keeps existing float formatting and applies the model decimal scale', functi
     $columns = TableGenerator::make(Product::class);
     Table::make(new ListProducts())->columns($columns);
 
-    expect($columns['floating_value']->formatState(1234.56))->toBe('1,235');
+    expect($columns['floating_value']->formatState(1234.56))->toBe('1,234.56');
 });
 
 it('leaves unknown and unbounded lengths unset rather than forbidding input', function (): void {

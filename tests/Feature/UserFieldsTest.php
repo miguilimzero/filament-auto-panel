@@ -522,7 +522,7 @@ it('leaves orphan user IDs and unverified relationships as ordinary numeric fiel
 
         foreach (['user_id', 'author_id'] as $foreignKey) {
             expect(RelationshipGuesser::guessBelongsTo($foreignKey, new $model()))->toBe([])
-                ->and($fields[$foreignKey]::class)->toBe(TextInput::class)
+                ->and($fields[$foreignKey])->toBeInstanceOf(TextInput::class)
                 ->and($fields[$foreignKey]->isNumeric())->toBeTrue()
                 ->and($columns[$foreignKey]::class)->toBe(TextColumn::class)
                 ->and($columns[$foreignKey]->getName())->toBe($foreignKey)

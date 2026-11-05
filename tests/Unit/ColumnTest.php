@@ -2,7 +2,7 @@
 
 use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
 
-it('normalizes native schema metadata without Doctrine', function (string $typeName, string $type, string $expectedType, ?int $length, int $scale, bool $numeric): void {
+it('normalizes native schema metadata without Doctrine', function (string $typeName, string $type, string $expectedType, ?int $length, ?int $scale, bool $numeric): void {
     $column = new Column([
         'name' => 'value',
         'type_name' => $typeName,
@@ -32,8 +32,8 @@ it('normalizes native schema metadata without Doctrine', function (string $typeN
     'zero length' => ['varchar', 'varchar(0)', 'string', null, 0, false],
     'integer' => ['integer', 'integer', 'integer', null, 0, true],
     'bigint' => ['bigint', 'bigint unsigned', 'integer', null, 0, true],
-    'float' => ['float', 'float', 'integer', null, 0, true],
-    'double' => ['double', 'double', 'integer', null, 0, true],
+    'float' => ['float', 'float', 'float', null, null, true],
+    'double' => ['double', 'double', 'float', null, null, true],
     'decimal' => ['decimal', 'decimal(10,2)', 'decimal', null, 2, true],
     'numeric' => ['numeric', 'numeric(12, 4)', 'decimal', null, 4, true],
     'text' => ['text', 'text', 'textarea', null, 0, false],
@@ -73,7 +73,7 @@ it('only infers text bounds for drivers with bounded text types', function (stri
     ['text', 'pgsql', null],
 ]);
 
-it('honors supported primitive casts without guessing custom casts', function (string $cast, string $expectedType, int $scale): void {
+it('honors supported primitive casts without guessing custom casts', function (string $cast, string $expectedType, ?int $scale): void {
     $column = new Column([
         'name' => 'value',
         'type_name' => 'varchar',
@@ -100,9 +100,9 @@ it('honors supported primitive casts without guessing custom casts', function (s
     ['integer', 'integer', 0],
     ['int', 'integer', 0],
     ['timestamp', 'integer', 0],
-    ['float', 'integer', 0],
-    ['double', 'integer', 0],
-    ['real', 'integer', 0],
+    ['float', 'float', null],
+    ['double', 'float', null],
+    ['real', 'float', null],
     ['decimal:3', 'decimal', 3],
     ['string', 'string', 0],
     ['date:Y-m-d', 'date', 0],

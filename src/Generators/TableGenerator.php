@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
 use Miguilim\FilamentAutoPanel\Filament\Columns\UserColumn;
+use Miguilim\FilamentAutoPanel\Support\DecimalFormatter;
 
 class TableGenerator extends AbstractGenerator
 {
@@ -143,7 +144,12 @@ class TableGenerator extends AbstractGenerator
             ->placeholder(fn () => $this->placeholderHtml());
 
         if (! $isPrimaryKey && $column->isNumeric()) {
-            return $textColumn->numeric($column->getDecimalPlaces());
+            return $textColumn->numeric($column->getDecimalPlaces())
+                ->formatStateUsing(static fn (TextColumn $component, mixed $state): ?string => DecimalFormatter::format(
+                    $state,
+                    $column->getDecimalPlaces(),
+                    $component->getTable()->getDefaultNumberLocale() ?? config('app.locale'),
+                ));
         }
 
         return $textColumn;

@@ -24,6 +24,7 @@ use Illuminate\Support\Str;
 use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
 use Miguilim\FilamentAutoPanel\Filament\StateCasts\JsonStateCast;
 use Miguilim\FilamentAutoPanel\Filament\Columns\UserColumn;
+use Miguilim\FilamentAutoPanel\Filament\Forms\NumericInput;
 use Miguilim\FilamentAutoPanel\Support\RelationshipOptionLabel;
 
 class FormGenerator extends AbstractGenerator
@@ -279,13 +280,14 @@ class FormGenerator extends AbstractGenerator
             }
         }
 
-        $textInput = TextInput::make($column->getName())
+        $inputClass = $column->isNumeric() ? NumericInput::class : TextInput::class;
+        $textInput = $inputClass::make($column->getName())
             ->required($column->getNotNull())
             ->email(Str::contains($column->getName(), 'email'))
             ->tel(Str::contains($column->getName(), ['phone', 'tel']));
 
         if ($column->isNumeric()) {
-            return $textInput->numeric(); // TextInput numeric method does not have precision parameter, and it cannot have a maxLength()
+            return $textInput;
         }
 
         return $textInput->maxLength($column->getLength());

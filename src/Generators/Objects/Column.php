@@ -8,7 +8,7 @@ class Column
 
     protected ?int $length;
 
-    protected int $decimalPlaces;
+    protected ?int $decimalPlaces;
 
     protected bool $objectCast = false;
 
@@ -26,9 +26,8 @@ class Column
             default => match ($typeName) {
                 'bool', 'boolean', 'bit' => 'boolean',
                 'json', 'jsonb' => 'json',
-                // Preserve the existing zero-decimal display formatting for floating-point columns.
-                'integer', 'int', 'int4', 'tinyint', 'smallint', 'int2', 'mediumint', 'bigint', 'int8',
-                'float', 'real', 'float4', 'double', 'float8' => 'integer',
+                'integer', 'int', 'int4', 'tinyint', 'smallint', 'int2', 'mediumint', 'bigint', 'int8' => 'integer',
+                'float', 'real', 'float4', 'double', 'float8', 'double precision' => 'float',
                 'decimal', 'numeric' => 'decimal',
                 'text', 'tinytext', 'mediumtext', 'longtext', 'ntext' => 'textarea',
                 'varchar', 'char', 'bpchar', 'nvarchar', 'nchar', 'string' => 'string',
@@ -51,7 +50,7 @@ class Column
         }
 
         preg_match('/\(\d+,\s*(\d+)\)/', $definition, $scale);
-        $this->decimalPlaces = (int) ($scale[1] ?? 0);
+        $this->decimalPlaces = isset($scale[1]) ? (int) $scale[1] : null;
 
         if ($cast !== null) {
             [$castType, $parameters] = array_pad(explode(':', $cast, 2), 2, null);
@@ -70,7 +69,8 @@ class Column
             $this->type = match ($castType) {
                 'bool', 'boolean' => 'boolean',
                 'array', 'json', 'object', 'collection' => 'json',
-                'int', 'integer', 'timestamp', 'float', 'double', 'real' => 'integer',
+                'int', 'integer', 'timestamp' => 'integer',
+                'float', 'double', 'real' => 'float',
                 'decimal' => 'decimal',
                 'string', 'encrypted', 'hashed' => 'string',
                 'date', 'immutable_date' => 'date',
@@ -104,9 +104,13 @@ class Column
         return $this->length;
     }
 
-    public function getDecimalPlaces(): int
+    public function getDecimalPlaces(): ?int
     {
-        return $this->type === 'decimal' ? $this->decimalPlaces : 0;
+        return match ($this->type) {
+            'decimal' => $this->decimalPlaces,
+            'float' => null,
+            default => 0,
+        };
     }
 
     public function isObjectCast(): bool
@@ -121,6 +125,6 @@ class Column
 
     public function isNumeric(): bool
     {
-        return in_array($this->type, ['integer', 'decimal']);
+        return in_array($this->type, ['integer', 'decimal', 'float']);
     }
 }

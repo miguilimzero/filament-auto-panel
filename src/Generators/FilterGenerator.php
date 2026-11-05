@@ -116,7 +116,7 @@ class FilterGenerator
             } else {
                 $constraint = match ($column->getType()) {
                     'boolean' => BooleanConstraint::make($name),
-                    'integer', 'decimal' => $this->makeNumberConstraint($column),
+                    'integer', 'decimal', 'float' => $this->makeNumberConstraint($column),
                     'date', 'datetime' => DateConstraint::make($name)->time($column->getType() === 'datetime'),
                     'string', 'textarea', 'uuid', 'ulid', 'enum', 'citext' => TextConstraint::make($name),
                     default => null,
@@ -214,7 +214,7 @@ class FilterGenerator
 
         $titleColumn = new Column($metadata, $related->getCasts()[$title] ?? null, $related->getConnection()->getDriverName());
 
-        if (! in_array($titleColumn->getType(), ['string', 'textarea', 'integer', 'decimal', 'uuid', 'ulid', 'enum', 'citext'], true)) {
+        if (! in_array($titleColumn->getType(), ['string', 'textarea', 'integer', 'decimal', 'float', 'uuid', 'ulid', 'enum', 'citext'], true)) {
             return null;
         }
 
