@@ -12,6 +12,7 @@ use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\IconPosition;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Miguilim\FilamentAutoPanel\Filament\Columns\UserColumn;
 use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
 use Miguilim\FilamentAutoPanel\Support\DecimalFormatter;
 
@@ -38,6 +39,12 @@ class InfolistGenerator extends AbstractGenerator
 
         if (str_ends_with($column->getName(), '_type')) {
             $textEntry->state(fn (?Model $record) => RelationshipGuesser::getRecordTitle($record?->{$relationshipName}));
+        }
+
+        if ($this->isUserRelationship($relationshipName)) {
+            $userColumn = UserColumn::make("{$relationshipName}.{$relationshipTitleColumnName}");
+
+            $textEntry->prefix(fn (?Model $record) => $userColumn->getAvatarHtmlForUser($record?->{$relationshipName}));
         }
 
         return $textEntry;

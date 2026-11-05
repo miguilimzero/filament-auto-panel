@@ -101,10 +101,9 @@ it('links user columns and entries to the actual related user view route', funct
             ->and($links->item(0)->getAttribute('href'))->toBe($expected)
             ->and($links->item(0)->textContent)->toContain($record->author->name)
             ->and($dom->query('//b')->length)->toBe(0)
-            ->and($dom->query('//img')->length)->toBe($component === $column ? 1 : 0);
-        if ($component === $column) {
-            expect($dom->query('//img')->item(0)->getAttribute('src'))->toBe('/avatars/link-author.svg');
-        }
+            ->and($dom->query('//img')->length)->toBe(1)
+            ->and($dom->query('//a//img')->length)->toBe(1)
+            ->and($dom->query('//img')->item(0)->getAttribute('src'))->toBe('/avatars/link-author.svg');
     }
     expect(UserFieldIdentity::$avatarCalls)->toBe(0);
 });
@@ -120,6 +119,19 @@ it('does not link user columns or entries to an inaccessible user resource', fun
         ->and(Route::has(UserFieldLinkResource::getRouteBaseName($panel) . '.view'))->toBeTrue()
         ->and($column->getUrl())->toBeNull()
         ->and($entry->getUrl())->toBeNull();
+
+    foreach ([$column, $entry] as $component) {
+        $html = $component === $column ? $column->renderInLayout()->toHtml() : $entry->toHtml();
+        $document = new DOMDocument();
+        expect($document->loadHTML($html, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING))->toBeTrue();
+        $dom = new DOMXPath($document);
+        expect($dom->query('//a[@href]')->length)->toBe(0)
+            ->and($dom->query('//img')->length)->toBe(1)
+            ->and($dom->query('//img')->item(0)->getAttribute('src'))->toBe('/avatars/link-author.svg')
+            ->and($document->textContent)->toContain('Profile link <b>author</b>')
+            ->and($dom->query('//b')->length)->toBe(0);
+    }
+    expect(UserFieldIdentity::$avatarCalls)->toBe(0);
 });
 
 it('does not link user columns or entries when the user resource has no view page', function (): void {
@@ -134,4 +146,17 @@ it('does not link user columns or entries when the user resource has no view pag
         ->and(Route::has($routeName . '.view'))->toBeFalse()
         ->and($column->getUrl())->toBeNull()
         ->and($entry->getUrl())->toBeNull();
+
+    foreach ([$column, $entry] as $component) {
+        $html = $component === $column ? $column->renderInLayout()->toHtml() : $entry->toHtml();
+        $document = new DOMDocument();
+        expect($document->loadHTML($html, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING))->toBeTrue();
+        $dom = new DOMXPath($document);
+        expect($dom->query('//a[@href]')->length)->toBe(0)
+            ->and($dom->query('//img')->length)->toBe(1)
+            ->and($dom->query('//img')->item(0)->getAttribute('src'))->toBe('/avatars/link-author.svg')
+            ->and($document->textContent)->toContain('Profile link <b>author</b>')
+            ->and($dom->query('//b')->length)->toBe(0);
+    }
+    expect(UserFieldIdentity::$avatarCalls)->toBe(0);
 });

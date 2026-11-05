@@ -241,41 +241,54 @@ it('validates a required user select before saving an empty foreign key', functi
         ->and(UserFieldRecord::count())->toBe(0);
 });
 
-it('renders an escaped native text entry without an avatar even when one is available', function (): void {
+it('renders an avatar prefix while retaining an escaped native text entry', function (): void {
     $identity = UserFieldIdentity::create(['name' => 'Display <script>alert("user-field")</script> & Co', 'profile_photo_url' => '/avatars/display.svg']);
     $record = UserFieldRecord::create(['user_id' => $identity->id, 'author_id' => $identity->id]);
     $entry = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record)['author.name'];
 
     expect($entry::class)->toBe(TextEntry::class)
-        ->and($entry->getState())->toBe($identity->name);
-    assertUserFieldText($entry->toHtml(), $identity->name);
+        ->and($entry->getState())->toBe($identity->name)
+        ->and($entry->getPrefix())->toBeInstanceOf(HtmlString::class);
+    assertUserFieldAvatar($entry->toHtml(), $identity->profile_photo_url, $identity->name);
 });
 
-it('renders the default avatar attribute beside the actual related name through a native text column prefix', function (): void {
+it('renders the default avatar attribute beside the actual related name through native prefixes', function (): void {
     $identity = UserFieldIdentity::create(['name' => 'Author <b>identity</b> & Co', 'profile_photo_url' => '/avatars/author.svg?size=32&theme=light']);
     $differentUser = UserFieldIdentity::create(['name' => 'Not the author', 'profile_photo_url' => '/avatars/not-author.svg']);
     $record = UserFieldRecord::create(['user_id' => $differentUser->id, 'author_id' => $identity->id]);
     $column = mountUserFieldColumn(TableGenerator::make(UserFieldRecord::class)['author_id'], $record);
+    $entry = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record)['author.name'];
 
-    expect(get_parent_class($column))->toBe(TextColumn::class)
+    expect($entry::class)->toBe(TextEntry::class)
+        ->and($entry->getName())->toBe('author.name')
+        ->and($entry->getState())->toBe($identity->name)
+        ->and($entry->getPrefix())->toBeInstanceOf(HtmlString::class)
+        ->and(get_parent_class($column))->toBe(TextColumn::class)
         ->and($column->getName())->toBe('author.name')
         ->and($column->getState())->toBe($identity->name)
         ->and($column->getAvatarAttribute())->toBe('profile_photo_url')
         ->and($column->getPrefix())->toBeInstanceOf(HtmlString::class);
-    $image = assertUserFieldAvatar($column->toHtml(), $identity->profile_photo_url, $identity->name);
-    expect($image->getAttribute('style'))->toMatch('/(?:^|;)\s*width\s*:\s*\d*\.?\d+(?:px|rem|em)\b/i')
-        ->and($image->getAttribute('style'))->toMatch('/(?:^|;)\s*height\s*:\s*\d*\.?\d+(?:px|rem|em)\b/i');
+    foreach ([$column, $entry] as $component) {
+        $html = $component->toHtml();
+        $image = assertUserFieldAvatar($html, $identity->profile_photo_url, $identity->name);
+        expect(userFieldDom($html)->query('//b')->length)->toBe(0)
+            ->and($image->getAttribute('style'))->toMatch('/(?:^|;)\s*width\s*:\s*\d*\.?\d+(?:px|rem|em)\b/i')
+            ->and($image->getAttribute('style'))->toMatch('/(?:^|;)\s*height\s*:\s*\d*\.?\d+(?:px|rem|em)\b/i');
+    }
 });
 
 it('renders authenticatable relationships without requiring the HasAvatar contract', function (): void {
     $identity = UserFieldPlainIdentity::create(['name' => 'Plain authenticatable', 'profile_photo_url' => '/avatars/plain.svg']);
     $record = UserFieldPlainRecord::create(['user_id' => $identity->id, 'author_id' => $identity->id]);
     $column = mountUserFieldColumn(TableGenerator::make(UserFieldPlainRecord::class)['author_id'], $record);
+    $entry = userFieldEntries(InfolistGenerator::make(UserFieldPlainRecord::class), $record)['author.name'];
 
     expect($identity)->not->toBeInstanceOf(\Filament\Models\Contracts\HasAvatar::class)
         ->and($column::class)->toBe(UserColumn::class)
-        ->and($column->getName())->toBe('author.name');
+        ->and($column->getName())->toBe('author.name')
+        ->and($entry::class)->toBe(TextEntry::class);
     assertUserFieldAvatar($column->toHtml(), $identity->profile_photo_url, $identity->name);
+    assertUserFieldAvatar($entry->toHtml(), $identity->profile_photo_url, $identity->name);
 });
 
 it('uses a custom avatar attribute through the fluent column API', function (): void {
@@ -288,16 +301,20 @@ it('uses a custom avatar attribute through the fluent column API', function (): 
     assertUserFieldAvatar(mountUserFieldColumn($column, $record)->toHtml(), $identity->portrait_url, $identity->name);
 });
 
-it('applies native configureUsing callbacks to generated columns without leaking configuration', function (): void {
+it('applies native configureUsing callbacks to generated columns and entry avatars without leaking configuration', function (): void {
     $identity = UserFieldIdentity::create(['name' => 'Configured portrait', 'profile_photo_url' => '/avatars/default.svg', 'portrait_url' => '/portraits/configured.svg']);
     $record = UserFieldRecord::create(['user_id' => $identity->id, 'author_id' => $identity->id]);
 
     UserColumn::configureUsing(
-        fn (UserColumn $column) => $column->avatarAttribute('portrait_url'),
+        fn (UserColumn $column) => $column->getName() === 'author.name' ? $column->avatarAttribute('portrait_url') : null,
         during: function () use ($record, $identity): void {
             $generated = TableGenerator::make(UserFieldRecord::class)['author_id'];
             expect($generated->getAvatarAttribute())->toBe('portrait_url');
             assertUserFieldAvatar(mountUserFieldColumn($generated, $record)->toHtml(), $identity->portrait_url, $identity->name);
+            $entries = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record);
+            expect($entries['author.name']::class)->toBe(TextEntry::class);
+            assertUserFieldAvatar($entries['author.name']->toHtml(), $identity->portrait_url, $identity->name);
+            assertUserFieldAvatar($entries['user.name']->toHtml(), $identity->profile_photo_url, $identity->name);
 
             $host = new UserFieldListRecords();
             $resourceColumn = UserFieldRecordResource::table(Table::make($host)->query(UserFieldRecord::query()))->getColumns()['author.name'];
@@ -309,6 +326,8 @@ it('applies native configureUsing callbacks to generated columns without leaking
     $column = TableGenerator::make(UserFieldRecord::class)['author_id'];
     expect($column->getAvatarAttribute())->toBe('profile_photo_url');
     assertUserFieldAvatar(mountUserFieldColumn($column, $record)->toHtml(), $identity->profile_photo_url, $identity->name);
+    $entry = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record)['author.name'];
+    assertUserFieldAvatar($entry->toHtml(), $identity->profile_photo_url, $identity->name);
 });
 
 it('reads default and configured avatar accessors without requiring database columns', function (string $attribute, string $prefix): void {
@@ -316,12 +335,19 @@ it('reads default and configured avatar accessors without requiring database col
     $required = UserFieldIdentity::create(['name' => 'Required identity']);
     $record = UserFieldRecord::create(['user_id' => $required->id, 'accessor_user_id' => $identity->id]);
     $column = TableGenerator::make(UserFieldRecord::class)['accessor_user_id']->avatarAttribute($attribute);
+    $entry = UserColumn::configureUsing(
+        fn (UserColumn $column) => $column->avatarAttribute($attribute),
+        during: fn (): TextEntry => userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record)['accessorUser.title'],
+    );
     $preventMissing = Model::preventsAccessingMissingAttributes();
     Model::preventAccessingMissingAttributes();
 
     try {
         expect(Schema::hasColumn($identity->getTable(), $attribute))->toBeFalse();
         assertUserFieldAvatar(mountUserFieldColumn($column, $record)->toHtml(), $prefix . $identity->id . '.svg', $identity->title);
+        expect($entry::class)->toBe(TextEntry::class)
+            ->and($entry->getState())->toBe($identity->title);
+        assertUserFieldAvatar($entry->toHtml(), $prefix . $identity->id . '.svg', $identity->title);
     } finally {
         Model::preventAccessingMissingAttributes($preventMissing);
     }
@@ -335,7 +361,10 @@ it('escapes names and avatar URL attributes without creating injected DOM nodes'
     $record = UserFieldRecord::create(['user_id' => $identity->id, 'author_id' => $identity->id]);
     $column = mountUserFieldColumn(TableGenerator::make(UserFieldRecord::class)['author_id'], $record);
 
+    $entry = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record)['author.name'];
+
     assertUserFieldAvatar($column->toHtml(), $expectedUrl, $name);
+    assertUserFieldAvatar($entry->toHtml(), $expectedUrl, $name);
 })->with([
     'name markup' => ['Alice </span><script>alert("name")</script><img src=x onerror="alert(1)"> & Co', '/avatars/safe.svg', '/avatars/safe.svg'],
     'quoted URL' => ['Quoted avatar', '/avatars/alice.svg?label=" onerror="alert(1)&next=\' onload=\'alert(2)', '/avatars/alice.svg?label="%20onerror="alert(1)&next=\'%20onload=\'alert(2)'],
@@ -348,7 +377,10 @@ it('accepts HTTP HTTPS and relative avatar URLs', function (string $url): void {
     $record = UserFieldRecord::create(['user_id' => $identity->id]);
     $column = mountUserFieldColumn(TableGenerator::make(UserFieldRecord::class)['user_id'], $record);
 
+    $entry = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record)['user.name'];
+
     assertUserFieldAvatar($column->toHtml(), $url, $identity->name);
+    assertUserFieldAvatar($entry->toHtml(), $url, $identity->name);
 })->with([
     'https' => ['https://example.test/avatars/alice.svg?size=32&theme=light'],
     'http' => ['http://example.test/avatars/alice.svg'],
@@ -362,7 +394,10 @@ it('rejects unsafe avatar URL schemes without falling back to HasAvatar', functi
     $record = UserFieldRecord::create(['user_id' => $identity->id]);
     $column = mountUserFieldColumn(TableGenerator::make(UserFieldRecord::class)['user_id'], $record);
 
+    $entry = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record)['user.name'];
+
     assertUserFieldText($column->toHtml(), $identity->name);
+    assertUserFieldText($entry->toHtml(), $identity->name);
 })->with([
     'javascript' => ['javascript:alert(1)'],
     'mixed case javascript' => ['JaVaScRiPt:alert(1)'],
@@ -383,8 +418,13 @@ it('renders plain names for blank avatar attributes instead of using another att
     ]);
     $record = UserFieldRecord::create(['user_id' => $identity->id]);
     $column = TableGenerator::make(UserFieldRecord::class)['user_id']->avatarAttribute($attribute);
+    $entry = UserColumn::configureUsing(
+        fn (UserColumn $column) => $column->avatarAttribute($attribute),
+        during: fn (): TextEntry => userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record)['user.name'],
+    );
 
     assertUserFieldText(mountUserFieldColumn($column, $record)->toHtml(), $identity->name);
+    assertUserFieldText($entry->toHtml(), $identity->name);
 })->with([
     'default null' => ['profile_photo_url', null],
     'default empty' => ['profile_photo_url', ''],
@@ -405,16 +445,23 @@ it('handles hidden and missing avatar attributes under strict missing-attribute 
     if ($scenario === 'nonexistent attribute') {
         $column->avatarAttribute('missing_avatar_url');
     }
+    $entry = UserColumn::configureUsing(
+        fn (UserColumn $renderer) => $renderer->avatarAttribute($column->getAvatarAttribute()),
+        during: fn (): TextEntry => userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record)['user.name'],
+    );
     $preventMissing = Model::preventsAccessingMissingAttributes();
     Model::preventAccessingMissingAttributes();
 
     try {
-        $html = mountUserFieldColumn($column, $record)->toHtml();
-        if ($scenario === 'hidden') {
-            expect($related->toArray())->not->toHaveKey('profile_photo_url');
-            assertUserFieldAvatar($html, '/avatars/hidden.svg', $identity->name);
-        } else {
-            assertUserFieldText($html, $identity->name);
+        mountUserFieldColumn($column, $record);
+        foreach ([$column, $entry] as $component) {
+            $html = $component->toHtml();
+            if ($scenario === 'hidden') {
+                expect($related->toArray())->not->toHaveKey('profile_photo_url');
+                assertUserFieldAvatar($html, '/avatars/hidden.svg', $identity->name);
+            } else {
+                assertUserFieldText($html, $identity->name);
+            }
         }
     } finally {
         Model::preventAccessingMissingAttributes($preventMissing);
@@ -430,9 +477,18 @@ it('retains native text formatting suffixes and placeholders', function (): void
         ->placeholder('No author');
     mountUserFieldColumn($column, $record);
 
-    assertUserFieldAvatar($column->toHtml(), $identity->profile_photo_url, 'Formatted: ' . $identity->name . ' <suffix>');
+    $entry = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $record)['author.name']
+        ->formatStateUsing(fn (string $state): string => 'Formatted: ' . $state)
+        ->suffix(' <suffix>')
+        ->placeholder('No author');
+
+    foreach ([$column, $entry] as $component) {
+        assertUserFieldAvatar($component->toHtml(), $identity->profile_photo_url, 'Formatted: ' . $identity->name . ' <suffix>');
+    }
     $withoutAuthor = UserFieldRecord::create(['user_id' => $identity->id]);
     assertUserFieldText($column->record($withoutAuthor)->toHtml(), 'No author');
+    $entry->getContainer()->model($withoutAuthor);
+    assertUserFieldText($entry->toHtml(), 'No author');
 });
 
 it('retains native related-name search sorting and eager loading without extra avatar queries', function (): void {
@@ -442,6 +498,7 @@ it('retains native related-name search sorting and eager loading without extra a
     $first = UserFieldRecord::create(['user_id' => $alpha->id]);
     $column = TableGenerator::make(UserFieldRecord::class, searchableColumns: ['user.name' => 'both'])['user_id'];
     mountUserFieldColumn($column, $last);
+    $entry = userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), $last)['user.name'];
 
     expect($column::class)->toBe(UserColumn::class)
         ->and($column->getName())->toBe('user.name')
@@ -465,6 +522,8 @@ it('retains native related-name search sorting and eager loading without extra a
         foreach ($records as $record) {
             expect($record->relationLoaded('user'))->toBeTrue();
             assertUserFieldAvatar($column->record($record)->toHtml(), $record->user->profile_photo_url, $record->user->name);
+            $entry->getContainer()->model($record);
+            assertUserFieldAvatar($entry->toHtml(), $record->user->profile_photo_url, $record->user->name);
         }
         expect(count($connection->getQueryLog()))->toBe($queryCount);
     } finally {
@@ -481,6 +540,10 @@ it('renders eager-loaded avatar accessors without issuing additional queries', f
     }
     $column = TableGenerator::make(UserFieldRecord::class)['accessor_user_id']->avatarAttribute($attribute);
     mountUserFieldColumn($column, new UserFieldRecord());
+    $entry = UserColumn::configureUsing(
+        fn (UserColumn $column) => $column->avatarAttribute($attribute),
+        during: fn (): TextEntry => userFieldEntries(InfolistGenerator::make(UserFieldRecord::class), new UserFieldRecord())['accessorUser.title'],
+    );
     $connection = $required->getConnection();
     $connection->enableQueryLog();
     $connection->flushQueryLog();
@@ -491,6 +554,8 @@ it('renders eager-loaded avatar accessors without issuing additional queries', f
         foreach ($records as $record) {
             expect($record->relationLoaded('accessorUser'))->toBeTrue();
             assertUserFieldAvatar($column->record($record)->toHtml(), $record->accessorUser->getAttribute($attribute), $record->accessorUser->title);
+            $entry->getContainer()->model($record);
+            assertUserFieldAvatar($entry->toHtml(), $record->accessorUser->getAttribute($attribute), $record->accessorUser->title);
         }
         expect(count($connection->getQueryLog()))->toBe(2);
     } finally {
@@ -510,7 +575,8 @@ it('keeps non-authenticatable relationships generic even when the relationship i
             ->and($field->getRelationshipName())->toBe($relationship)
             ->and($column::class)->toBe(TextColumn::class)
             ->and($column->getName())->toBe("{$relationship}.name")
-            ->and($entry::class)->toBe(TextEntry::class);
+            ->and($entry::class)->toBe(TextEntry::class)
+            ->and($entry->getPrefix())->toBeNull();
     }
 });
 
@@ -581,7 +647,12 @@ it('uses the relationship title rather than automatically applying HasName or a 
         ->and($entry->getState())->toBe($identity->title);
     assertUserFieldOptionLabel($field->getOptionLabel(), $identity, 'title');
     expect(userFieldDom($field->getOptionLabel())->document->textContent)->not->toContain('Display: ', 'Accessor: ');
-    assertUserFieldText($entry->toHtml(), $identity->title);
+    if ($identity instanceof UserFieldAccessorIdentity) {
+        assertUserFieldAvatar($entry->toHtml(), $identity->profile_photo_url, $identity->title);
+    } else {
+        assertUserFieldText($entry->toHtml(), $identity->title);
+    }
+    expect(userFieldDom($entry->toHtml())->document->textContent)->not->toContain('Display: ', 'Accessor: ');
     expect(userFieldDom($column->toHtml())->document->textContent)->toContain($identity->title)->not->toContain('Display: ', 'Accessor: ');
 })->with([
     'HasName contract' => [UserFieldNamedIdentity::class, 'named_user_id', 'namedUser'],
@@ -623,7 +694,8 @@ it('renders nullable or missing related users without an avatar or a type error'
     expect($column::class)->toBe(UserColumn::class)
         ->and($entry::class)->toBe(TextEntry::class)
         ->and(blank($column->getState()))->toBeTrue()
-        ->and(blank($entry->getState()))->toBeTrue();
+        ->and(blank($entry->getState()))->toBeTrue()
+        ->and($entry->getPrefix())->toBeNull();
     assertUserFieldText($column->toHtml(), 'null');
     assertUserFieldText($entry->toHtml(), 'null');
 })->with(['nullable foreign key' => [null], 'missing related row' => [999999]]);
@@ -740,7 +812,7 @@ it('detects and queries user fields on the current model connection with a table
                     assertUserFieldOptionLabel($label, $identity);
                     assertUserFieldAvatar($label, $identity->profile_photo_url, $identity->name);
         assertUserFieldAvatar(mountUserFieldColumn($columns['user_id'], $model)->toHtml(), $identity->profile_photo_url, $identity->name);
-        assertUserFieldText($entries['user.name']->toHtml(), $identity->name);
+        assertUserFieldAvatar($entries['user.name']->toHtml(), $identity->profile_photo_url, $identity->name);
     } finally {
         UserFieldFixtures::drop('secondary');
     }
