@@ -3,9 +3,11 @@
 use Miguilim\FilamentAutoPanel\AutoRelationManager;
 use Miguilim\FilamentAutoPanel\Filament\Pages\AutoResourceListRecords;
 use Miguilim\FilamentAutoPanel\Filament\Pages\AutoResourceViewRecord;
+use Miguilim\FilamentAutoPanel\Filament\RelationManagers\UserSessionsRelationManager;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\Optimization\CustomOwners;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\Optimization\FixtureApplication;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\Optimization\OwnerResource;
+use Miguilim\FilamentAutoPanel\Tests\Fixtures\Optimization\UserResource;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\ProductResource;
 
 beforeEach(function (): void {
@@ -76,6 +78,54 @@ it('resolves cached Livewire names before any page or relation factory runs with
 
     assertOptimizationComponents($cold);
 });
+
+it('resolves the fixed user sessions alias in a cold HTTP process without factories', function (bool $withUserSessions): void {
+    if ($withUserSessions) {
+        $this->optimizationApp->destroy();
+        $this->optimizationApp = new FixtureApplication(withUserSessions: true);
+    }
+
+    $sessionsDatabase = $this->optimizationApp->path('storage/missing-sessions.sqlite');
+
+    expect(is_file($sessionsDatabase))->toBeFalse();
+
+    $warm = $this->optimizationApp->command('filament:optimize');
+    $routes = $this->optimizationApp->command('route:cache');
+    $cache = $this->optimizationApp->cachedComponents();
+
+    expect($warm['console'])->toBeTrue()
+        ->and($routes['console'])->toBeTrue()
+        ->and(is_file($this->optimizationApp->path('bootstrap/cache/routes.php')))->toBeTrue();
+
+    if ($withUserSessions) {
+        expect($cache['resources'])->toContain(UserResource::class)
+            ->and($cache['livewireComponents'])->toContain(UserSessionsRelationManager::class);
+    } else {
+        expect($cache['resources'])->toBe([OwnerResource::class])
+            ->and($cache['livewireComponents'])->not->toContain(UserSessionsRelationManager::class)
+            ->and($this->optimizationApp->generatedArtifacts())->toHaveCount(5);
+    }
+
+    $cold = $this->optimizationApp->probe('sessions');
+
+    expect($cold['console'])->toBeFalse()
+        ->and($cold['componentsCached'])->toBeTrue()
+        ->and($cold['routesCached'])->toBeTrue()
+        ->and($cold['pageCalls'])->toBe(0)
+        ->and($cold['relationCalls'])->toBe(0)
+        ->and($cold['userPageCalls'])->toBe(0)
+        ->and($cold['userRelationCalls'])->toBe(0)
+        ->and($cold['components'])->toBe([
+            'filament-auto-panel.user-sessions' => [
+                'class' => UserSessionsRelationManager::class,
+                'name' => 'filament-auto-panel.user-sessions',
+            ],
+        ])
+        ->and(is_file($sessionsDatabase))->toBeFalse();
+})->with([
+    'without an advertised sessions manager' => false,
+    'with an automatic user relation and unavailable sessions database' => true,
+]);
 
 it('retains generated artifacts when Filament is cleared with routes cached and supports warming again', function (): void {
     $this->optimizationApp->command('filament:optimize');

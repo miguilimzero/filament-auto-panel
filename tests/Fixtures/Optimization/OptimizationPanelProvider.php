@@ -13,6 +13,8 @@ class OptimizationPanelProvider extends PanelProvider
             ->id('optimization')
             ->default()
             ->path('admin')
-            ->resources([OwnerResource::class]);
+            ->resources(getenv('AUTO_PANEL_USER_SESSIONS') === 'true'
+                ? [OwnerResource::class, UserResource::class]
+                : [OwnerResource::class]);
     }
 }

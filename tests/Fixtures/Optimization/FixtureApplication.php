@@ -10,7 +10,7 @@ class FixtureApplication
 {
     public readonly string $root;
 
-    public function __construct()
+    public function __construct(private readonly bool $withUserSessions = false)
     {
         $this->root = sys_get_temp_dir() . '/auto-panel-optimize-' . bin2hex(random_bytes(8));
         $files = new Filesystem;
@@ -78,6 +78,7 @@ class FixtureApplication
             [
                 'AUTO_PANEL_PACKAGE_ROOT' => $packageRoot,
                 'AUTO_PANEL_APP_ROOT' => $this->root,
+                'AUTO_PANEL_USER_SESSIONS' => $this->withUserSessions ? 'true' : 'false',
                 'APP_BASE_PATH' => $this->root,
                 'APP_RUNNING_IN_CONSOLE' => $mode === 'command' ? 'true' : 'false',
                 'APP_ENV' => 'testing',

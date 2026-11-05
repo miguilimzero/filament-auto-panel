@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Livewire\Livewire;
 use Miguilim\FilamentAutoPanel\AutoRelationManager;
 use Miguilim\FilamentAutoPanel\Tests\Fixtures\Optimization\OwnerResource;
+use Miguilim\FilamentAutoPanel\Tests\Fixtures\Optimization\UserResource;
 
 require getenv('AUTO_PANEL_PACKAGE_ROOT') . '/vendor/autoload.php';
 
@@ -49,6 +50,15 @@ try {
                     'uri' => $route->uri(),
                 ];
             }
+        } elseif ($mode === 'sessions') {
+            $name = 'filament-auto-panel.user-sessions';
+            $component = Livewire::new($name);
+            $result['components'][$name] = [
+                'class' => $component::class,
+                'name' => $component->getName(),
+            ];
+            $result['userPageCalls'] = UserResource::$pageCalls;
+            $result['userRelationCalls'] = UserResource::$relationCalls;
         } elseif ($mode === 'components') {
             $cache = require $panel->getComponentCachePath();
             $generated = array_filter(

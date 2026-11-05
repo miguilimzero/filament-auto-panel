@@ -6,6 +6,11 @@ use Filament\Resources\Pages\ViewRecord;
 
 class AutoResourceViewRecord extends ViewRecord
 {
+    protected function getAllRelationManagers(): array
+    {
+        return static::getResource()::withAutomaticRelations(parent::getAllRelationManagers());
+    }
+
     protected function getHeaderWidgets(): array
     {
         return static::getResource()::getHeaderWidgets()['view'] ?? [];

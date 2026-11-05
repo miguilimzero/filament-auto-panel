@@ -3,9 +3,11 @@
 namespace Miguilim\FilamentAutoPanel;
 
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 use Miguilim\FilamentAutoPanel\Commands\MakeAutoRelationManagerCommand;
 use Miguilim\FilamentAutoPanel\Commands\MakeAutoResourceCommand;
 use Miguilim\FilamentAutoPanel\Mounters\RuntimeClassFactory;
+use Miguilim\FilamentAutoPanel\Filament\RelationManagers\UserSessionsRelationManager;
 
 class FilamentAutoPanelProvider extends ServiceProvider
 {
@@ -16,6 +18,8 @@ class FilamentAutoPanelProvider extends ServiceProvider
 
     public function boot()
     {
+        Livewire::component('filament-auto-panel.user-sessions', UserSessionsRelationManager::class);
+
         $this->configureCommands();
     }
 

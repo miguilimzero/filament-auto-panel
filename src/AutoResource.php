@@ -4,6 +4,8 @@ namespace Miguilim\FilamentAutoPanel;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Resources\Resource;
+use Filament\Resources\RelationManagers\RelationGroup;
+use Filament\Resources\RelationManagers\RelationManagerConfiguration;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Width;
 use Filament\Tables\Filters\TrashedFilter;
@@ -11,6 +13,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Miguilim\FilamentAutoPanel\Concerns\HasAutoPanelConfiguration;
+use Miguilim\FilamentAutoPanel\Filament\RelationManagers\UserSessionsRelationManager;
 use Miguilim\FilamentAutoPanel\Generators\FilterGenerator;
 use Miguilim\FilamentAutoPanel\Generators\FormGenerator;
 use Miguilim\FilamentAutoPanel\Generators\InfolistGenerator;
@@ -18,6 +21,7 @@ use Miguilim\FilamentAutoPanel\Generators\TableGenerator;
 use Miguilim\FilamentAutoPanel\Mounters\PageMounter;
 use Miguilim\FilamentAutoPanel\Support\Actions;
 use Miguilim\FilamentAutoPanel\Support\TableDefaults;
+use Miguilim\FilamentAutoPanel\Support\UserSessions;
 
 class AutoResource extends Resource
 {
@@ -36,6 +40,43 @@ class AutoResource extends Resource
     public static function getTabs(): array
     {
         return [];
+    }
+
+    public static function getRelations(): array
+    {
+        return static::withAutomaticRelations(parent::getRelations());
+    }
+
+    public static function withAutomaticRelations(array $relations): array
+    {
+        if (UserSessions::supportsModel(static::getModel()) && ! static::hasSessionsRelationManager($relations)) {
+            $relations[] = UserSessionsRelationManager::class;
+        }
+
+        return $relations;
+    }
+
+    protected static function hasSessionsRelationManager(array $relations): bool
+    {
+        foreach ($relations as $relation) {
+            if ($relation instanceof RelationGroup) {
+                $group = (clone $relation)->ownerRecord(null)->pageClass(null);
+
+                if (static::hasSessionsRelationManager($group->getManagers())) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            $class = $relation instanceof RelationManagerConfiguration ? $relation->relationManager : $relation;
+
+            if (is_string($class) && is_a($class, UserSessionsRelationManager::class, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static function getHeaderWidgets(): array
