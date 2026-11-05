@@ -10,8 +10,6 @@ This package provide custom Resources and Relation Managers classes that mounts 
 and edit pages at execution time by scanning the database current table schema while still giving you
 the freedom to create actions, widgets and various customizations to your panel.
 
-> [!WARNING]
-> This package is not compatible with the `filament:optimize` command.
 
 > [!IMPORTANT]
 > This package is intended for admin panels, similar to how Laravel Nova works + everything auto-generated. You can also think it as a database management tool. If you feels you need a more customized resource workflow, re-consider to not use this package.
@@ -23,11 +21,16 @@ the freedom to create actions, widgets and various customizations to your panel.
   - [Soft Deletes](#soft-deletes)
   - [Primary Key](#primary-key)
   - [Relationship Linking](#relationship-linking)
+  - [Automatic Guessing](#automatic-guessing)
+  - [Polymorphic Relationships](#polymorphic-relationships)
+  - [User Fields](#user-fields)
   - [Default Pages](#default-pages)
   - [Intrusive Mode](#intrusive-mode)
   - [Default Actions](#default-actions)
+  - [Association Actions](#association-actions)
   - [Read-Only Mode](#read-only-mode)
   - [Default Sorting](#default-sorting)
+  - [Table Filters](#table-filters)
 - [Auto Resource](#auto-resource)
 - [Auto Relation Manager](#auto-relation-manager)
 - [Auto Action](#auto-action)
@@ -54,10 +57,13 @@ Before getting started with the package, you must know some behaviors that the t
 The package takes into consideration your actual table schema in the database and not your migration file.
 However, it is extremely important to use the correct fields in the migration in order to generate the correct columns.
 
-An example of that is when you use the `boolean()` column method, Laravel will generate a `tinyint(1)` table column. This
+An example of that is when you use the `boolean()` column method on MySQL or MariaDB, Laravel will generate a `tinyint(1)` table column. This
 specific column type and length will be used by Filament Auto Panel to detect its a boolean column. If you use the `tinyInteger()`
-method, it will generate a `tinyint(4)` table column, and therefore will be identified as a numeric column, even if in its context
+method, it will generate a regular `tinyint` table column, and therefore will be identified as a numeric column, even if in its context
 it is being used as a boolean.
+
+Array/list casts use full-width `KeyValue` form fields and `KeyValueEntry` infolist entries.
+For nested JSON, use an `object` cast, which gets a JSON text editor.
 
 > [!NOTE]
 > You can overwrite this auto-detection behavior by setting the cast for the column in your model class.
@@ -74,8 +80,70 @@ is searchable by default and it will also be copyable in table and infolist view
 
 #### Relationship Linking
 
-The package tries to link any columns that ends with `_id` with a belongsTo relationship. It sets a searchable `Select` for create/edit actions, and an URL
-linking to the respective resource in table and infolists (if the resource exists).
+Columns ending in `_id` use a matching belongs-to relationship from your model. Forms get a searchable
+`Select`. Tables and infolists link to the related resource if it is accessible and has a `view` page.
+
+Form selects search the label column plus existing `id`, `name`, `title`, `email`, and primary-key
+columns, without duplicates. Extra search columns exclude hidden, non-visible, encrypted, and hashed
+attributes. Use a form column overwrite to change which columns are searched.
+
+Dropdown options show **#ID** - name/title, omitting the name when unavailable. User options also show
+the configured avatar and email, when available. Only the label changes; the saved foreign-key value is unchanged.
+
+#### Automatic Guessing
+
+The package uses the following conventions:
+
+| Column | Detection |
+| --- | --- |
+| `owner_id` | Uses `owner()` if it is a `BelongsTo` with the matching foreign key. |
+| `author_user_id` | Tries `author_user()`, then `authorUser()`. |
+| `subject_type` + `subject_id` | Uses a matching `subject()` `MorphTo`, regardless of column order. |
+| `name` | First choice for related-record labels. |
+| `title` | Used when `name` is missing. If neither exists, the primary key is used. |
+
+Relationships must already exist on your model. Unmatched columns keep their normal fields.
+Column overwrites and enum dictionaries take priority.
+
+Text form fields containing `email` get email validation; `phone` or `tel` get telephone inputs.
+Table and infolist text fields containing `link` or `url` become clickable links.
+
+#### Polymorphic Relationships
+
+Matching `_type` and `_id` pairs use `MorphToSelect` in forms: choose a model, then an existing record.
+Changing the model clears the selected ID. Tables and infolists show the related record's `name`,
+`title`, or key.
+
+Model choices come from the active panel's accessible resources and respect Laravel's morph-map aliases.
+String or UUID keys need a string morph-ID column. If either column is required, the pair is required;
+otherwise, both can be cleared. Choosing a model always requires a record.
+
+Pairs without compatible targets, incomplete pairs, and non-primary owner keys keep their raw fields.
+An overwrite or enum dictionary on either column also prevents grouping. To replace the whole selector,
+use `MorphToSelect::make('subject')->types([...])` in your form column overwrites.
+
+> [!NOTE]
+> Record queries use model global scopes, not the resource's `getEloquentQuery()` or per-record policies. Use a scoped component overwrite if you need additional restrictions.
+
+#### User Fields
+
+Belongs-to relationships to models implementing `Authenticatable` show an avatar in tables and form
+dropdowns. Forms use `Select`, and infolists use `TextEntry`.
+
+Avatars use the related model's `profile_photo_url` attribute or accessor. It must return a URL;
+missing avatars show the label only. To use another attribute, configure the column in your
+`AppServiceProvider::boot()` method:
+
+```php
+use Miguilim\FilamentAutoPanel\Filament\Columns\UserColumn;
+
+public function boot(): void
+{
+    UserColumn::configureUsing(
+        fn (UserColumn $column) => $column->avatarAttribute('avatar_url'),
+    );
+}
+```
 
 #### Default Pages
 
@@ -100,24 +168,63 @@ and Auto Relation Manager appends the following default actions:
 - Table Actions: `ViewAction, EditAction or RestoreAction`
 - Header Actions: `CreateAction`
 
+#### Association Actions
+
+Auto Relation Managers add association actions based on the relationship:
+
+- `HasMany`: associate/dissociate when the foreign key is nullable and the inverse relationship exists.
+- `MorphMany`: the same, but both the ID and type columns must be nullable.
+- `BelongsToMany` / `MorphToMany`: attach/detach, even with non-nullable pivot keys, since these actions insert or delete pivot rows.
+
+Set `associateAttachActions: false` to disable these actions. Read-only managers do not add them.
+
 #### Read-Only Mode
 
-Auto Resources and Auto Relation Managers can be read-only by setting `protected static bool $readOnly = true;` in your resource or relation manager class. With this mode, all the default actions (with the exception of the `ViewAction`) will be disabled.
+Set `protected static bool $readOnly = true;` to disable default mutation actions, leaving `ViewAction`.
+Custom actions are still available. Resource-backed managers inherit this setting from the resource.
 
-If you want to re-add the create or edit actions with ease, you use the following auto action classes:
+To add create or edit actions back, use:
 
 - `\Miguilim\FilamentAutoPanel\Filament\Actions\AutoCreateAction::make()`
 - `\Miguilim\FilamentAutoPanel\Filament\Actions\AutoEditAction::make()`
 
-For the other actions, such as `DeleteAction`, `RestoreAction`, `ForceDeleteAction`, and bulk equivalents, you will need to create your own auto actions and re-implement them.
 
 #### Default Sorting
 
 By default, the Auto Resource and Auto Relation Manager tries to set the table default sort for the following columns,
-in priority order respectively: `primary key (only if incremented)`, `created_at (if exists)`, `updated_at (if exists)`.
+in priority order: the incrementing primary key, the model's creation timestamp, and its update timestamp.
+The candidate must exist as a sortable table column. Explicit string or closure-based sorts are preserved.
 
 > [!NOTE]
 > You can customize the defaultSort() of your table (and any other method) by extending the `table(Table $table)` and use `parent::table($table)->defaultSort(...)`.
+
+#### Table Filters
+
+Auto Resources and Auto Relation Managers add a [Query Builder](https://filamentphp.com/docs/5.x/tables/filters/query-builder)
+filter automatically. You can combine conditions with AND/OR groups.
+
+Text, numbers, booleans, and dates get matching constraints. Enum casts and `$enumDictionary` use
+selects. Supported belongs-to relationships get a record selector; other relationships use their raw
+foreign keys. Morph relationships keep separate type and ID conditions.
+
+JSON, binary, hidden, encrypted, and hashed fields are skipped. Relation managers also exclude their
+owner columns. Existing filters from `getFilters()` and the soft-delete filter are kept.
+
+To replace the generated filter, return your own `QueryBuilder` from `getFilters()` using its default name:
+
+```php
+use Filament\QueryBuilder\Constraints\TextConstraint;
+use Filament\Tables\Filters\QueryBuilder;
+
+public static function getFilters(): array
+{
+    return [
+        QueryBuilder::make()->constraints([
+            TextConstraint::make('name'),
+        ]),
+    ];
+}
+```
 
 ## Auto Resource
 
