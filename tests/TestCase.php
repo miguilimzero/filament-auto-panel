@@ -14,6 +14,7 @@ use ReflectionProperty;
 
 class TestCase extends Orchestra
 {
+    protected string $componentCacheDirectory;
     protected function getPackageProviders($app): array
     {
         return [
@@ -35,6 +36,9 @@ class TestCase extends Orchestra
 
     protected function defineEnvironment($app): void
     {
+        $this->componentCacheDirectory = $app->storagePath('framework/testing/auto-panel-cache-' . bin2hex(random_bytes(8)));
+        $app['config']->set('filament.cache_path', $this->componentCacheDirectory);
+
         $driver = env('DB_CONNECTION', 'sqlite');
 
         $connection = [
@@ -98,6 +102,7 @@ class TestCase extends Orchestra
             Schema::dropIfExists('owners');
             Schema::connection('secondary')->dropIfExists('products');
         } finally {
+            $this->app['files']->deleteDirectory($this->componentCacheDirectory);
             parent::tearDown();
         }
     }

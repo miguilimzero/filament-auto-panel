@@ -2,9 +2,12 @@
 
 namespace Miguilim\FilamentAutoPanel\Mounters;
 
+use Filament\Resources\Pages\Page;
 use Filament\Resources\Pages\PageRegistration;
+use Filament\Resources\Resource;
 use Miguilim\FilamentAutoPanel\Filament\Pages\AutoResourceListRecords;
 use Miguilim\FilamentAutoPanel\Filament\Pages\AutoResourceViewRecord;
+
 
 class PageMounter
 {
@@ -25,18 +28,23 @@ class PageMounter
         return static::generateAnonymousClass($pageClass, $resource)::route($pageRoute);
     }
 
+    /**
+
+     * @return class-string<Page>
+     */
     protected static function generateAnonymousClass(string $filamentPage, string $resource): string
     {
-        $filamentPageName = array_reverse(explode('\\', $filamentPage))[0];
-        $resourceName = array_reverse(explode('\\', $resource))[0];
+        $filamentPage = RuntimeClassFactory::resolveClass($filamentPage, Page::class);
+        $resource = RuntimeClassFactory::resolveClass($resource, Resource::class);
 
-        $anonymousClass = "{$filamentPageName}{$resourceName}";
+        $class = RuntimeClassFactory::make($filamentPage, [
+            'protected static string $resource' => $resource,
+        ]);
 
-        if (! in_array($anonymousClass, static::$mountedClasses)) {
-            static::$mountedClasses[] = $anonymousClass;
-            eval("class {$anonymousClass} extends {$filamentPage} {protected static string \$resource = '{$resource}';};");
+        if (! in_array($class, static::$mountedClasses, true)) {
+            static::$mountedClasses[] = $class;
         }
 
-        return $anonymousClass;
+        return $class;
     }
 }

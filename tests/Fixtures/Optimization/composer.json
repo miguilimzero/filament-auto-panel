@@ -1,0 +1,13 @@
+{
+    "name": "fixtures/auto-panel-optimization",
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": ["*"]
+        }
+    }
+}
