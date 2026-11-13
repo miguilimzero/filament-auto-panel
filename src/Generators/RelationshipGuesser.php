@@ -2,13 +2,12 @@
 
 namespace Miguilim\FilamentAutoPanel\Generators;
 
-use Illuminate\Database\Eloquent\Casts\AsEncryptedArrayObject;
-use Illuminate\Database\Eloquent\Casts\AsEncryptedCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Str;
+use Miguilim\FilamentAutoPanel\Support\ModelAttributes;
 use ReflectionMethod;
 use ReflectionNamedType;
 
@@ -109,21 +108,10 @@ class RelationshipGuesser
     {
         $connection = $related->getConnection();
         $columns = $connection->getSchemaBuilder()->getColumnListing($related->getTable());
-        $casts = $related->getCasts();
         $searchColumns = [$titleColumn];
 
         foreach (array_unique([$related->getKeyName(), 'id', 'name', 'title', 'email']) as $name) {
-            if (! in_array($name, $columns, true)
-                || in_array($name, $related->getHidden(), true)
-                || ($related->getVisible() && ! in_array($name, $related->getVisible(), true))) {
-                continue;
-            }
-
-            $castType = explode(':', $casts[$name] ?? '', 2)[0];
-
-            if (in_array($castType, ['encrypted', 'hashed'], true)
-                || is_a($castType, AsEncryptedArrayObject::class, true)
-                || is_a($castType, AsEncryptedCollection::class, true)) {
+            if (! in_array($name, $columns, true) || ! ModelAttributes::isPublic($related, $name)) {
                 continue;
             }
 

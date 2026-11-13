@@ -441,9 +441,9 @@ it('retains stable declared relationship scopes in native option searches and va
         ->components([$field])
         ->getFlatComponents(withHidden: true);
 
-    expect($field->getSearchResults('Tenant'))->toBe([$allowed->getKey() => 'Tenant A']);
+    expect($field->getSearchResults('Tenant'))->toBe([$allowed->getKey() => '<b>#' . $allowed->getKey() . '</b> - Tenant A']);
     $field->state([$allowed->getKey(), $outside->getKey()]);
-    expect($field->getOptionLabels())->toBe([$allowed->getKey() => 'Tenant A']);
+    expect($field->getOptionLabels())->toBe([$allowed->getKey() => '<b>#' . $allowed->getKey() . '</b> - Tenant A']);
 });
 
 it('rejects unsafe connection identities before querying an unavailable related schema', function (string $sourceConnection): void {

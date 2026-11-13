@@ -9,12 +9,15 @@ use Filament\Actions\DetachAction;
 use Filament\Actions\DetachBulkAction;
 use Filament\Actions\DissociateAction;
 use Filament\Actions\DissociateBulkAction;
+use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Width;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
@@ -22,12 +25,14 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOneOrMany;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Miguilim\FilamentAutoPanel\Concerns\HasAutoPanelConfiguration;
+use Miguilim\FilamentAutoPanel\Filament\Columns\UserColumn;
 use Miguilim\FilamentAutoPanel\Generators\FilterGenerator;
 use Miguilim\FilamentAutoPanel\Generators\FormGenerator;
 use Miguilim\FilamentAutoPanel\Generators\InfolistGenerator;
 use Miguilim\FilamentAutoPanel\Generators\RelationshipGuesser;
 use Miguilim\FilamentAutoPanel\Generators\TableGenerator;
 use Miguilim\FilamentAutoPanel\Support\Actions;
+use Miguilim\FilamentAutoPanel\Support\RelationshipOptionLabel;
 use Miguilim\FilamentAutoPanel\Support\TableDefaults;
 
 class AutoRelationManager extends RelationManager
@@ -167,7 +172,7 @@ class AutoRelationManager extends RelationManager
         }
 
         if ($relationship instanceof BelongsToMany) {
-            return [[AttachAction::make(), ...$header], [DetachAction::make()], [DetachBulkAction::make()]];
+            return [[$this->configureRelationshipAction(AttachAction::make(), $table), ...$header], [DetachAction::make()], [DetachBulkAction::make()]];
         }
 
         $inverse = $table->getInverseRelationship();
@@ -176,10 +181,31 @@ class AutoRelationManager extends RelationManager
             && $inverse !== null
             && method_exists($relationship->getModel(), $inverse)
             && $this->hasNullableRelationshipColumns($relationship)) {
-            return [[AssociateAction::make(), ...$header], [DissociateAction::make()], [DissociateBulkAction::make()]];
+            return [[$this->configureRelationshipAction(AssociateAction::make(), $table), ...$header], [DissociateAction::make()], [DissociateBulkAction::make()]];
         }
 
         return [$header, [], []];
+    }
+
+    protected function configureRelationshipAction(AttachAction | AssociateAction $action, Table $table): AttachAction | AssociateAction
+    {
+        $related = $this->getRelationship()->getRelated();
+        $title = $table->getRecordTitleAttribute() ?? RelationshipGuesser::guessModelTitleColumnName($related);
+        $userColumn = $related instanceof Authenticatable ? UserColumn::make($title) : null;
+
+        return $action
+            ->recordTitleAttribute($title)
+            ->recordTitle(static fn (Model $record): string => RelationshipOptionLabel::format($record, $title, $userColumn))
+            ->recordSelectSearchColumns(RelationshipGuesser::guessModelSearchColumns($related, $title))
+            ->forceSearchCaseInsensitive()
+            ->recordSelectOptionsQuery(static function (Builder $query): Builder {
+                if ($query->toBase()->joins) {
+                    $query->select($query->getModel()->qualifyColumn('*'));
+                }
+
+                return $query;
+            })
+            ->recordSelect(static fn (Select $select): Select => $select->allowHtml()->native(false));
     }
 
     protected function hasNullableRelationshipColumns(HasOneOrMany $relationship): bool

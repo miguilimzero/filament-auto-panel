@@ -9,7 +9,6 @@ use Filament\QueryBuilder\Constraints\DateConstraint;
 use Filament\QueryBuilder\Constraints\NumberConstraint;
 use Filament\QueryBuilder\Constraints\Operators\IsFilledOperator;
 use Filament\QueryBuilder\Constraints\RelationshipConstraint;
-use Filament\QueryBuilder\Constraints\RelationshipConstraint\Operators\IsRelatedToOperator;
 use Filament\QueryBuilder\Constraints\SelectConstraint;
 use Filament\QueryBuilder\Constraints\TextConstraint;
 use Filament\Tables\Filters\QueryBuilder;
@@ -21,7 +20,9 @@ use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
 use Illuminate\Database\Eloquent\Relations\MorphOneOrMany;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Miguilim\FilamentAutoPanel\Filament\Filters\NumericComparisonOperator;
+use Miguilim\FilamentAutoPanel\Filament\Filters\RelatedRecordOperator;
 use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
+use Miguilim\FilamentAutoPanel\Support\ModelAttributes;
 
 class FilterGenerator
 {
@@ -136,9 +137,8 @@ class FilterGenerator
     {
         $cast = explode(':', $model->getCasts()[$name] ?? '', 2)[0];
 
-        return ! in_array($name, $model->getHidden(), true)
-            && (! $model->getVisible() || in_array($name, $model->getVisible(), true))
-            && ! in_array($cast, ['encrypted', 'hashed', ...static::STRUCTURED_CASTS], true);
+        return ModelAttributes::isPublic($model, $name)
+            && ! in_array($cast, static::STRUCTURED_CASTS, true);
     }
 
     protected function makeNumberConstraint(Column $column): NumberConstraint
@@ -221,8 +221,25 @@ class FilterGenerator
             return null;
         }
 
+        $hasJoins = filled($actualQuery->joins);
+
         return RelationshipConstraint::make($name)
             ->emptyable(! $column->getNotNull())
-            ->selectable(IsRelatedToOperator::make()->titleAttribute($title)->searchable()->multiple()->forceSearchCaseInsensitive());
+            ->selectable(RelatedRecordOperator::make()
+                ->titleAttribute($title)
+                ->searchable()
+                ->multiple()
+                ->forceSearchCaseInsensitive()
+                ->modifyRelationshipQueryUsing(static function (Builder $query) use ($hasJoins, $title): Builder {
+                    if ($hasJoins) {
+                        $query->select($query->qualifyColumn('*'));
+                    }
+
+                    if (empty($query->getQuery()->orders)) {
+                        $query->orderBy($query->qualifyColumn($title));
+                    }
+
+                    return $query;
+                }));
     }
 }
