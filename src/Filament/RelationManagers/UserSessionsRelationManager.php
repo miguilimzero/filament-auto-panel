@@ -152,7 +152,6 @@ class UserSessionsRelationManager extends RelationManager
                     ->state(fn (DatabaseSession $record): Carbon => Carbon::createFromTimestamp($record->last_activity))
                     ->since()
                     ->sortable(),
-
             ])
             ->defaultSort('last_activity', 'desc')
             ->paginationMode(PaginationMode::Default)
@@ -162,7 +161,6 @@ class UserSessionsRelationManager extends RelationManager
             ->authorizeReorder(false)
             ->headerActions([])
             ->toolbarActions([])
-            ->bulkActions([])
             ->recordActions([
                 RevokeSessionAction::make()
                     ->label('Revoke session')

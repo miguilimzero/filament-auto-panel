@@ -80,9 +80,7 @@ class UserSessions
             return $query->whereRaw('1 = 0');
         }
 
-        return $query
-            ->whereNotNull('user_id')
-            ->where('user_id', $identifier);
+        return $query->where('user_id', $identifier);
     }
 
     public static function recordKey(DatabaseSession $session, Model $owner): string

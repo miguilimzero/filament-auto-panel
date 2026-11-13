@@ -137,9 +137,7 @@ class AutoResource extends Resource
             ->recordActions(static::getTableActions())
             ->toolbarActions($bulkActions ? [BulkActionGroup::make($bulkActions)] : []);
 
-        $model = static::getModel();
-
-        return TableDefaults::sort($table, new $model());
+        return TableDefaults::sort($table, new $modelClass());
     }
 
     public static function getPages(): array

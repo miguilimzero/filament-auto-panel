@@ -20,7 +20,6 @@ class MakeAutoResourceCommand extends MakeResourceCommand
             $this->configureRecordTitleAttribute();
             $this->configurePanel(question: 'Which panel would you like to create this resource in?');
             $this->configureResourcesLocation(question: 'Which namespace would you like to create this resource in?');
-            $this->configureHasResourceClassesOutsideDirectories();
             $this->configureLocation();
             $this->createResourceClass();
         } catch (FailureCommandOutput) {
