@@ -180,13 +180,13 @@ and Auto Relation Manager appends the following default actions:
 
 #### Association Actions
 
-Auto Relation Managers add association actions based on the relationship:
+Auto Relation Managers detect association actions automatically; `associateAttachActions` is optional:
 
 - `HasMany`: associate/dissociate when the foreign key is nullable and the inverse relationship exists.
 - `MorphMany`: the same, but both the ID and type columns must be nullable.
 - `BelongsToMany` / `MorphToMany`: attach/detach, even with non-nullable pivot keys, since these actions insert or delete pivot rows.
 
-Set `associateAttachActions: false` to disable these actions. Read-only managers do not add them.
+Set `associateAttachActions: false` to disable them; `true` does not bypass these checks. Read-only managers do not add them.
 
 #### Read-Only Mode
 
