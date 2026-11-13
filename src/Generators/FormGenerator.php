@@ -13,6 +13,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Forms\Components\KeyValue;
 use Filament\Support\Components\ViewComponent;
@@ -21,6 +22,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Str;
+use Illuminate\Support\Js;
 use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
 use Miguilim\FilamentAutoPanel\Filament\StateCasts\JsonStateCast;
 use Miguilim\FilamentAutoPanel\Filament\Columns\UserColumn;
@@ -290,7 +292,18 @@ class FormGenerator extends AbstractGenerator
             return $textInput;
         }
 
-        return $textInput->maxLength($column->getLength());
+        $textInput->maxLength($column->getLength());
+
+        if ($column->getType() === 'string' && $column->getLength() !== null) {
+            $textInput->belowContent(static fn (TextInput $component): Text => Text::make(
+                'Array.from(String($get(' . Js::from($component->getStatePath()) . ', true) ?? "")).length + " / ' . $component->getMaxLength() . '"',
+            )
+                ->js()
+                ->grow()
+                ->extraAttributes(['style' => 'display:block;width:100%;text-align:right']));
+        }
+
+        return $textInput;
     }
 
     protected function generateSchema(array $exceptColumns, array $overwriteColumns, array $enumDictionary): array
