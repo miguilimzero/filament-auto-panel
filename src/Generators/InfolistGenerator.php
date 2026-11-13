@@ -117,7 +117,7 @@ class InfolistGenerator extends AbstractGenerator
             ->placeholder(fn () => $this->placeholderHtml());
 
         if (! $isPrimaryKey && $column->isNumeric()) {
-            return $textEntry->numeric($column->getDecimalPlaces())
+            return $textEntry->numeric()
                 ->formatStateUsing(static fn (TextEntry $component, mixed $state): ?string => DecimalFormatter::format(
                     $state,
                     $column->getDecimalPlaces(),

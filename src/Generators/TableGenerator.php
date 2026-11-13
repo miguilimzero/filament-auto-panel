@@ -144,7 +144,7 @@ class TableGenerator extends AbstractGenerator
             ->placeholder(fn () => $this->placeholderHtml());
 
         if (! $isPrimaryKey && $column->isNumeric()) {
-            return $textColumn->numeric($column->getDecimalPlaces())
+            return $textColumn->numeric()
                 ->formatStateUsing(static fn (TextColumn $component, mixed $state): ?string => DecimalFormatter::format(
                     $state,
                     $column->getDecimalPlaces(),

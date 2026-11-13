@@ -15,7 +15,6 @@ class NumericInput extends TextInput
     {
         parent::setUp();
 
-        // Number inputs are coerced to JavaScript numbers by Livewire.
         $this->numeric()->type('text')
             ->rule(static fn (): Closure => static function (string $attribute, mixed $value, Closure $fail): void {
                 if (is_string($value) && ! DecimalFormatter::isWithinExpansionLimit($value)) {

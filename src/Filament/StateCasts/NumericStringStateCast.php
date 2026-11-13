@@ -14,10 +14,8 @@ class NumericStringStateCast implements StateCast
     {
         if (is_string($state)) {
             $state = str_replace($this->stripCharacters, '', $state);
-        }
 
-        if ($state === null || (is_string($state) && trim($state) === '')) {
-            return null;
+            return trim($state) === '' ? null : $state;
         }
 
         if (is_int($state)) {
