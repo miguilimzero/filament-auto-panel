@@ -46,6 +46,7 @@ class RelationManagerMounter
         ?bool $associateAttachActions = null,
         ?bool $intrusive = null,
         ?bool $readOnly = null,
+        ?array $excludedColumns = null,
     ): string {
         static::validateRelationship($relation);
 
@@ -61,6 +62,7 @@ class RelationManagerMounter
             'protected static bool $associateAttachActions' => $associateAttachActions,
             'protected static bool $intrusive' => $intrusive,
             'protected static bool $readOnly' => $readOnly,
+            'protected static array $excludedColumns' => $excludedColumns,
         ] as $declaration => $value) {
             if ($value !== null) {
                 $properties[$declaration] = $value;

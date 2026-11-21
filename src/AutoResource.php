@@ -20,6 +20,7 @@ use Miguilim\FilamentAutoPanel\Generators\InfolistGenerator;
 use Miguilim\FilamentAutoPanel\Generators\TableGenerator;
 use Miguilim\FilamentAutoPanel\Mounters\PageMounter;
 use Miguilim\FilamentAutoPanel\Support\Actions;
+use Miguilim\FilamentAutoPanel\Support\ModelAttributes;
 use Miguilim\FilamentAutoPanel\Support\TableDefaults;
 use Miguilim\FilamentAutoPanel\Support\UserSessions;
 
@@ -120,7 +121,7 @@ class AutoResource extends Resource
     {
         $modelClass = static::getModel();
         $filters = [
-            ...FilterGenerator::makeForTable($table, new $modelClass(), enumDictionary: static::getEnumDictionary()),
+            ...FilterGenerator::makeForTable($table, new $modelClass(), exceptColumns: static::getExcludedColumns(), enumDictionary: static::getEnumDictionary()),
             ...static::getFilters(),
         ];
 
@@ -207,6 +208,7 @@ class AutoResource extends Resource
     public static function getSchemaOptions(string $type): array
     {
         $options = [
+            'excludedColumns' => static::getExcludedColumns(),
             'overwriteColumns' => static::getColumnsOverwriteMapped($type),
             'enumDictionary' => static::getEnumDictionary(),
         ];
@@ -217,6 +219,27 @@ class AutoResource extends Resource
         }
 
         return $options;
+    }
+
+    /** @return array<string> */
+    public static function getExcludedColumns(): array
+    {
+        return static::$excludedColumns;
+    }
+
+    /** @return array<string> */
+    public static function getGloballySearchableAttributes(): array
+    {
+        $modelClass = static::getModel();
+        $model = new $modelClass();
+        $excluded = static::getExcludedColumns();
+
+        return array_values(array_filter(
+            parent::getGloballySearchableAttributes(),
+            static fn (string $attribute): bool => ! in_array($attribute, $excluded, true)
+                && ! ModelAttributes::isHashed($model, $attribute)
+                && ! ModelAttributes::isEncrypted($model, $attribute),
+        ));
     }
 
     protected static function getEnumDictionary(): array

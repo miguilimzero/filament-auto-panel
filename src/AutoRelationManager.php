@@ -99,7 +99,7 @@ class AutoRelationManager extends RelationManager
             ...FilterGenerator::makeForTable(
                 $table,
                 $this->getRelationship()->getRelated(),
-                exceptColumns: $this->getExceptRelationshipColumns(),
+                exceptColumns: [...$this->getExceptRelationshipColumns(), ...$this->getExcludedColumns()],
                 enumDictionary: $this->getSchemaOptions('table')['enumDictionary'],
             ),
             ...$this->getFilters(),
@@ -253,20 +253,34 @@ class AutoRelationManager extends RelationManager
         $resource = static::getRelatedResource();
 
         if ($resource && is_a($resource, AutoResource::class, true)) {
-            return $resource::getSchemaOptions($type);
+            $options = $resource::getSchemaOptions($type);
+        } else {
+            $options = [
+                'overwriteColumns' => $this->getColumnsOverwriteMapped($type),
+                'enumDictionary' => static::$enumDictionary,
+            ];
+
+            if ($type === 'table') {
+                $options['visibleColumns'] = static::$visibleColumns;
+                $options['searchableColumns'] = static::$searchableColumns;
+            }
         }
 
-        $options = [
-            'overwriteColumns' => $this->getColumnsOverwriteMapped($type),
-            'enumDictionary' => static::$enumDictionary,
-        ];
-
-        if ($type === 'table') {
-            $options['visibleColumns'] = static::$visibleColumns;
-            $options['searchableColumns'] = static::$searchableColumns;
-        }
+        $options['excludedColumns'] = $this->getExcludedColumns();
 
         return $options;
+    }
+
+    /** @return array<string> */
+    public function getExcludedColumns(): array
+    {
+        $resource = static::getRelatedResource();
+
+        if ($resource && is_a($resource, AutoResource::class, true)) {
+            return $resource::getExcludedColumns();
+        }
+
+        return static::$excludedColumns;
     }
 
     protected function withoutRelationshipColumns(array $columns): array

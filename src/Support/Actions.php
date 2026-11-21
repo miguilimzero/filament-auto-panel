@@ -9,9 +9,9 @@ use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
-use Filament\Actions\ViewAction;
 use Miguilim\FilamentAutoPanel\Filament\Actions\AutoCreateAction;
 use Miguilim\FilamentAutoPanel\Filament\Actions\AutoEditAction;
+use Miguilim\FilamentAutoPanel\Filament\Actions\AutoViewAction;
 
 
 class Actions
@@ -57,7 +57,7 @@ class Actions
     public static function table(bool $readOnly, bool $softDeletes, bool $editable = false): array
     {
         $actions = $editable && ! $readOnly ? [AutoEditAction::make()] : [];
-        $actions[] = ViewAction::make();
+        $actions[] = AutoViewAction::make();
 
         if ($softDeletes && ! $readOnly) {
             $actions[] = RestoreAction::make();

@@ -4,11 +4,13 @@ namespace Miguilim\FilamentAutoPanel\Filament\Actions;
 
 use Filament\Actions\EditAction;
 use Illuminate\Database\Eloquent\Model;
+use Miguilim\FilamentAutoPanel\Concerns\FillsFormFieldsOnly;
 use Miguilim\FilamentAutoPanel\Concerns\HasActionPlacement;
 use Miguilim\FilamentAutoPanel\Concerns\InteractsWithIntrusiveModels;
 
 class AutoEditAction extends EditAction
 {
+    use FillsFormFieldsOnly;
     use HasActionPlacement;
     use InteractsWithIntrusiveModels;
 

@@ -83,6 +83,26 @@ it('generates table columns with existing display and search settings', function
         ->and($columns['description']->isToggledHiddenByDefault())->toBeTrue();
 });
 
+it('throws when a visible or searchable column does not exist in the generated table', function (array $options, string $message): void {
+    expect(fn () => TableGenerator::make(Product::class, ...$options))
+        ->toThrow(InvalidArgumentException::class, $message);
+})->with([
+    'visible' => [['visibleColumns' => ['name', 'missing_column']], 'Visible column(s) [missing_column] do not exist'],
+    'searchable' => [['searchableColumns' => ['missing_column' => 'global']], 'Searchable column(s) [missing_column] do not exist'],
+]);
+
+it('throws when an overwrite or enum dictionary column does not exist in the table', function (string $generator, array $options, string $message): void {
+    expect(fn () => $generator::make(Product::class, ...$options))
+        ->toThrow(InvalidArgumentException::class, $message);
+})->with([
+    'table' => [TableGenerator::class],
+    'form' => [FormGenerator::class],
+    'infolist' => [InfolistGenerator::class],
+])->with([
+    'overwrite' => [['overwriteColumns' => ['missing_column' => TextColumn::make('missing_column')]], 'Overwrite column(s) [missing_column] do not exist'],
+    'enum dictionary' => [['enumDictionary' => ['missing_column' => [0 => 'Zero']]], 'Enum dictionary column(s) [missing_column] do not exist'],
+]);
+
 it('generates infolist entries and a separate timestamps section', function (): void {
     $schema = FilamentSchema::make(new ListProducts())->model(Product::class)->components(InfolistGenerator::make(Product::class));
     $entries = collect($schema->getFlatComponents(withHidden: true))
