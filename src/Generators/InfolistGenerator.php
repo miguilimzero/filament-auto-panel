@@ -18,14 +18,14 @@ use Miguilim\FilamentAutoPanel\Support\DecimalFormatter;
 
 class InfolistGenerator extends AbstractGenerator
 {
-    public static function make(string $modelClass, array $exceptColumns = [], array $overwriteColumns = [], array $enumDictionary = []): array
+    public static function make(string $modelClass, array $exceptColumns = [], array $overwriteColumns = [], array $enumDictionary = [], array $excludedColumns = []): array
     {
-        return (new static($modelClass))->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary);
+        return (new static($modelClass))->excludedColumns($excludedColumns)->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary);
     }
 
-    public static function makeForModel(Model $model, array $exceptColumns = [], array $overwriteColumns = [], array $enumDictionary = []): array
+    public static function makeForModel(Model $model, array $exceptColumns = [], array $overwriteColumns = [], array $enumDictionary = [], array $excludedColumns = []): array
     {
-        return (new static($model))->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary);
+        return (new static($model))->excludedColumns($excludedColumns)->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary);
     }
 
     protected function handleRelationshipColumn(Column $column, string $relationshipName, string $relationshipTitleColumnName): ViewComponent

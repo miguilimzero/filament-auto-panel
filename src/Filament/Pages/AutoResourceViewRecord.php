@@ -3,6 +3,7 @@
 namespace Miguilim\FilamentAutoPanel\Filament\Pages;
 
 use Filament\Resources\Pages\ViewRecord;
+use Miguilim\FilamentAutoPanel\Support\FormData;
 
 class AutoResourceViewRecord extends ViewRecord
 {
@@ -27,7 +28,15 @@ class AutoResourceViewRecord extends ViewRecord
             ? (clone $this->getRecord())->setHidden([])
             : $this->getRecord();
 
-        $this->fillFormWithDataAndCallHooks($record);
+        $this->callHook('beforeFill');
+
+        FormData::fill(
+            $this->form,
+            $this->mutateFormDataBeforeFill($record->attributesToArray()),
+            static::getResource()::getExcludedColumns(),
+        );
+
+        $this->callHook('afterFill');
     }
 
     /**
@@ -40,7 +49,10 @@ class AutoResourceViewRecord extends ViewRecord
             : $this->getRecord();
 
         $this->form->fillPartially(
-            $this->mutateFormDataBeforeFill($record->attributesToArray()),
+            array_diff_key(
+                $this->mutateFormDataBeforeFill($record->attributesToArray()),
+                array_flip(static::getResource()::getExcludedColumns()),
+            ),
             $statePaths,
         );
     }

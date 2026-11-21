@@ -40,15 +40,15 @@ class FormGenerator extends AbstractGenerator
         return $this;
     }
 
-    public static function make(string $modelClass, array $exceptColumns = [], array $overwriteColumns = [], array $enumDictionary = [], bool $relationManagerView = false): array
+    public static function make(string $modelClass, array $exceptColumns = [], array $overwriteColumns = [], array $enumDictionary = [], bool $relationManagerView = false, array $excludedColumns = []): array
     {
-        return (new static($modelClass))->relationManagerView($relationManagerView)
+        return (new static($modelClass))->excludedColumns($excludedColumns)->relationManagerView($relationManagerView)
             ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary);
     }
 
-    public static function makeForModel(Model $model, array $exceptColumns = [], array $overwriteColumns = [], array $enumDictionary = [], bool $relationManagerView = false): array
+    public static function makeForModel(Model $model, array $exceptColumns = [], array $overwriteColumns = [], array $enumDictionary = [], bool $relationManagerView = false, array $excludedColumns = []): array
     {
-        return (new static($model))->relationManagerView($relationManagerView)
+        return (new static($model))->excludedColumns($excludedColumns)->relationManagerView($relationManagerView)
             ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary);
     }
 
@@ -213,6 +213,18 @@ class FormGenerator extends AbstractGenerator
             ->native(false)
             ->forceSearchCaseInsensitive() // Compatibility with specific db collations
             ->searchable(RelationshipGuesser::guessSearchColumns($this->modelInstance, $relationshipName, $relationshipTitleColumnName));
+    }
+
+    protected function handleHashedColumn(Column $column): ?ViewComponent
+    {
+        // The stored hash is never shown; the model cast hashes a new value on save.
+        return TextInput::make($column->getName())
+            ->password()
+            ->revealable()
+            ->autocomplete('new-password')
+            ->formatStateUsing(static fn (): ?string => null)
+            ->required(static fn (string $operation): bool => $operation === 'create' && $column->getNotNull())
+            ->dehydrated(static fn (mixed $state): bool => filled($state));
     }
 
     protected function handleEnumDictionaryColumn(Column $column, array $dictionary): ViewComponent

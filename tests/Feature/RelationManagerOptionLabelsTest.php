@@ -34,7 +34,7 @@ function relationManagerLabelTable(bool $resourceBacked, string $relation): Tabl
     $resource = $relation === 'records' ? RelationManagerLabelRecordResource::class : RelationManagerLabelUserResource::class;
     $class = $resourceBacked
         ? RelationManagerMounter::makeFromResource($resource, $relation)
-        : RelationManagerMounter::makeStandalone($relation, visibleColumns: ['name']);
+        : RelationManagerMounter::makeStandalone($relation, visibleColumns: [$relation === 'records' ? 'owner.name' : 'name']);
     $manager = new $class();
     $manager->ownerRecord = RelationManagerLabelParent::create(['name' => 'Parent']);
     $manager->pageClass = ListProducts::class;

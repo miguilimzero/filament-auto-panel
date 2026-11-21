@@ -27,6 +27,7 @@ the freedom to create actions, widgets and various customizations to your panel.
   - [User Sessions](#user-sessions)
   - [Default Pages](#default-pages)
   - [Intrusive Mode](#intrusive-mode)
+  - [Hashed and Encrypted Columns](#hashed-and-encrypted-columns)
   - [Default Actions](#default-actions)
   - [Association Actions](#association-actions)
   - [Read-Only Mode](#read-only-mode)
@@ -35,9 +36,11 @@ the freedom to create actions, widgets and various customizations to your panel.
 - [Auto Resource](#auto-resource)
 - [Auto Relation Manager](#auto-relation-manager)
 - [Auto Action](#auto-action)
+- [Unknown Columns](#unknown-columns)
 - [Enum Dictionary](#enum-dictionary)
 - [Visible Columns](#visible-columns)
 - [Searchable Columns](#searchable-columns)
+- [Excluded Columns](#excluded-columns)
 - [Overwrite Columns](#overwrite-columns)
 - [Appending Columns](#appending-columns)
 - [Widgets](#widgets)
@@ -162,6 +165,29 @@ By default, the Auto Resource have a list and view pages. The create and edit re
 #### Intrusive Mode
 
 Auto Resources and Auto Relation Managers have the intrusive mode by default. When this mode is activated, the create and edit actions will not respect the `$fillable` and `$hidden` model attributes. If you would like to disable this behavior, you can set `protected static bool $intrusive = false;` in your resource or relation manager class.
+
+Edit forms are only filled with attributes that have a form field. Attributes the form does not show are never
+sent to the browser, in both modes. In intrusive mode a `$hidden` attribute is still filled when it has a field.
+
+> [!NOTE]
+> `$hidden` is not treated as secret: tables, infolists and intrusive forms still show those attributes. A field you hide with `->hidden()` still receives its value, so use [excluded columns](#excluded-columns) to keep a column out of the panel entirely.
+
+#### Hashed and Encrypted Columns
+
+Columns with a `hashed` cast are never shown in tables or infolists. Forms use a revealable password input that
+starts empty: leaving it empty on edit keeps the stored hash, and filling it stores a new one. On create it is
+required when the column is `NOT NULL`.
+
+Columns with an encrypted cast (`encrypted`, `encrypted:array`, `encrypted:collection`, `encrypted:object`,
+`encrypted:json`, `AsEncryptedArrayObject` and `AsEncryptedCollection`) are hidden by default in tables, and are
+never searchable or sortable, because the database only holds ciphertext. List one in `$visibleColumns` to show it
+by default; listing one in `$searchableColumns` throws an `InvalidArgumentException`. Infolists and forms show the
+decrypted value, and saving a form keeps the database value encrypted.
+
+Hashed and encrypted columns are also left out of generated filters, global search and relationship select searches.
+
+> [!NOTE]
+> Detection is based on model casts, so it cannot see columns that are encrypted by hand, such as Fortify's `two_factor_secret` and `two_factor_recovery_codes`. Those belong in [excluded columns](#excluded-columns).
 
 #### Default Actions
 
@@ -288,7 +314,7 @@ public static function getRelations(): array
 ```
 
 > [!NOTE]
-> Optional parameters: `searchableColumns`, `enumDictionary`, `recordTitleAttribute`, `associateAttachActions`, `intrusive`, `readOnly`.
+> Optional parameters: `searchableColumns`, `enumDictionary`, `recordTitleAttribute`, `associateAttachActions`, `intrusive`, `readOnly`, `excludedColumns`.
 
 However, if you need a more customized relation manager, you can create a file with the following command:
 
@@ -327,6 +353,11 @@ public static function getActions(): array
 
 > [!NOTE]
 > By default the auto action are not shown anywhere, so you must set at least one of the following methods: `showOnTable()`, `showOnBulkAction()`, `showOnViewPage()` or `showOnListPage()`.
+
+## Unknown Columns
+
+Column names set in the enum dictionary, visible columns, searchable columns, excluded columns and column overwrites are validated.
+A name that does not exist throws an `InvalidArgumentException` listing the available columns, instead of being silently ignored.
 
 ## Enum Dictionary
 
@@ -376,6 +407,9 @@ protected static array $visibleColumns = [
 
 This feature only sets the column default visibility in the top-right menu of your table. You can enable/disable any column visibility at any time using the panel.
 
+Names must match the generated table column names. Relationship columns use the relationship method name
+plus its title column, so `billing_address_id` with a `billingAddress()` relationship is `billingAddress.name`.
+
 > [!NOTE]
 > You cannot customize form or infolist columns visibility.
 
@@ -391,6 +425,29 @@ protected static array $searchableColumns = [
 ```
 
 You have the following searchable options to use: `global`, `individual` or `both`.
+
+## Excluded Columns
+
+You can remove columns from your Auto Resource or Auto Relation Manager entirely using:
+
+```php
+protected static array $excludedColumns = [
+    'api_secret', 'internal_notes',
+];
+```
+
+An excluded column is never generated in the table, form or infolist, never filled into a form, never offered as a
+filter, never searched (table search, global search and relationship selects) and never sent to the browser.
+Exclusion takes priority over column overwrites and the enum dictionary. Resource-backed relation managers inherit
+the list from their resource; standalone ones take an `excludedColumns` parameter:
+
+```php
+RelationManagerMounter::makeStandalone(
+    relation: 'apiKeys',
+    visibleColumns: ['name', 'created_at'],
+    excludedColumns: ['secret'],
+),
+```
 
 ## Overwrite Columns
 

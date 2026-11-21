@@ -2,6 +2,8 @@
 
 namespace Miguilim\FilamentAutoPanel\Generators\Objects;
 
+use Miguilim\FilamentAutoPanel\Support\ModelAttributes;
+
 class Column
 {
     protected string $type;
@@ -11,6 +13,10 @@ class Column
     protected ?int $decimalPlaces;
 
     protected bool $objectCast = false;
+
+    protected bool $hashed = false;
+
+    protected bool $encrypted = false;
 
     public function __construct(protected array $data, ?string $cast = null, ?string $driver = null)
     {
@@ -50,6 +56,9 @@ class Column
         $this->decimalPlaces = isset($scale[1]) ? (int) $scale[1] : null;
 
         if ($cast !== null) {
+            $this->hashed = ModelAttributes::isHashedCast($cast);
+            $this->encrypted = ModelAttributes::isEncryptedCast($cast);
+
             [$castType, $parameters] = array_pad(explode(':', $cast, 2), 2, null);
 
             if ($castType === 'encrypted' && $parameters !== null) {
@@ -103,6 +112,16 @@ class Column
             'float' => null,
             default => 0,
         };
+    }
+
+    public function isHashed(): bool
+    {
+        return $this->hashed;
+    }
+
+    public function isEncrypted(): bool
+    {
+        return $this->encrypted;
     }
 
     public function isObjectCast(): bool

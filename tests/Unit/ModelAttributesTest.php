@@ -4,6 +4,10 @@ use Illuminate\Database\Eloquent\Casts\AsEncryptedArrayObject;
 use Illuminate\Database\Eloquent\Casts\AsEncryptedCollection;
 use Illuminate\Database\Eloquent\Model;
 use Miguilim\FilamentAutoPanel\Support\ModelAttributes;
+use Miguilim\FilamentAutoPanel\Tests\TestCase;
+
+// Attribute visibility reads the current panel's excluded columns.
+uses(TestCase::class);
 
 it('uses the same attribute visibility rules for labels searches and filters', function (array $hidden, array $visible, bool $expected): void {
     $model = new class extends Model {};

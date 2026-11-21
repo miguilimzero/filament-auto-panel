@@ -19,6 +19,8 @@ class {{ resourceClass }} extends AutoResource
 
     protected static array $searchableColumns = [];
 
+    protected static array $excludedColumns = [];
+
     public static function getFilters(): array
     {
         return [

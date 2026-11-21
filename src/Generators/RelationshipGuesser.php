@@ -81,9 +81,10 @@ class RelationshipGuesser
         $schema = $related->getConnection()->getSchemaBuilder();
         $table = $related->getTable();
         $columns = $schema->getColumnListing($table);
+        $excluded = ModelAttributes::excludedColumns($related);
 
         foreach (['name', 'title'] as $candidate) {
-            if (in_array($candidate, $columns)) {
+            if (in_array($candidate, $columns) && ! in_array($candidate, $excluded, true)) {
                 return $candidate;
             }
         }

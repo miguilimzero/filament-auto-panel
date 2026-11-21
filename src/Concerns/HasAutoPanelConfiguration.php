@@ -10,6 +10,8 @@ trait HasAutoPanelConfiguration
 
     protected static array $searchableColumns = [];
 
+    protected static array $excludedColumns = [];
+
     protected static bool $intrusive = true;
 
     protected static bool $readOnly = false;

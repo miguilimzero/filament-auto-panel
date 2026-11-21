@@ -11,6 +11,7 @@ use Filament\Support\Enums\IconPosition;
 use Filament\Tables\Columns\Column as TableColumn;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Miguilim\FilamentAutoPanel\Generators\Objects\Column;
 use Miguilim\FilamentAutoPanel\Filament\Columns\UserColumn;
 use Miguilim\FilamentAutoPanel\Support\DecimalFormatter;
@@ -41,9 +42,10 @@ class TableGenerator extends AbstractGenerator
         array $overwriteColumns = [],
         array $enumDictionary = [],
         array $visibleColumns = [],
-        array $searchableColumns = []
+        array $searchableColumns = [],
+        array $excludedColumns = [],
     ): array {
-        return (new static($modelClass))->visibleColumns($visibleColumns)
+        return (new static($modelClass))->excludedColumns($excludedColumns)->visibleColumns($visibleColumns)
             ->searchableColumns($searchableColumns)
             ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary);
     }
@@ -54,9 +56,10 @@ class TableGenerator extends AbstractGenerator
         array $overwriteColumns = [],
         array $enumDictionary = [],
         array $visibleColumns = [],
-        array $searchableColumns = []
+        array $searchableColumns = [],
+        array $excludedColumns = [],
     ): array {
-        return (new static($model))->visibleColumns($visibleColumns)
+        return (new static($model))->excludedColumns($excludedColumns)->visibleColumns($visibleColumns)
             ->searchableColumns($searchableColumns)
             ->generateSchema($exceptColumns, $overwriteColumns, $enumDictionary);
     }
@@ -157,14 +160,39 @@ class TableGenerator extends AbstractGenerator
 
     protected function generateSchema(array $exceptColumns, array $overwriteColumns, array $enumDictionary): array
     {
-        return collect($this->getResourceColumns($exceptColumns, $overwriteColumns, $enumDictionary))->map(function (TableColumn $columnInstance) {
+        $columns = $this->getResourceColumns($exceptColumns, $overwriteColumns, $enumDictionary);
+
+        $names = array_values(array_map(static fn (TableColumn $column): string => $column->getName(), $columns));
+
+        $this->ensureColumnsExist($names, $this->visibleColumns, 'Visible');
+        $this->ensureColumnsExist($names, array_keys($this->searchableColumns), 'Searchable');
+
+        if ($searchable = array_intersect($this->encryptedColumns, array_keys($this->searchableColumns))) {
+            throw new InvalidArgumentException(sprintf(
+                'Encrypted column(s) [%s] of [%s] cannot be searchable: the database only holds ciphertext.',
+                implode(', ', $searchable),
+                $this->modelInstance::class,
+            ));
+        }
+
+        return collect($columns)->map(function (TableColumn $columnInstance) {
+            $name = $columnInstance->getName();
+
+            // Encrypted values are decrypted by the model, so SQL can neither search nor sort them.
+            if (in_array($name, $this->encryptedColumns, true)) {
+                return $columnInstance
+                    ->searchable(false)
+                    ->sortable(false)
+                    ->toggleable(isToggledHiddenByDefault: ! in_array($name, $this->visibleColumns));
+            }
+
             return $columnInstance
                 ->searchable(
                     isGlobal: $columnInstance->isGloballySearchable() ?: $this->isSearchableColumnByType($columnInstance, 'global'),
                     isIndividual: $columnInstance->isIndividuallySearchable() ?: $this->isSearchableColumnByType($columnInstance, 'individual'),
                 )
                 ->toggleable(
-                    isToggledHiddenByDefault: ! empty($this->visibleColumns) && ! in_array($columnInstance->getName(), $this->visibleColumns)
+                    isToggledHiddenByDefault: ! empty($this->visibleColumns) && ! in_array($name, $this->visibleColumns)
                 );
         })->all();
     }
